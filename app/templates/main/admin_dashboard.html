@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>管理面板</h1>
+    <p class="lead">欢迎来到皇冠新材IT资产管理系统</p>
+
+    <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xl-5 mt-4">
+        <div class="col">
+            <div class="card h-100 border-primary">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-primary">资产/配件管理中心</h5>
+                    <p class="card-text">统一管理资产和配件，整合所有功能</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.asset_center') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">用户管理</h5>
+                    <p class="card-text">管理系统中的所有用户</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.user_management') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col position-relative">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">账号申请</h5>
+                    <p class="card-text">查看待审批的账号申请</p>
+                    {% if pending_account_requests %}
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">{{ pending_account_requests }}</span>
+                    {% endif %}
+                    <div class="mt-auto"><a href="{{ url_for('main.account_request_list') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">部门管理</h5>
+                    <p class="card-text">管理系统中的所有部门</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.department_management') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">设备管理</h5>
+                    <p class="card-text">查看和管理所有IT设备</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.equipment_list') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">配件管理</h5>
+                    <p class="card-text">查看和管理配件库存</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.spare_parts') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">维修工单</h5>
+                    <p class="card-text">查看和管理所有维修工单</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.repair_orders') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">配件申请管理</h5>
+                    <p class="card-text">查看和管理配件申请</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.part_request_orders') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">提交配件申请</h5>
+                    <p class="card-text">创建新的配件申请工单</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.create_part_request_order') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">审批管理</h5>
+                    <p class="card-text">处理各类审批事项</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.approvals') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">工作流程</h5>
+                    <p class="card-text">管理系统审批流程</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.admin_workflow_nodes') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">发起设备调拨</h5>
+                    <p class="card-text">发起或管理设备调拨申请</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.create_transfer') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">发起设备报废</h5>
+                    <p class="card-text">发起或管理设备报废申请</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.create_scrap') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">操作日志</h5>
+                    <p class="card-text">查看用户操作日志</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.user_activity_logs') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">通知中心</h5>
+                    <p class="card-text">查看系统通知和消息</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.notifications') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">报表统计</h5>
+                    <p class="card-text">查看各类统计报表</p>
+                    <div class="mt-auto"><a href="{{ url_for('main.reports') }}" class="btn btn-primary">进入</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

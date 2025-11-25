@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8">
+      <h2>配件申请 - 详情 (#{{ order.id }})</h2>
+      <div class="card">
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-3">申请人</dt>
+            <dd class="col-sm-9">{{ order.requester.username }} ({{ order.requester.department }})</dd>
+
+            <dt class="col-sm-3">配件名称</dt>
+            <dd class="col-sm-9">{{ order.part_name }}</dd>
+
+            <dt class="col-sm-3">配件编号</dt>
+            <dd class="col-sm-9">{{ order.part_number or '-' }}</dd>
+
+            <dt class="col-sm-3">数量</dt>
+            <dd class="col-sm-9">{{ order.quantity }}</dd>
+
+            <dt class="col-sm-3">申请原因</dt>
+            <dd class="col-sm-9">{{ order.reason }}</dd>
+
+            <dt class="col-sm-3">状态</dt>
+            <dd class="col-sm-9">{{ order.status }}</dd>
+
+            <dt class="col-sm-3">创建时间</dt>
+            <dd class="col-sm-9">{{ moment(order.created_date).format('YYYY-MM-DD HH:mm') }}</dd>
+          </dl>
+
+          <a href="{{ url_for('main.part_request_orders') }}" class="btn btn-secondary">返回</a>
+          <a href="{{ url_for('main.workflow_status', order_type='part_request_order', order_id=order.id) }}" class="btn btn-outline-secondary">流程图</a>
+          {% if can_approve and approval %}
+          <hr>
+          <form method="post" action="{{ url_for('main.approve_part_order', order_id=order.id, action='approve') }}" class="mb-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label for="comments" class="form-label">审批意见（可选）</label>
+              <textarea name="comments" id="comments" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">批准</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.approve_part_order', order_id=order.id, action='reject') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label for="comments_reject" class="form-label">拒绝理由（可选）</label>
+              <textarea name="comments" id="comments_reject" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger">拒绝</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

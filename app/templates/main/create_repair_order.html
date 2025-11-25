@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>创建维修工单</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="equipment_id" class="form-label">设备</label>
+                            <select class="form-control" id="equipment_id" name="equipment_id" required>
+                                <option value="">请选择设备</option>
+                                {% for equipment in equipments %}
+                                <option value="{{ equipment.id }}">{{ equipment.name }} ({{ equipment.brand }} {{ equipment.model }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">故障描述</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">优先级</label>
+                            <select class="form-control" id="priority" name="priority">
+                                <option value="low">低</option>
+                                <option value="medium" selected>中</option>
+                                <option value="high">高</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">提交</button>
+                            <a href="{{ url_for('main.repair_orders') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

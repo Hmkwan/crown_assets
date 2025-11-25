@@ -1,0 +1,165 @@
+{
+  "pages": [
+    {
+      "route": "/",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/departments",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/departments/export",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/users",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/users/add",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/users/export",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/workflow_nodes",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/admin/workflow_nodes/add",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/api/repair_orders",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/approvals",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/auth/login",
+      "status": 500,
+      "resources": []
+    },
+    {
+      "route": "/auth/logout",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/auth/register",
+      "status": 500,
+      "resources": []
+    },
+    {
+      "route": "/create_part_request_order",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/create_repair_order",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/equipment",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/equipment/add",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/equipment/types",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/index",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/notifications",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/part_request_history",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/part_request_orders",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/repair_orders",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/reports",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/reports/export",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/spare_parts",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/spare_parts/add",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/technician",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/user_activity_logs",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/user_history",
+      "status": 302,
+      "resources": []
+    },
+    {
+      "route": "/workflow_nodes",
+      "status": 302,
+      "resources": []
+    }
+  ],
+  "resources": {}
+}

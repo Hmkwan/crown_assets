@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">部门列表</h5>
+                    <div>
+                        <button class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none;" data-toggle="modal" data-target="#importModal">
+                            <i class="fas fa-file-import"></i> 导入
+                        </button>
+                        <a href="{{ url_for('main.export_departments') }}" class="btn btn-info">
+                            <i class="fas fa-file-export"></i> 导出
+                        </a>
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#addDepartmentModal">
+                            <i class="fas fa-plus"></i> 添加部门
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label">关键字</label>
+                            <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="部门名称 / 代码 / 成本中心">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">位置</label>
+                            <select name="location" class="form-control">
+                                <option value="">全部</option>
+                                {% for loc in location_options %}
+                                <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">筛选</button>
+                            <a href="{{ url_for('main.department_management') }}" class="btn btn-outline-secondary">重置</a>
+                        </div>
+                    </form>
+                    <div class="text-muted mb-3">
+                        共 {{ pagination.total }} 个部门，当前第 {{ pagination.page }} / {{ pagination.pages if pagination.pages else 1 }} 页
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>部门名称</th>
+                                    <th>部门代码</th>
+                                    <th>成本中心</th>
+                                    <th>位置</th>
+                                    <th>员工数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dept in departments %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('main.department_users', dept_id=dept.id) }}">{{ dept.name }}</a>
+                                    </td>
+                                    <td>{{ dept.code }}</td>
+                                    <td>{{ dept.cost_center }}</td>
+                                    <td>{{ dept.location }}</td>
+                                    <td>{{ dept.user_count }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary edit-dept" 
+                                                data-id="{{ dept.id }}"
+                                                data-name="{{ dept.name }}"
+                                                data-code="{{ dept.code }}"
+                                                data-cost-center="{{ dept.cost_center }}"
+                                                data-location="{{ dept.location }}"
+                                                data-description="{{ dept.description }}">
+                                            编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-dept" data-id="{{ dept.id }}">
+                                            删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">暂无符合条件的部门信息</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if pagination.pages > 1 %}
+                    <nav aria-label="部门分页" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.department_management', page=pagination.prev_num, search=search_query or None, location=location_filter or None) if pagination.has_prev else '#' }}">上一页</a>
+                            </li>
+                            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                {% if p %}
+                                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('main.department_management', page=p, search=search_query or None, location=location_filter or None) }}">{{ p }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.department_management', page=pagination.next_num, search=search_query or None, location=location_filter or None) if pagination.has_next else '#' }}">下一页</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加部门模态框 -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addDepartmentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addDepartmentModalLabel">添加部门</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">部门名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="code" class="form-label">部门代码</label>
+                        <input type="text" class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cost_center" class="form-label">成本中心</label>
+                        <input type="text" class="form-control" id="cost_center" name="cost_center">
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">位置</label>
+                        <input type="text" class="form-control" id="location" name="location">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑部门模态框 -->
+<div class="modal fade" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editDepartmentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editDepartmentModalLabel">编辑部门</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_dept_id" name="dept_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">部门名称</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_code" class="form-label">部门代码</label>
+                        <input type="text" class="form-control" id="edit_code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_cost_center" class="form-label">成本中心</label>
+                        <input type="text" class="form-control" id="edit_cost_center" name="cost_center">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_location" class="form-label">位置</label>
+                        <input type="text" class="form-control" id="edit_location" name="location">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">描述</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="importForm" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">导入部门数据</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">选择CSV文件</label>
+                        <input type="file" class="form-control" id="importFile" name="file" accept=".csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>CSV文件应包含以下列：部门名称,部门代码,成本中心,位置,描述
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 编辑部门
+    $('.edit-dept').click(function() {
+        var deptId = $(this).data('id');
+        var name = $(this).data('name');
+        var code = $(this).data('code');
+        var costCenter = $(this).data('cost-center');
+        var location = $(this).data('location');
+        var description = $(this).data('description');
+        
+        $('#edit_dept_id').val(deptId);
+        $('#edit_name').val(name);
+        $('#edit_code').val(code);
+        $('#edit_cost_center').val(costCenter);
+        $('#edit_location').val(location);
+        $('#edit_description').val(description);
+        
+        $('#editDepartmentForm').attr('action', '/admin/departments/' + deptId + '/update');
+        $('#editDepartmentModal').modal('show');
+    });
+    
+    // 删除部门
+    $('.delete-dept').click(function() {
+        if (confirm('确定要删除这个部门吗？')) {
+            var deptId = $(this).data('id');
+            $.ajax({
+                url: '/admin/departments/' + deptId + '/delete',
+                type: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('删除失败');
+                }
+            });
+        }
+    });
+    
+    // 添加部门表单提交
+    $('#addDepartmentForm').submit(function(e) {
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: '{{ url_for('main.add_department') }}',
+            type: 'POST',
+            data: form.serialize(),
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('添加失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('添加失败');
+            }
+        });
+    });
+    
+    // 编辑部门表单提交
+    $('#editDepartmentForm').submit(function(e) {
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('更新失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('更新失败');
+            }
+        });
+    });
+    
+    // 导入表单提交
+    $('#importForm').submit(function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            url: '{{ url_for('main.import_departments') }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    location.reload();
+                } else {
+                    alert('导入失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('导入失败');
+            }
+        });
+    });
+</script>
+{% endblock %}

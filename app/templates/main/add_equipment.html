@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>添加设备</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">设备名称</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="type_id" class="form-label">设备类型</label>
+                            <select class="form-control" id="type_id" name="type_id" required>
+                                <option value="">请选择设备类型</option>
+                                {% for type in equipment_types %}
+                                <option value="{{ type.id }}">{{ type.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                <a href="#" id="manageTypesLink">管理设备类型</a>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="brand" class="form-label">品牌</label>
+                            <input type="text" class="form-control" id="brand" name="brand">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="model" name="model">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="serial_number" class="form-label">序列号</label>
+                            <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="purchase_date" class="form-label">购买日期</label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">所属部门</label>
+                            <select class="form-control" id="department_id" name="department_id" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">添加设备</button>
+                        <a href="{{ url_for('main.equipment_list') }}" class="btn btn-secondary">取消</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设备类型管理模态框 -->
+    <div class="modal fade" id="manageTypesModal" tabindex="-1" aria-labelledby="manageTypesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageTypesModalLabel">设备类型管理</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>添加新类型</h6>
+                            <form id="addTypeForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-3">
+                                    <label for="newTypeName" class="form-label">类型名称</label>
+                                    <input type="text" class="form-control" id="newTypeName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newTypeDescription" class="form-label">描述</label>
+                                    <textarea class="form-control" id="newTypeDescription" rows="3"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">添加</button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>现有类型</h6>
+                            <ul class="list-group" id="equipmentTypesList">
+                                {% for type in equipment_types %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ type.name }}
+                                    <button class="btn btn-sm btn-outline-danger delete-type" data-id="{{ type.id }}">删除</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 管理设备类型链接点击事件
+    document.getElementById('manageTypesLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        var manageTypesModal = new bootstrap.Modal(document.getElementById('manageTypesModal'));
+        manageTypesModal.show();
+    });
+    
+    // 添加设备类型表单提交
+    document.getElementById('addTypeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var typeName = document.getElementById('newTypeName').value;
+        var typeDescription = document.getElementById('newTypeDescription').value;
+        
+        var formData = new FormData();
+        formData.append('name', typeName);
+        formData.append('description', typeDescription);
+        
+        fetch('{{ url_for("main.add_equipment_type") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // 更新设备类型列表
+                location.reload();
+            } else {
+                alert('添加失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('添加失败: ' + error);
+        });
+    });
+    
+    // 删除设备类型按钮点击事件
+    document.querySelectorAll('.delete-type').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var typeId = this.getAttribute('data-id');
+            if (confirm('确定要删除这个设备类型吗？')) {
+                fetch('/equipment/types/delete/' + typeId, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('删除失败: ' + error);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

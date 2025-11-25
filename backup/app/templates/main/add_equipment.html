@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>添加设备</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">设备名称</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="type" class="form-label">设备类型</label>
+                            <input type="text" class="form-control" id="type" name="type" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="brand" class="form-label">品牌</label>
+                            <input type="text" class="form-control" id="brand" name="brand">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="model" name="model">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="serial_number" class="form-label">序列号</label>
+                            <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="purchase_date" class="form-label">购买日期</label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">所属部门</label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">添加</button>
+                            <a href="{{ url_for('main.equipment_list') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

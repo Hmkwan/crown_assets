@@ -1,0 +1,44 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>工单号</th>
+            <th>设备名称</th>
+            <th>申报人</th>
+            <th>部门</th>
+            <th>故障描述</th>
+            <th>状态</th>
+            <th>创建时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.id }}</td>
+            <td>{{ order.equipment.name }}</td>
+            <td>{{ order.requester.username }}</td>
+            <td>{{ order.equipment.department }}</td>
+            <td>{{ order.description[:30] }}{% if order.description|length > 30 %}...{% endif %}</td>
+            <td>
+                {% if order.status == 'submitted' %}
+                <span class="badge bg-warning">已提交</span>
+                {% elif order.status == 'department_head_approved' %}
+                <span class="badge bg-info">部门领导已批准</span>
+                {% elif order.status == 'admin_approved' %}
+                <span class="badge bg-info">管理员已批准</span>
+                {% elif order.status == 'in_progress' %}
+                <span class="badge bg-primary">处理中</span>
+                {% elif order.status == 'completed' %}
+                <span class="badge bg-success">已完成</span>
+                {% elif order.status == 'cancelled' %}
+                <span class="badge bg-secondary">已取消</span>
+                {% endif %}
+            </td>
+            <td>{{ moment(order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+            <td>
+                <a href="{{ url_for('main.repair_order_detail', id=order.id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

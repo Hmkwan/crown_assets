@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>维修工单详情</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>工单信息 #{{ order.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>设备名称:</strong> {{ order.equipment.name }}</p>
+                            <p><strong>申请人:</strong> {{ order.requester.username }}</p>
+                            <p><strong>申请部门:</strong> {{ order.requester.department }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>状态:</strong> 
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning">待处理</span>
+                                {% elif order.status == 'department_head_approved' %}
+                                <span class="badge bg-info">部门领导已批准</span>
+                                {% elif order.status == 'admin_approved' %}
+                                <span class="badge bg-info">管理员已批准</span>
+                                {% elif order.status == 'approved' %}
+                                <span class="badge bg-success">已批准</span>
+                                {% elif order.status == 'in_progress' %}
+                                <span class="badge bg-primary">处理中</span>
+                                {% elif order.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">已取消</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>创建时间:</strong> {{ moment(order.created_date).format('YYYY-MM-DD HH:mm:ss') }}</p>
+                            {% if order.completed_date %}
+                            <p><strong>完成时间:</strong> {{ moment(order.completed_date).format('YYYY-MM-DD HH:mm:ss') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><strong>故障描述:</strong></p>
+                            <p>{{ order.description }}</p>
+                        </div>
+                    </div>
+            
+                    {% if order.repair_description %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><strong>维修描述:</strong></p>
+                            <p>{{ order.repair_description }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 审批流程状态 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>审批流程状态</h5>
+                </div>
+                <div class="card-body">
+                    {% set approvals = order.approvals %}
+                    {% if approvals %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>审批节点</th>
+                                    <th>审批人角色</th>
+                                    <th>审批人</th>
+                                    <th>状态</th>
+                                    <th>审批时间</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for approval in approvals|sort(attribute='created_date') %}
+                                <tr>
+                                    <td>
+                                        {% if approval.workflow_node %}
+                                            {{ approval.workflow_node.name }}
+                                        {% else %}
+                                            {{ approval.approval_level }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.approval_level == 'department_head' %}
+                                        部门领导
+                                        {% elif approval.approval_level == 'admin' %}
+                                        管理员
+                                        {% elif approval.approval_level == 'technician' %}
+                                        技术员
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.approver %}
+                                            {{ approval.approver.username }}
+                                        {% else %}
+                                            未分配
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.status == 'pending' %}
+                                        <span class="badge bg-warning">待审批</span>
+                                        {% elif approval.status == 'approved' %}
+                                        <span class="badge bg-success">已批准</span>
+                                        {% elif approval.status == 'rejected' %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.approved_date %}
+                                            {{ moment(approval.approved_date).format('YYYY-MM-DD HH:mm:ss') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ approval.comments or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无审批记录</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 审批操作 -->
+            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'department_head' or current_user.role == 'technician') %}
+            {% set pending_approval = order.approvals|selectattr('status', 'equalto', 'pending')|selectattr('approver_id', 'equalto', current_user.id)|first %}
+            {% if pending_approval %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>审批操作</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.approve_repair_order', order_id=order.id, action='approve') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">审批意见</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">批准</button>
+                        <button type="submit" class="btn btn-danger" formaction="{{ url_for('main.approve_repair_order', order_id=order.id, action='reject') }}">拒绝</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            <div class="mt-3">
+                <a href="{{ url_for('main.repair_orders') }}" class="btn btn-secondary">返回</a>
+                <a href="{{ url_for('main.workflow_status', order_type='repair_order', order_id=order.id) }}" class="btn btn-outline-secondary">流程图</a>
+                {% if current_user.role in ['admin', 'technician'] and order.status in ['approved', 'department_head_approved', 'admin_approved'] %}
+                <a href="{{ url_for('main.update_repair_order_status', id=order.id) }}" class="btn btn-primary">更新状态</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

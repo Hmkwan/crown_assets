@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">{{ title }}</h2>
+    
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="notificationTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="unread-tab" data-toggle="tab" data-target="#unread" type="button" role="tab">未读通知</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="read-tab" data-toggle="tab" data-target="#read" type="button" role="tab">已读通知</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="all-tab" data-toggle="tab" data-target="#all" type="button" role="tab">全部通知</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="d-flex mb-3 justify-content-between align-items-center">
+                <form class="row g-2" id="notifFilterForm" method="get" action="{{ url_for('main.notifications') }}">
+                    <div class="col-auto">
+                        <select name="filter" class="form-control form-control-sm">
+                            <option value="all" {% if filter_type == 'all' %}selected{% endif %}>全部</option>
+                            <option value="unread" {% if filter_type == 'unread' %}selected{% endif %}>未读</option>
+                            <option value="read" {% if filter_type == 'read' %}selected{% endif %}>已读</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" name="q" class="form-control form-control-sm" placeholder="关键字" value="{{ q or '' }}">
+                    </div>
+                    <div class="col-auto">
+                        <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date or '' }}">
+                    </div>
+                    <div class="col-auto">
+                        <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date or '' }}">
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-sm btn-primary" type="submit">筛选</button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('main.export_notifications', filter=filter_type, q=q, from_date=from_date, to_date=to_date) }}" class="btn btn-sm btn-outline-secondary">导出</a>
+                    </div>
+                </form>
+                {% set unread_count = notifications|selectattr('is_read', 'equalto', False)|list|length %}
+                {% if unread_count > 0 %}
+                <div>
+                    <button class="btn btn-sm btn-success" id="mark-all-read-btn">一键全部已读</button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="tab-content" id="notificationTabsContent">
+                <div class="tab-pane fade show active" id="unread" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>内容</th>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notification in notifications if not notification.is_read %}
+                                <tr>
+                                    <td>
+                                        {% if notification.order_type and notification.order_id %}
+                                            {% if notification.order_type == 'repair_order' %}
+                                                <a href="{{ url_for('main.repair_order_detail', id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'part_request_order' %}
+                                                <a href="{{ url_for('main.part_request_order_detail', id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'equipment_application' %}
+                                                <a href="{{ url_for('main.workflow_status', order_type='equipment_application', order_id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'account_request' %}
+                                                <a href="{{ url_for('main.account_request_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% else %}
+                                                <a href="#" class="notification-link" data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}">{{ notification.title }}</a>
+                                            {% endif %}
+                                        {% else %}
+                                        <a href="#" class="notification-link" data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}">{{ notification.title }}</a>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ notification.message }}</td>
+                                    <td>{{ moment(notification.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary mark-as-read" data-id="{{ notification.id }}">标记为已读</button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">暂无未读通知</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="read" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>内容</th>
+                                    <th>时间</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notification in notifications if notification.is_read %}
+                                <tr>
+                                    <td>
+                                        {% if notification.order_type and notification.order_id %}
+                                            {% if notification.order_type == 'repair_order' %}
+                                                <a href="{{ url_for('main.repair_order_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'part_request_order' %}
+                                                <a href="{{ url_for('main.part_request_order_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'equipment_application' %}
+                                                <a href="{{ url_for('main.workflow_status', order_type='equipment_application', order_id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'account_request' %}
+                                                <a href="{{ url_for('main.account_request_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% else %}
+                                                {{ notification.title }}
+                                            {% endif %}
+                                        {% else %}
+                                            {{ notification.title }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ notification.message }}</td>
+                                    <td>{{ moment(notification.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td><span class="badge bg-success">已读</span></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">暂无已读通知</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="all" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>内容</th>
+                                    <th>时间</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notification in notifications %}
+                                <tr>
+                                    <td>
+                                        {% if notification.order_type and notification.order_id %}
+                                            {% if notification.order_type == 'repair_order' %}
+                                                <a href="{{ url_for('main.repair_order_detail', id=notification.order_id) }}" class="{% if not notification.is_read %}notification-link{% endif %} text-decoration-none" {% if not notification.is_read %}data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}"{% endif %}>{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'part_request_order' %}
+                                                <a href="{{ url_for('main.part_request_order_detail', id=notification.order_id) }}" class="{% if not notification.is_read %}notification-link{% endif %} text-decoration-none" {% if not notification.is_read %}data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}"{% endif %}>{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'equipment_application' %}
+                                                <a href="{{ url_for('main.workflow_status', order_type='equipment_application', order_id=notification.order_id) }}" class="{% if not notification.is_read %}notification-link{% endif %} text-decoration-none" {% if not notification.is_read %}data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}"{% endif %}>{{ notification.title }}</a>
+                                            {% elif notification.order_type == 'account_request' %}
+                                                <a href="{{ url_for('main.account_request_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
+                                            {% else %}
+                                                <a href="#" class="notification-link" data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}">{{ notification.title }}</a>
+                                            {% endif %}
+                                        {% else %}
+                                        <a href="#" class="notification-link" data-id="{{ notification.id }}" data-title="{{ notification.title }}" data-message="{{ notification.message|e }}">{{ notification.title }}</a>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ notification.message }}</td>
+                                    <td>{{ moment(notification.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>
+                                        {% if notification.is_read %}
+                                        <span class="badge bg-success">已读</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">未读</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not notification.is_read %}
+                                        <button class="btn btn-sm btn-primary mark-as-read" data-id="{{ notification.id }}">标记为已读</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">暂无通知</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        $(document).on('click', '.mark-as-read', function() {
+            var notificationId = $(this).data('id');
+            var button = $(this);
+            var row = button.closest('tr');
+
+            $.ajax({
+                url: '/mark_notification_as_read/' + notificationId,
+                type: 'POST',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        // 更新行内已读状态，不移除行
+                        // 如果存在状态列，则替换为已读徽章
+                        var statusCell = row.find('td').last();
+                        // 在不同 tab 中状态列位置不同，尽量找到 badge 并替换
+                        var badge = row.find('.badge');
+                        if (badge.length) {
+                            badge.removeClass('bg-warning').addClass('bg-success').text('已读');
+                        } else {
+                            // 如果没有badge，追加一个
+                            row.find('td').eq(3).html('<span class="badge bg-success">已读</span>');
+                        }
+
+                        // 移除标记按钮
+                        button.remove();
+
+                        // 更新未读计数（如果显示在顶部导航）
+                        var unreadCountEl = $('#unread-notification-count');
+                        if (unreadCountEl.length) {
+                            var unreadCount = parseInt(unreadCountEl.text()) || 0;
+                            if (unreadCount > 0) unreadCountEl.text(unreadCount - 1);
+                        }
+                    } else {
+                        alert('标记失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('标记失败');
+                }
+            });
+        });
+
+                // 点击标题显示详情模态框
+                $(document).on('click', '.notification-link', function(e) {
+                        e.preventDefault();
+                        var nid = $(this).data('id');
+                        var title = $(this).data('title');
+                        var message = $(this).data('message');
+
+                        $('#notifModalTitle').text(title);
+                        $('#notifModalBody').text(message);
+                        $('#notificationModal').modal('show');
+                });
+
+                // 一键全部已读
+                $('#mark-all-read-btn').on('click', function() {
+                    if (!confirm('确定要将所有未读通知标记为已读吗？')) {
+                        return;
+                    }
+                    var btn = $(this);
+                    btn.prop('disabled', true).text('处理中...');
+                    
+                    $.ajax({
+                        url: '{{ url_for("main.mark_all_notifications_as_read") }}',
+                        type: 'POST',
+                        headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                        success: function(response) {
+                            if (response.success) {
+                                // 更新所有未读通知的状态
+                                $('.mark-as-read').each(function() {
+                                    var button = $(this);
+                                    var row = button.closest('tr');
+                                    var badge = row.find('.badge');
+                                    if (badge.length) {
+                                        badge.removeClass('bg-warning').addClass('bg-success').text('已读');
+                                    } else {
+                                        row.find('td').eq(3).html('<span class="badge bg-success">已读</span>');
+                                    }
+                                    button.remove();
+                                });
+                                
+                                // 更新未读计数
+                                $('#unread-notification-count').remove();
+                                
+                                // 移除一键已读按钮
+                                btn.remove();
+                                
+                                // 刷新页面以更新数据
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 500);
+                            } else {
+                                alert('操作失败: ' + (response.message || '未知错误'));
+                                btn.prop('disabled', false).text('一键全部已读');
+                            }
+                        },
+                        error: function() {
+                            alert('操作失败，请稍后重试');
+                            btn.prop('disabled', false).text('一键全部已读');
+                        }
+                    });
+                });
+    });
+</script>
+
+<!-- Notification detail modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notifModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="notifModalTitle">通知详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body" id="notifModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

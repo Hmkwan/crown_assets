@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>{{ department.name }} - 部门用户</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.department_management') }}">部门管理</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ department.name }}</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>部门信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>部门名称:</strong> {{ department.name }}</p>
+                            <p><strong>部门代码:</strong> {{ department.code }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>成本中心:</strong> {{ department.cost_center or '未设置' }}</p>
+                            <p><strong>位置:</strong> {{ department.location or '未设置' }}</p>
+                        </div>
+                    </div>
+                    {% if department.description %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><strong>描述:</strong> {{ department.description }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>部门用户列表</h5>
+                </div>
+                <div class="card-body">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>角色</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger">管理员</span>
+                                        {% elif user.role == 'technician' %}
+                                        <span class="badge bg-info">技术员</span>
+                                        {% elif user.role == 'department_head' %}
+                                        <span class="badge bg-warning">部门领导</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">普通用户</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('main.edit_user', id=user.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>该部门暂无用户。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

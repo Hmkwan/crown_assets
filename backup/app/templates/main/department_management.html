@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>部门管理</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">添加部门</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>部门名称</th>
+                            <th>部门代码</th>
+                            <th>成本中心</th>
+                            <th>所在位置</th>
+                            <th>员工数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for department in departments %}
+                        <tr>
+                            <td>{{ department.name }}</td>
+                            <td>{{ department.code }}</td>
+                            <td>{{ department.cost_center or '' }}</td>
+                            <td>{{ department.location or '' }}</td>
+                            <td>{{ department.user_count }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary edit-department" 
+                                        data-id="{{ department.id }}"
+                                        data-name="{{ department.name }}"
+                                        data-code="{{ department.code }}"
+                                        data-cost-center="{{ department.cost_center or '' }}"
+                                        data-location="{{ department.location or '' }}"
+                                        data-description="{{ department.description or '' }}">编辑</button>
+                                <button class="btn btn-sm btn-outline-danger delete-department" data-id="{{ department.id }}">删除</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加部门模态框 -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加部门</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDepartmentForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">部门名称 *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="code" class="form-label">部门代码 *</label>
+                        <input type="text" class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cost_center" class="form-label">成本中心</label>
+                        <input type="text" class="form-control" id="cost_center" name="cost_center">
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">所在位置</label>
+                        <input type="text" class="form-control" id="location" name="location">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveDepartment">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑部门模态框 -->
+<div class="modal fade" id="editDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑部门</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDepartmentForm">
+                    <input type="hidden" id="edit_department_id" name="department_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">部门名称 *</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_code" class="form-label">部门代码 *</label>
+                        <input type="text" class="form-control" id="edit_code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_cost_center" class="form-label">成本中心</label>
+                        <input type="text" class="form-control" id="edit_cost_center" name="cost_center">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_location" class="form-label">所在位置</label>
+                        <input type="text" class="form-control" id="edit_location" name="location">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">描述</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="updateDepartment">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 添加部门
+        $('#saveDepartment').click(function() {
+            var formData = {
+                'name': $('#name').val(),
+                'code': $('#code').val(),
+                'cost_center': $('#cost_center').val(),
+                'location': $('#location').val(),
+                'description': $('#description').val()
+            };
+            
+            $.ajax({
+                url: '{{ url_for("main.add_department") }}',
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('添加失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('添加失败');
+                }
+            });
+        });
+        
+        // 编辑部门
+        $('.edit-department').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var code = $(this).data('code');
+            var costCenter = $(this).data('cost-center');
+            var location = $(this).data('location');
+            var description = $(this).data('description');
+            
+            $('#edit_department_id').val(id);
+            $('#edit_name').val(name);
+            $('#edit_code').val(code);
+            $('#edit_cost_center').val(costCenter);
+            $('#edit_location').val(location);
+            $('#edit_description').val(description);
+            
+            $('#editDepartmentModal').modal('show');
+        });
+        
+        // 更新部门
+        $('#updateDepartment').click(function() {
+            var formData = {
+                'department_id': $('#edit_department_id').val(),
+                'name': $('#edit_name').val(),
+                'code': $('#edit_code').val(),
+                'cost_center': $('#edit_cost_center').val(),
+                'location': $('#edit_location').val(),
+                'description': $('#edit_description').val()
+            };
+            
+            $.ajax({
+                url: '{{ url_for("main.update_department") }}',
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('更新失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('更新失败');
+                }
+            });
+        });
+        
+        // 删除部门
+        $('.delete-department').click(function() {
+            if (confirm('确定要删除这个部门吗？')) {
+                var departmentId = $(this).data('id');
+                $.ajax({
+                    url: '/admin/departments/delete/' + departmentId,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('删除失败: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('删除失败');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

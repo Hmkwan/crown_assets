@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>编辑用户</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.user_management') }}">用户管理</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">编辑用户</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>用户信息</h5>
+                </div>
+                <div class="card-body">
+                    <form id="editUserForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" id="user_id" value="{{ user.id }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="username" value="{{ user.username }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <input type="email" class="form-control" id="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">角色</label>
+                            <select class="form-control" id="role" required>
+                                <option value="user" {% if user.role == 'user' %}selected{% endif %}>普通用户</option>
+                                <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>技术员</option>
+                                <option value="department_head" {% if user.role == 'department_head' %}selected{% endif %}>部门领导</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">所属部门</label>
+                            <select class="form-control" id="department_id" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if user.department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                            <a href="{{ url_for('main.user_management') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $('#editUserForm').submit(function(e) {
+        e.preventDefault();
+        
+        var userId = $('#user_id').val();
+        var formData = {
+            username: $('#username').val(),
+            email: $('#email').val(),
+            role: $('#role').val(),
+            department_id: $('#department_id').val(),
+            csrf_token: $('input[name="csrf_token"]').val()
+        };
+        
+        $.ajax({
+            url: '/admin/users/edit/' + userId,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    alert('用户信息更新成功');
+                    window.location.href = '{{ url_for('main.user_management') }}';
+                } else {
+                    alert('更新失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('更新失败');
+            }
+        });
+    });
+</script>
+{% endblock %}

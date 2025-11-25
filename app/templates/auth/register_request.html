@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold" style="background: linear-gradient(135deg, #6a5af9 0%, #8d5adf 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    账号申请
+                </h2>
+                <p class="text-muted">请填写真实信息，提交后等待管理员审批</p>
+            </div>
+            <div class="card shadow-lg">
+                <div class="card-header text-center py-3">
+                    <h4 class="mb-0">用户申请表</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {{ form.username.label(class="form-label") }}
+                                {{ form.username(class="form-control") }}
+                                {% for error in form.username.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.employee_no.label(class="form-label") }}
+                                {{ form.employee_no(class="form-control") }}
+                                {% for error in form.employee_no.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.full_name.label(class="form-label") }}
+                                {{ form.full_name(class="form-control") }}
+                                {% for error in form.full_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.email.label(class="form-label") }}
+                                {{ form.email(class="form-control") }}
+                                {% for error in form.email.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.department.label(class="form-label") }}
+                                {{ form.department(class="form-control") }}
+                                {% for error in form.department.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.role_requested.label(class="form-label") }}
+                                {{ form.role_requested(class="form-control") }}
+                                {% for error in form.role_requested.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-12">
+                                {{ form.reason.label(class="form-label") }}
+                                {{ form.reason(class="form-control", rows="3", placeholder="请简单描述申请系统账号的业务需求...") }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password.label(class="form-label") }}
+                                {{ form.password(class="form-control") }}
+                                {% for error in form.password.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password2.label(class="form-label") }}
+                                {{ form.password2(class="form-control") }}
+                                {% for error in form.password2.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="d-grid mt-4">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">已有账号？<a href="{{ url_for('auth.login') }}">返回登录</a></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

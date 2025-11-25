@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>技术员工作台</h1>
+        <p class="lead">欢迎，{{ current_user.username }}！这里是您的工作中心</p>
+    </div>
+    
+    <div class="row g-4">
+        <!-- 待处理工单统计 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">待处理工单</h6>
+                            <h2 class="mb-0">{{ pending_repairs }}</h2>
+                        </div>
+                        <div class="text-primary" style="font-size: 3rem; opacity: 0.3;">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.repair_orders') }}?filter=submitted" class="btn btn-sm btn-primary mt-3">查看详情</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 进行中工单 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">进行中工单</h6>
+                            <h2 class="mb-0">{{ in_progress_repairs }}</h2>
+                        </div>
+                        <div class="text-warning" style="font-size: 3rem; opacity: 0.3;">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.repair_orders') }}?filter=in_progress" class="btn btn-sm btn-warning mt-3">查看详情</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 已完成工单 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">本月完成</h6>
+                            <h2 class="mb-0">{{ completed_repairs }}</h2>
+                        </div>
+                        <div class="text-success" style="font-size: 3rem; opacity: 0.3;">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.repair_orders') }}?filter=completed" class="btn btn-sm btn-success mt-3">查看详情</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">快速操作</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('main.repair_orders') }}" class="text-decoration-none">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">维修工单</h5>
+                                        <p class="card-text text-muted">查看和管理所有维修工单</p>
+                                        <button class="btn btn-primary btn-sm">进入</button>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('main.equipment_list') }}" class="text-decoration-none">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">设备管理</h5>
+                                        <p class="card-text text-muted">查看和管理IT设备</p>
+                                        <button class="btn btn-primary btn-sm">进入</button>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('main.spare_parts') }}" class="text-decoration-none">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">配件管理</h5>
+                                        <p class="card-text text-muted">查看和管理配件库存</p>
+                                        <button class="btn btn-primary btn-sm">进入</button>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('main.part_request_orders') }}" class="text-decoration-none">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">配件申请</h5>
+                                        <p class="card-text text-muted">查看配件申请</p>
+                                        <button class="btn btn-primary btn-sm">进入</button>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

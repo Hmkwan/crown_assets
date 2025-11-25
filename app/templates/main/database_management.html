@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">{{ title }}</h2>
+    
+    <!-- 数据库信息 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>数据库信息</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">数据库类型:</dt>
+                <dd class="col-sm-9">{{ db_info.type or 'Unknown' }}</dd>
+                
+                <dt class="col-sm-3">数据库路径:</dt>
+                <dd class="col-sm-9">{{ db_info.uri or 'N/A' }}</dd>
+                
+                {% if db_info.exists %}
+                <dt class="col-sm-3">文件大小:</dt>
+                <dd class="col-sm-9">
+                    {% if db_info.size %}
+                        {% set size_mb = db_info.size / 1024 / 1024 %}
+                        {{ "%.2f"|format(size_mb) }} MB
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </dd>
+                
+                <dt class="col-sm-3">最后修改:</dt>
+                <dd class="col-sm-9">{{ db_info.modified or 'N/A' }}</dd>
+                {% endif %}
+                
+                <dt class="col-sm-3">数据表数量:</dt>
+                <dd class="col-sm-9">{{ db_info.table_count or 0 }}</dd>
+            </dl>
+        </div>
+    </div>
+    
+    <!-- 数据库操作和备份列表 -->
+    <div class="row">
+        <div class="col-lg-4 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> 数据库操作</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="d-grid gap-2 mb-3">
+                        <button class="btn btn-primary btn-lg" id="backup-btn">
+                            <i class="bi bi-download"></i> 立即备份
+                        </button>
+                        <button class="btn btn-warning btn-lg" id="reset-btn" data-toggle="modal" data-target="#resetModal">
+                            <i class="bi bi-arrow-clockwise"></i> 重置数据库
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>警告：</strong>重置数据库将删除所有数据并重新初始化，请谨慎操作！
+                    </div>
+                    
+                    <!-- 添加一些统计信息让卡片更充实 -->
+                    <div class="mt-auto pt-3 border-top">
+                        <h6 class="text-muted mb-2">快速统计</h6>
+                        <div class="row g-2 text-center">
+                            <div class="col-6">
+                                <div class="p-2 bg-light rounded">
+                                    <div class="fw-bold text-primary">{{ total_backups }}</div>
+                                    <small class="text-muted">备份总数</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-light rounded">
+                                    <div class="fw-bold text-success">{{ db_info.table_count or 0 }}</div>
+                                    <small class="text-muted">数据表</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> 备份列表</h5>
+                    <div>
+                        <select class="form-control form-control-sm" id="backup-filter" style="width: auto; display: inline-block;">
+                            <option value="all" {% if filter_date == 'all' %}selected{% endif %}>全部</option>
+                            <option value="today" {% if filter_date == 'today' %}selected{% endif %}>今天</option>
+                            <option value="yesterday" {% if filter_date == 'yesterday' %}selected{% endif %}>昨天</option>
+                            <option value="week" {% if filter_date == 'week' %}selected{% endif %}>最近7天</option>
+                            <option value="month" {% if filter_date == 'month' %}selected{% endif %}>最近30天</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if backups %}
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 共 <strong>{{ total_backups }}</strong> 个备份文件
+                        </small>
+                        {% if total_pages > 1 %}
+                        <small class="text-muted">第 {{ page }} / {{ total_pages }} 页</small>
+                        {% endif %}
+                    </div>
+                    <div class="list-group">
+                        {% for backup in backups %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-clock-history me-2 text-primary"></i>
+                                        <strong class="text-primary">{{ backup.friendly_time }}</strong>
+                                    </div>
+                                    <div class="small text-muted mb-1">
+                                        <span class="me-2"><i class="bi bi-tag"></i> {{ backup.timestamp_str }}</span>
+                                        <span>
+                                            {% set size_mb = backup.size / 1024 / 1024 %}
+                                            <i class="bi bi-hdd"></i> {{ "%.2f"|format(size_mb) }} MB
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar"></i> {{ backup.date }}
+                                    </div>
+                                </div>
+                                <div class="btn-group-vertical btn-group-sm ml-2">
+                                    <button class="btn btn-success restore-btn" data-filename="{{ backup.filename }}" title="恢复此备份">
+                                        <i class="bi bi-arrow-counterclockwise"></i> 恢复
+                                    </button>
+                                    <button class="btn btn-danger delete-backup-btn" data-filename="{{ backup.filename }}" title="删除此备份">
+                                        <i class="bi bi-trash"></i> 删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 分页 -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="备份列表分页" class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?filter={{ filter_date }}&page={{ page - 1 }}">上一页</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for p in range(1, total_pages + 1) %}
+                                {% if p == page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                                {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?filter={{ filter_date }}&page={{ p }}">{{ p }}</a>
+                                </li>
+                                {% elif p == 4 or p == total_pages - 3 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="?filter={{ filter_date }}&page={{ page + 1 }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ddd;"></i>
+                        <p class="text-muted mt-3 mb-0">暂无备份文件</p>
+                        <small class="text-muted">点击"立即备份"创建第一个备份</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 重置数据库确认模态框 -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetModalLabel">确认重置数据库</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>危险操作！</strong>此操作将：
+                    <ul>
+                        <li>删除所有现有数据</li>
+                        <li>重新创建所有数据表</li>
+                        <li>恢复默认初始数据</li>
+                    </ul>
+                </div>
+                <p>请在下方输入框中输入 <strong>RESET</strong> 以确认操作：</p>
+                <input type="text" class="form-control" id="resetConfirmInput" placeholder="输入 RESET 确认">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmResetBtn">确认重置</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        // 备份数据库
+        $('#backup-btn').on('click', function() {
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 备份中...');
+            
+            $.ajax({
+                url: '{{ url_for("main.backup_database_route") }}',
+                type: 'POST',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('备份成功: ' + response.backup_filename);
+                        location.reload();
+                    } else {
+                        alert('备份失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-download"></i> 立即备份');
+                    }
+                },
+                error: function() {
+                    alert('备份失败，请稍后重试');
+                    btn.prop('disabled', false).html('<i class="bi bi-download"></i> 立即备份');
+                }
+            });
+        });
+        
+        // 恢复数据库
+        $('.restore-btn').on('click', function() {
+            var filename = $(this).data('filename');
+            if (!confirm('确定要恢复备份文件 "' + filename + '" 吗？\n当前数据库将被替换！')) {
+                return;
+            }
+            
+            var btn = $(this);
+            btn.prop('disabled', true).text('恢复中...');
+            
+            $.ajax({
+                url: '{{ url_for("main.restore_database_route") }}',
+                type: 'POST',
+                data: {
+                    backup_filename: filename
+                },
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('恢复成功！页面将刷新。');
+                        location.reload();
+                    } else {
+                        alert('恢复失败: ' + response.message);
+                        btn.prop('disabled', false).text('恢复');
+                    }
+                },
+                error: function() {
+                    alert('恢复失败，请稍后重试');
+                    btn.prop('disabled', false).text('恢复');
+                }
+            });
+        });
+        
+        // 删除备份
+        $('.delete-backup-btn').on('click', function() {
+            var filename = $(this).data('filename');
+            if (!confirm('确定要删除备份文件 "' + filename + '" 吗？')) {
+                return;
+            }
+            
+            var btn = $(this);
+            btn.prop('disabled', true).text('删除中...');
+            
+            $.ajax({
+                url: '{{ url_for("main.delete_backup_route") }}',
+                type: 'POST',
+                data: {
+                    backup_filename: filename
+                },
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('删除成功');
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + response.message);
+                        btn.prop('disabled', false).text('删除');
+                    }
+                },
+                error: function() {
+                    alert('删除失败，请稍后重试');
+                    btn.prop('disabled', false).text('删除');
+                }
+            });
+        });
+        
+        // 确认重置
+        $('#confirmResetBtn').on('click', function() {
+            var confirmValue = $('#resetConfirmInput').val();
+            if (confirmValue !== 'RESET') {
+                alert('请输入 RESET 以确认操作');
+                return;
+            }
+            
+            if (!confirm('最后确认：您确定要重置数据库吗？所有数据将被删除！')) {
+                return;
+            }
+            
+            var btn = $(this);
+            btn.prop('disabled', true).text('重置中...');
+            
+            $.ajax({
+                url: '{{ url_for("main.reset_database_route") }}',
+                type: 'POST',
+                data: {
+                    confirm: confirmValue
+                },
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('数据库重置成功！\n默认管理员账号: ' + response.admin_username + ' / ' + response.admin_password + '\n页面将跳转到登录页。');
+                        window.location.href = '{{ url_for("auth.logout") }}';
+                    } else {
+                        alert('重置失败: ' + response.message);
+                        btn.prop('disabled', false).text('确认重置');
+                    }
+                },
+                error: function() {
+                    alert('重置失败，请稍后重试');
+                    btn.prop('disabled', false).text('确认重置');
+                }
+                    });
+                });
+        
+        // 备份列表筛选
+        $('#backup-filter').on('change', function() {
+            var filter = $(this).val();
+            window.location.href = '{{ url_for("main.database_management") }}?filter=' + filter;
+        });
+    });
+</script>
+{% endblock %}
+

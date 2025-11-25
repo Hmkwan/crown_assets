@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>提交配件申请</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="spare_part_id" class="form-label">选择配件</label>
+                            <select class="form-select" id="spare_part_id" name="spare_part_id">
+                                <option value="">请选择配件（可选）</option>
+                                {% for part in spare_parts %}
+                                <option value="{{ part.id }}" data-name="{{ part.name }}" data-number="{{ part.part_number }}">
+                                    {{ part.name }} (编号: {{ part.part_number }}, 库存: {{ part.stock_quantity }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="part_name" class="form-label">配件名称</label>
+                            <input type="text" class="form-control" id="part_name" name="part_name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="part_number" class="form-label">配件编号</label>
+                            <input type="text" class="form-control" id="part_number" name="part_number">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">数量</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">申请原因</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">提交申请</button>
+                            <a href="{{ url_for('main.part_request_orders') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        // 当选择配件时，自动填充名称和编号
+        $('#spare_part_id').change(function() {
+            var selectedOption = $(this).find('option:selected');
+            var partName = selectedOption.data('name');
+            var partNumber = selectedOption.data('number');
+            
+            if (partName) {
+                $('#part_name').val(partName);
+            }
+            
+            if (partNumber) {
+                $('#part_number').val(partNumber);
+            }
+        });
+    });
+</script>
+{% endblock %}

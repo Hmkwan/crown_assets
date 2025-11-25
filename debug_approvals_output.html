@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>  皇冠新材IT资产管理系统</title>
+    <!--[if lt IE 9]>
+    <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+    <![endif]-->
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/site.css">
+    
+    <meta name="csrf-token" content="ImFmMmRlNzE0MzUzNDlkYzk3YWFmYzVkNzA1MjZhN2FhYTFlYmEyZjYi.aSUlQA.pJ7bCR8-ZGGJ9Qe2bjeylejNFrc">
+    <style>
+        /* 仪表板网格样式：等高卡片、占位样式 - 兼容旧浏览器 */
+        .dashboard-grid .card { 
+            min-height: 180px; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .card-body { 
+            -ms-flex: 1 1 auto;
+            -webkit-flex: 1 1 auto;
+            flex: 1 1 auto; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .mt-auto { margin-top: auto; }
+        .dashboard-grid .placeholder { visibility: hidden; }
+        
+        /* 页面标题样式 - 兼容旧浏览器 */
+        .page-header {
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: -o-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .page-header .lead {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/index">皇冠新材IT资产管理系统</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    
+                    <li class="nav-item"><a class="nav-link" href="/index">首页</a></li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">资产</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/equipment">设备列表</a></li>
+                            <li><a class="dropdown-item" href="/spare_parts">配件列表</a></li>
+                            
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">工单</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/repair_orders">维修工单</a></li>
+                            
+                            <li><a class="dropdown-item" href="/create_repair_order">提交维修工单</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/part_request_orders">配件申请</a></li>
+                            
+                            <li><a class="dropdown-item" href="/create_loan_request">设备借用申请</a></li>
+                            <li><a class="dropdown-item" href="/create_equipment_application">设备申请</a></li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">流转/审批</a>
+                        <ul class="dropdown-menu">
+                            
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#workflowQueryModal">流程状态查询</a></li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="/notifications">
+                            通知
+                            
+                            
+                        </a>
+                    </li>
+                    
+                </ul>
+                
+                <ul class="navbar-nav">
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+                            approver_test
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li><a class="dropdown-item" href="/auth/logout">退出登录</a></li>
+                        </ul>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 流程状态查询模态框 -->
+    <div class="modal fade" id="workflowQueryModal" tabindex="-1" aria-labelledby="workflowQueryLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="workflowQueryLabel">流程状态查询</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">流程类型</label>
+              <select class="form-control" id="wfType">
+                <option value="repair_order">维修工单</option>
+                <option value="part_request_order">配件申请</option>
+                <option value="equipment_transfer">设备调拨</option>
+                <option value="equipment_scrap">设备报废</option>
+                <option value="equipment_loan">设备借用</option>
+                <option value="equipment_application">设备申请</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">单据编号</label>
+              <input type="number" class="form-control" id="wfId" placeholder="例如 1001">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="wfGo">查看</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main role="main" class="container-lg py-5">
+        
+        
+        
+
+        
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>待审批工单</h1>
+            
+            <!-- 维修工单审批 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>维修工单审批</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <p>暂无待审批的维修工单。</p>
+                    
+                </div>
+            </div>
+            
+            <!-- 配件申请审批 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>配件申请审批</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <p>暂无待审批的配件申请。</p>
+                    
+                </div>
+            </div>
+
+            <!-- 设备调拨审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备调拨审批</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <p>暂无待审批的设备调拨。</p>
+                    
+                </div>
+            </div>
+
+            <!-- 设备报废审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备报废审批</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <p>暂无待审批的设备报废。</p>
+                    
+                </div>
+            </div>
+
+            <!-- 设备借用审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备借用审批</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>设备</th>
+                                    <th>申请人</th>
+                                    <th>申请部门</th>
+                                    <th>借用期限</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                <tr>
+                                    <td>1</td>
+                                    <td>笔记本电脑</td>
+                                    <td>requester_test</td>
+                                    <td>IT部门</td>
+                                    <td>2025-11-25 至 2025-12-02</td>
+                                    <td>2025-11-25 03:40</td>
+                                    <td>管理员</td>
+                                    <td>
+                                        
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="1" data-order-type="loan" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="1" data-order-type="loan" data-action="reject">拒绝</button>
+                                        <a href="/loan_requests" class="btn btn-sm btn-outline-primary">查看列表</a>
+                                        <a href="/workflow/status/equipment_loan/1" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        
+                                    </td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设备申请审批 -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><h5>设备申请审批</h5></div>
+                <div class="card-body">
+                    
+                    <p>暂无待审批的设备申请。</p>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 批准确认模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">批准确认</h5>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <input type="hidden" name="csrf_token" value="ImFmMmRlNzE0MzUzNDlkYzk3YWFmYzVkNzA1MjZhN2FhYTFlYmEyZjYi.aSUlQA.pJ7bCR8-ZGGJ9Qe2bjeylejNFrc">
+                    <input type="hidden" id="approve_order_id" name="order_id">
+                    <input type="hidden" id="approve_order_type" name="order_type">
+                    <div class="mb-3">
+                        <label for="approve_comments" class="form-label">审批意见（可选）</label>
+                        <textarea class="form-control" id="approve_comments" rows="3"></textarea>
+                    </div>
+                </form>
+                <p>确定要批准这个申请吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmApprove">确认批准</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 拒绝确认模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">拒绝确认</h5>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <input type="hidden" name="csrf_token" value="ImFmMmRlNzE0MzUzNDlkYzk3YWFmYzVkNzA1MjZhN2FhYTFlYmEyZjYi.aSUlQA.pJ7bCR8-ZGGJ9Qe2bjeylejNFrc">
+                    <input type="hidden" id="reject_order_id" name="order_id">
+                    <input type="hidden" id="reject_order_type" name="order_type">
+                    <div class="mb-3">
+                        <label for="reject_comments" class="form-label">拒绝原因（必填）</label>
+                        <textarea class="form-control" id="reject_comments" rows="3" required></textarea>
+                    </div>
+                </form>
+                <p>确定要拒绝这个申请吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmReject">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4">
+        <div class="container">
+            <p class="mb-0 footer-small">© 2025 皇冠新材料科技股份有限公司. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    
+    <!--[if lt IE 9]>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <!--<![endif]-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment-timezone@0.5.43/builds/moment-timezone-with-data.min.js"></script>
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/es6-promise@4.2.8/dist/es6-promise.auto.min.js"></script>
+    <script>
+        // fetch polyfill for IE11
+        if (!window.fetch) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.js"><\/script>');
+        }
+    </script>
+
+    
+    <script>
+        (function() {
+            // fallback for jQuery
+            if (typeof jQuery === 'undefined') {
+                var s = document.createElement('script');
+                s.src = "/static/js/jquery-1.12.4.min.js";
+                document.head.appendChild(s);
+            }
+            // fallback for bootstrap bundle
+            if (typeof bootstrap === 'undefined' && typeof $.fn.modal === 'undefined') {
+                var s2 = document.createElement('script');
+                s2.src = "/static/js/bootstrap.bundle.min.js";
+                document.head.appendChild(s2);
+            }
+            // moment fallback
+            if (typeof moment === 'undefined') {
+                var s3 = document.createElement('script');
+                s3.src = "/static/js/moment.min.js";
+                document.head.appendChild(s3);
+            }
+        })();
+    </script>
+    <script>
+        // 将 CSRF token 暴露到全局并为 jQuery/fetch 请求自动注入 header
+        (function() {
+            try {
+                window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            } catch (e) {
+                window.CSRF_TOKEN = '';
+            }
+
+            if (window.jQuery) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                            xhr.setRequestHeader('X-CSRFToken', window.CSRF_TOKEN);
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                        }
+                    }
+                });
+            }
+
+            // 包装 fetch，自动在非安全方法中注入 CSRF header
+            if (window.fetch) {
+                const _oldFetch = window.fetch.bind(window);
+                window.fetch = function(input, init) {
+                    init = init || {};
+                    init.headers = init.headers || {};
+                    const method = (init.method || 'GET').toUpperCase();
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+                        init.headers['X-CSRFToken'] = window.CSRF_TOKEN;
+                        init.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+                    }
+                    return _oldFetch(input, init);
+                };
+            }
+        })();
+    </script>
+    <script>
+        // 设置中文与中国时区
+        (function(){
+            if (typeof moment !== 'undefined') {
+                moment.locale('zh-cn');
+                if (moment.tz) {
+                    moment.tz.setDefault('Asia/Shanghai');
+                }
+            }
+        })();
+    </script>
+    <script>
+      // 流程查询跳转
+      (function(){
+        const btn = document.getElementById('wfGo');
+        if(btn){
+          btn.addEventListener('click', function(){
+            const type = document.getElementById('wfType').value;
+            const id = document.getElementById('wfId').value;
+            if(!id){
+              alert('请输入单据编号');
+              return;
+            }
+            window.location.href = `/workflow/status/${type}/${id}`;
+          });
+        }
+      })();
+    </script>
+    
+<script>
+$(document).ready(function() {
+    $.ajaxSetup({
+        headers: { 'X-CSRFToken': 'ImFmMmRlNzE0MzUzNDlkYzk3YWFmYzVkNzA1MjZhN2FhYTFlYmEyZjYi.aSUlQA.pJ7bCR8-ZGGJ9Qe2bjeylejNFrc' }
+    });
+    // 设置批准模态框数据
+    $('#approveModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var orderId = button.data('order-id');
+        var orderType = button.data('order-type');
+        
+        var modal = $(this);
+        modal.find('#approve_order_id').val(orderId);
+        modal.find('#approve_order_type').val(orderType);
+    });
+    
+    // 设置拒绝模态框数据
+    $('#rejectModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var orderId = button.data('order-id');
+        var orderType = button.data('order-type');
+        
+        var modal = $(this);
+        modal.find('#reject_order_id').val(orderId);
+        modal.find('#reject_order_type').val(orderType);
+    });
+    
+    // 确认批准
+    $('#confirmApprove').click(function() {
+        var orderId = $('#approve_order_id').val();
+        var orderType = $('#approve_order_type').val();
+        var comments = $('#approve_comments').val();
+        
+        var formData = {
+            comments: comments
+        };
+        
+        var url;
+        if (orderType === 'repair') {
+            url = '/approvals/repair_order/0/approve'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'part') {
+            url = '/approvals/part_order/0/approve'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'transfer') {
+            url = '/approvals/transfer/0/approve'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'scrap') {
+            url = '/approvals/scrap/0/approve'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'application') {
+            url = '/approvals/equipment_application/0/approve'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'loan') {
+            url = '/approvals/loan/0/approve'.replace('/0/', '/' + orderId + '/');
+        }
+        
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                alert('审批成功');
+                location.reload();
+            },
+            error: function() {
+                alert('审批失败');
+            }
+        });
+    });
+    
+    // 确认拒绝
+    $('#confirmReject').click(function() {
+        var orderId = $('#reject_order_id').val();
+        var orderType = $('#reject_order_type').val();
+        var comments = $('#reject_comments').val();
+        
+        // 检查拒绝原因
+        if (!comments.trim()) {
+            alert('请填写拒绝原因');
+            return;
+        }
+        
+        var formData = {
+            comments: comments
+        };
+        
+        var url;
+        if (orderType === 'repair') {
+            url = '/approvals/repair_order/0/reject'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'part') {
+            url = '/approvals/part_order/0/reject'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'transfer') {
+            url = '/approvals/transfer/0/reject'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'scrap') {
+            url = '/approvals/scrap/0/reject'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'application') {
+            url = '/approvals/equipment_application/0/reject'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'loan') {
+            url = '/approvals/loan/0/reject'.replace('/0/', '/' + orderId + '/');
+        }
+        
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                alert('拒绝成功');
+                location.reload();
+            },
+            error: function() {
+                alert('拒绝失败');
+            }
+        });
+    });
+});
+</script>
+
+</body>
+</html>

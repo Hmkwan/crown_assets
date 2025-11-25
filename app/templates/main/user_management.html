@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">用户列表</h5>
+                    <div>
+                        <button class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none;" data-toggle="modal" data-target="#importModal">
+                            <i class="fas fa-file-import"></i> 导入
+                        </button>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('main.export_users') }}" class="btn btn-info">
+                            <i class="fas fa-file-export"></i> 导出
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#addUserModal">
+                            <i class="fas fa-plus"></i> 添加用户
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">关键字</label>
+                            <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="用户名 / 邮箱">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">所属部门</label>
+                            <select name="department_id" class="form-control">
+                                <option value="">所有部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if selected_department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">角色</label>
+                            <select name="role" class="form-control">
+                                <option value="">全部</option>
+                                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>管理员</option>
+                                <option value="technician" {% if role_filter == 'technician' %}selected{% endif %}>技术员</option>
+                                <option value="department_head" {% if role_filter == 'department_head' %}selected{% endif %}>部门领导</option>
+                                <option value="user" {% if role_filter == 'user' %}selected{% endif %}>普通用户</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">筛选</button>
+                            <a href="{{ url_for('main.user_management') }}" class="btn btn-outline-secondary">重置</a>
+                        </div>
+                    </form>
+                    <div class="text-muted mb-3">
+                        共 {{ pagination.total }} 位用户，当前第 {{ pagination.page }} / {{ pagination.pages if pagination.pages else 1 }} 页
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>角色</th>
+                                    <th>所属部门</th>
+                                    <th>模块权限</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.role == 'admin' %}
+                                        管理员
+                                        {% elif user.role == 'department_head' %}
+                                        部门领导
+                                        {% elif user.role == 'technician' %}
+                                        技术员
+                                        {% else %}
+                                        普通用户
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.department }}</td>
+                                    <td>
+                                        <small>
+                                            {% if user.can_manage_equipment %}<span class="badge bg-primary me-1">设备</span>{% endif %}
+                                            {% if user.can_manage_spare_parts %}<span class="badge bg-success me-1">配件</span>{% endif %}
+                                            {% if user.can_manage_repairs %}<span class="badge bg-warning me-1">维修</span>{% endif %}
+                                            {% if user.can_manage_part_requests %}<span class="badge bg-info me-1">配件申请</span>{% endif %}
+                                            {% if user.can_view_workflow %}<span class="badge bg-secondary me-1">流程查看</span>{% endif %}
+                                            {% if user.can_view_reports %}<span class="badge bg-dark me-1">报表查看</span>{% endif %}
+                                            {% if user.can_view_logs %}<span class="badge bg-light text-dark me-1">日志查看</span>{% endif %}
+                                            {% if not (user.can_manage_equipment or user.can_manage_spare_parts or user.can_manage_repairs or user.can_manage_part_requests or user.can_view_workflow or user.can_view_reports or user.can_view_logs) %}
+                                            <span class="text-muted">无特殊权限</span>
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary edit-user" 
+                                                data-id="{{ user.id }}"
+                                                data-username="{{ user.username }}"
+                                                data-email="{{ user.email }}"
+                                                data-role="{{ user.role }}"
+                                                data-department-id="{{ user.department_id }}">
+                                            编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary manage-permissions"
+                                                data-toggle="modal" 
+                                                data-target="#permissionsModal"
+                                                data-id="{{ user.id }}"
+                                                data-username="{{ user.username }}"
+                                                data-can_manage_equipment="{{ user.can_manage_equipment }}"
+                                                data-can_manage_spare_parts="{{ user.can_manage_spare_parts }}"
+                                                data-can_manage_repairs="{{ user.can_manage_repairs }}"
+                                                data-can_manage_part_requests="{{ user.can_manage_part_requests }}"
+                                                data-can_view_workflow="{{ user.can_view_workflow }}"
+                                                data-can_view_reports="{{ user.can_view_reports }}"
+                                                data-can_view_logs="{{ user.can_view_logs }}">
+                                            权限
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning reset-password" data-id="{{ user.id }}" data-username="{{ user.username }}">
+                                            重置密码
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-user" data-id="{{ user.id }}">
+                                            删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">暂无符合条件的用户</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if pagination.pages > 1 %}
+                    <nav aria-label="用户分页" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.user_management', page=pagination.prev_num, search=search_query or None, department_id=selected_department_id, role=role_filter or None) if pagination.has_prev else '#' }}">上一页</a>
+                            </li>
+                            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                {% if p %}
+                                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('main.user_management', page=p, search=search_query or None, department_id=selected_department_id, role=role_filter or None) }}">{{ p }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.user_management', page=pagination.next_num, search=search_query or None, department_id=selected_department_id, role=role_filter or None) if pagination.has_next else '#' }}">下一页</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addUserForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">添加用户</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">角色</label>
+                        <select class="form-control" id="role" name="role" required>
+                            <option value="">请选择角色</option>
+                            <option value="user">普通用户</option>
+                            <option value="technician">技术员</option>
+                            <option value="department_head">部门领导</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department_id" class="form-label">所属部门</label>
+                        <select class="form-control" id="department_id" name="department_id" required>
+                            <option value="">请选择部门</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editUserForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">编辑用户</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_user_id" name="user_id">
+                    <div class="mb-3">
+                        <label for="edit_username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="edit_username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="edit_email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_role" class="form-label">角色</label>
+                        <select class="form-control" id="edit_role" name="role" required>
+                            <option value="user">普通用户</option>
+                            <option value="technician">技术员</option>
+                            <option value="department_head">部门领导</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_department_id" class="form-label">所属部门</label>
+                        <select class="form-control" id="edit_department_id" name="department_id" required>
+                            <option value="">请选择部门</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 权限管理模态框 -->
+<div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="permissionsForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="permissionsModalLabel">管理用户权限</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="perm_user_id" name="user_id">
+                    <h6 id="perm_username" class="mb-3"></h6>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_manage_equipment" name="can_manage_equipment">
+                        <label class="form-check-label" for="can_manage_equipment">
+                            设备管理权限
+                            <small class="text-muted d-block">允许访问和管理设备列表</small>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_manage_spare_parts" name="can_manage_spare_parts">
+                        <label class="form-check-label" for="can_manage_spare_parts">
+                            配件管理权限
+                            <small class="text-muted d-block">允许访问和管理配件库存</small>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_manage_repairs" name="can_manage_repairs">
+                        <label class="form-check-label" for="can_manage_repairs">
+                            维修工单权限
+                            <small class="text-muted d-block">允许访问和管理维修工单</small>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_manage_part_requests" name="can_manage_part_requests">
+                        <label class="form-check-label" for="can_manage_part_requests">
+                            配件申请权限
+                            <small class="text-muted d-block">允许访问和管理配件申请</small>
+                        </label>
+                    </div>
+                    <hr>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_view_workflow" name="can_view_workflow">
+                        <label class="form-check-label" for="can_view_workflow">
+                            工作流程查看权限
+                            <small class="text-muted d-block">允许查看审批流程配置（只读）</small>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_view_reports" name="can_view_reports">
+                        <label class="form-check-label" for="can_view_reports">
+                            报表查看权限
+                            <small class="text-muted d-block">允许查看统计报表（只读）</small>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="can_view_logs" name="can_view_logs">
+                        <label class="form-check-label" for="can_view_logs">
+                            操作日志查看权限
+                            <small class="text-muted d-block">允许查看用户操作日志（只读）</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存权限</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="importForm" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">导入用户数据</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">选择CSV文件</label>
+                        <input type="file" class="form-control" id="importFile" name="file" accept=".csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>CSV文件应包含以下列：用户名,邮箱,角色,所属部门
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">导入</button>
+                </div>
+            </form>
+</div>
+</div>
+</div>
+<!-- 重置密码模态框 -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetPasswordLabel">重置用户密码</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <form id="resetPasswordForm" method="post" action="">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" id="reset_user_id" name="user_id">
+          <p class="mb-3"><strong id="reset_username"></strong></p>
+          <div class="mb-3">
+            <label class="form-label">新密码</label>
+            <input type="password" class="form-control" name="new_password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">确认密码</label>
+            <input type="password" class="form-control" name="confirm_password" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 编辑用户按钮事件
+    document.querySelectorAll('.edit-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const username = this.getAttribute('data-username');
+            const email = this.getAttribute('data-email');
+            const role = this.getAttribute('data-role');
+            const departmentId = this.getAttribute('data-department-id');
+            
+            document.getElementById('edit_user_id').value = id;
+            document.getElementById('edit_username').value = username;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_role').value = role;
+            document.getElementById('edit_department_id').value = departmentId;
+            
+            var editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            editModal.show();
+        });
+    });
+    
+    // 权限管理按钮事件
+    document.querySelectorAll('.manage-permissions').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const username = this.getAttribute('data-username');
+            const canManageEquipment = this.getAttribute('data-can_manage_equipment') === 'True';
+            const canManageSpareParts = this.getAttribute('data-can_manage_spare_parts') === 'True';
+            const canManageRepairs = this.getAttribute('data-can_manage_repairs') === 'True';
+            const canManagePartRequests = this.getAttribute('data-can_manage_part_requests') === 'True';
+            const canViewWorkflow = this.getAttribute('data-can_view_workflow') === 'True';
+            const canViewReports = this.getAttribute('data-can_view_reports') === 'True';
+            const canViewLogs = this.getAttribute('data-can_view_logs') === 'True';
+            
+            document.getElementById('perm_user_id').value = id;
+            document.getElementById('perm_username').textContent = `用户: ${username}`;
+            document.getElementById('can_manage_equipment').checked = canManageEquipment;
+            document.getElementById('can_manage_spare_parts').checked = canManageSpareParts;
+            document.getElementById('can_manage_repairs').checked = canManageRepairs;
+            document.getElementById('can_manage_part_requests').checked = canManagePartRequests;
+            document.getElementById('can_view_workflow').checked = canViewWorkflow;
+            document.getElementById('can_view_reports').checked = canViewReports;
+            document.getElementById('can_view_logs').checked = canViewLogs;
+            
+            // 更新表单提交地址
+            const form = document.getElementById('permissionsForm');
+            form.action = `/admin/users/${id}/permissions`;
+        });
+    });
+    
+    // 添加用户表单提交
+    document.getElementById('addUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('{{ url_for("main.add_user") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('添加失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('添加用户时发生错误');
+        });
+    });
+    
+    // 编辑用户表单提交
+    document.getElementById('editUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const userId = document.getElementById('edit_user_id').value;
+        
+        fetch(`/admin/users/edit/${userId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('更新失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('更新用户时发生错误');
+        });
+    });
+    
+    // 删除用户按钮事件
+    document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            if (confirm('确定要删除这个用户吗？')) {
+                fetch(`/admin/users/delete/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除用户时发生错误');
+                });
+            }
+        });
+    });
+    // 重置密码按钮事件
+    document.querySelectorAll('.reset-password').forEach(btn => {
+        btn.addEventListener('click', function(){
+            const id = this.getAttribute('data-id');
+            const username = this.getAttribute('data-username');
+            document.getElementById('reset_user_id').value = id;
+            document.getElementById('reset_username').textContent = `用户: ${username}`;
+            var modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            modal.show();
+        });
+    });
+
+    // 重置密码表单提交
+    document.getElementById('resetPasswordForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        const id = document.getElementById('reset_user_id').value;
+        const formData = new FormData(this);
+        fetch(`/admin/users/${id}/reset_password`, { method: 'POST', body: formData })
+            .then(r => r.json()).then(resp => {
+                if(resp && resp.success){
+                    alert('密码已更新');
+                    bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+                } else {
+                    alert(resp.message || '密码重置失败');
+                }
+            }).catch(() => alert('密码重置失败'));
+    });
+</script>
+{% endblock %}

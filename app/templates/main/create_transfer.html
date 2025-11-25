@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <h1>调拨设备</h1>
+  <form method="post">
+    <!-- 将 csrf token 放入隐藏字段以随表单提交 -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label class="form-label">选择设备</label>
+      <select name="equipment_id" class="form-control">
+        <option value="">请选择设备</option>
+        {% for e in equipments %}
+        <option value="{{ e.id }}">{{ e.name }} ({{ e.department }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">目标部门</label>
+      <select name="to_department" class="form-control">
+        <option value="">请选择部门</option>
+        {% for d in departments %}
+        <option value="{{ d.name }}">{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">说明</label>
+      <textarea name="description" class="form-control" rows="3"></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">提交调拨申请</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>设备调拨管理</h1>
+    <p>列出所有设备调拨申请，管理员可查看详情并进行操作。</p>
+
+    <form class="row g-3 mb-3" method="get">
+        <div class="col-auto">
+            <label class="visually-hidden">状态</label>
+            <select name="status" class="form-control">
+                <option value="" {% if not selected_status %}selected{% endif %}>全部状态</option>
+                <option value="submitted" {% if selected_status=='submitted' %}selected{% endif %}>已提交</option>
+                <option value="approved" {% if selected_status=='approved' %}selected{% endif %}>已批准</option>
+                <option value="cancelled" {% if selected_status=='cancelled' %}selected{% endif %}>已取消</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary">筛选</button>
+        </div>
+    </form>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>设备</th>
+                <th>来自部门</th>
+                <th>目标部门</th>
+                <th>申请人</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>流程图</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transfers.items %}
+            <tr>
+                <td>{{ t.id }}</td>
+                <td>{{ t.equipment.name if t.equipment else '—' }}</td>
+                <td>{{ t.from_department }}</td>
+                <td>{{ t.to_department }}</td>
+                <td>{{ t.requester.username if t.requester else '—' }}</td>
+                <td>{{ t.status }}</td>
+                <td>{{ moment(t.created_date).format('YYYY-MM-DD HH:mm:ss') }}</td>
+                <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.workflow_status', order_type='equipment_transfer', order_id=t.id) }}">查看</a></td>
+            </tr>
+            {% endfor %}
+            {% if transfers.total == 0 %}
+            <tr>
+                <td colspan="7">暂无调拨申请</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if transfers.pages > 1 %}
+    <nav aria-label="分页">
+        <ul class="pagination">
+            <li class="page-item {% if not transfers.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('main.admin_transfers', page=transfers.prev_num if transfers.has_prev else 1, status=selected_status) }}">上一页</a>
+            </li>
+            {% for p in range(1, transfers.pages + 1) %}
+            <li class="page-item {% if p == transfers.page %}active{% endif %}"><a class="page-link" href="{{ url_for('main.admin_transfers', page=p, status=selected_status) }}">{{ p }}</a></li>
+            {% endfor %}
+            <li class="page-item {% if not transfers.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('main.admin_transfers', page=transfers.next_num if transfers.has_next else transfers.pages, status=selected_status) }}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

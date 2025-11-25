@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>设备类型管理</h1>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">设备类型列表</h5>
+                    <button class="btn btn-primary" data-toggle="modal" data-target="#addTypeModal">
+                        <i class="fas fa-plus"></i> 添加类型
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>类型名称</th>
+                                    <th>描述</th>
+                                    <th>创建时间</th>
+                                    <th>设备数量</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for type in types %}
+                                <tr>
+                                    <td>{{ type.name }}</td>
+                                    <td>{{ type.description or '-' }}</td>
+                                    <td>
+                                        {% if type.created_date %}
+                                            {{ moment(type.created_date).format('YYYY-MM-DD HH:mm:ss') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ type.equipments|length }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger delete-type" data-id="{{ type.id }}">
+                                            删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加类型模态框 -->
+<div class="modal fade" id="addTypeModal" tabindex="-1" aria-labelledby="addTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addTypeForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTypeModalLabel">添加设备类型</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">类型名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 添加设备类型表单提交
+    document.getElementById('addTypeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        
+        fetch('{{ url_for("main.add_equipment_type") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('添加失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('添加失败: ' + error);
+        });
+    });
+    
+    // 删除设备类型按钮点击事件
+    document.querySelectorAll('.delete-type').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var typeId = this.getAttribute('data-id');
+            if (confirm('确定要删除这个设备类型吗？')) {
+                                        var url = '/equipment/types/delete/' + typeId;
+                    if (confirm('类型下设备将保留但解绑类型。是否强制删除？')) {
+                        url += '?force=1';
+                    }
+                    fetch(url, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('删除失败: ' + error);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

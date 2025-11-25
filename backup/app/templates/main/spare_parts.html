@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>配件管理</h1>
+                {% if current_user.role in ['admin', 'technician'] %}
+                <a href="{{ url_for('main.add_spare_part') }}" class="btn btn-primary">添加配件</a>
+                <a href="{{ url_for('main.export_spare_parts') }}" class="btn btn-success ms-2">导出</a>
+                <button class="btn btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#importSpareModal">
+                    <i class="fas fa-file-import"></i> 导入
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th>配件编号</th>
+                            <th>价格</th>
+                            <th>库存数量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                           <!-- Import Spare Parts Modal -->
+                        {% for part in parts %}
+                        <tr>
+                            <td>{{ part.name }}</td>
+                            <td>{{ part.part_number }}</td>
+                            <td>¥{{ part.price }}</td>
+                            <td>{{ part.stock_quantity }}</td>
+                            <td>
+                                {% if current_user.role in ['admin', 'technician'] %}
+                                <a href="{{ url_for('main.edit_spare_part', id=part.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                                 </tbody>
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-sm btn-outline-danger delete-spare-part" data-id="{{ part.id }}">删除</button>
+                                    <div class="modal fade" id="importSpareModal" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form id="importSpareForm" enctype="multipart/form-data" method="post">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">导入配件 (CSV)</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <div class="mb-3">
+                                                            <label for="spareFile" class="form-label">CSV 文件</label>
+                                                            <input class="form-control" type="file" id="spareFile" name="file" accept=".csv" required>
+                                                        </div>
+                                                        <div class="form-text">第一列应为配件名称; 可选列: part_number, vendor, stock</div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                        <button type="submit" class="btn btn-primary">上传并导入</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <script>
+                                    document.addEventListener('DOMContentLoaded', function(){
+                                        const form = document.getElementById('importSpareForm');
+                                        if (!form) return;
+                                        form.addEventListener('submit', function(e){
+                                            e.preventDefault();
+                                            const fileInput = document.getElementById('spareFile');
+                                            if (!fileInput.files.length) return alert('请选择CSV文件');
+                                            const fd = new FormData();
+                                            fd.append('file', fileInput.files[0]);
+                                            fetch("{{ url_for('main.import_spare_parts') }}", {
+                                                method: 'POST',
+                                                body: fd,
+                                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                            }).then(r=>r.json()).then(data=>{
+                                                if (data.success) {
+                                                    window.location.reload();
+                                                } else {
+                                                    alert('导入失败: ' + (data.error || JSON.stringify(data)));
+                                                }
+                                            }).catch(err=>{alert('网络错误: '+err)});
+                                        });
+                                    });
+                                    </script>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if current_user.role == 'admin' %}
+<script>
+    $(document).ready(function() {
+        $('.delete-spare-part').click(function() {
+            if (confirm('确定要删除这个配件吗？')) {
+                var partId = $(this).data('id');
+                $.ajax({
+                    url: '/spare_parts/delete/' + partId,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('删除失败: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('删除失败');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

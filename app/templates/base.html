@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}{% endblock %}  皇冠新材IT资产管理系统</title>
+    <!--[if lt IE 9]>
+    <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+    <![endif]-->
+    {# 使用 Bootstrap 4.6.2 以支持 IE10+ 和旧版浏览器 #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    {# CSRF token meta，供前端 JS（fetch/ajax）使用 #}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        /* 仪表板网格样式：等高卡片、占位样式 - 兼容旧浏览器 */
+        .dashboard-grid .card { 
+            min-height: 180px; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .card-body { 
+            -ms-flex: 1 1 auto;
+            -webkit-flex: 1 1 auto;
+            flex: 1 1 auto; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .mt-auto { margin-top: auto; }
+        .dashboard-grid .placeholder { visibility: hidden; }
+        
+        /* 页面标题样式 - 兼容旧浏览器 */
+        .page-header {
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: -o-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .page-header .lead {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">皇冠新材IT资产管理系统</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}">首页</a></li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">资产</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_list') }}">设备列表</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.spare_parts') }}">配件列表</a></li>
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_types') }}">设备类型管理</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">工单</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.repair_orders') }}">维修工单</a></li>
+                            {% if current_user.role in ['user','admin'] %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_repair_order') }}">提交维修工单</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.part_request_orders') }}">配件申请</a></li>
+                            {% if current_user.role == 'admin' or current_user.can_manage_part_requests %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_part_request_order') }}">提交配件申请</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_loan_request') }}">设备借用申请</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_equipment_application') }}">设备申请</a></li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">流转/审批</a>
+                        <ul class="dropdown-menu">
+                            {% if current_user.role in ['admin','department_head'] %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.approvals') }}">我的审批</a></li>
+                            {% endif %}
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_transfers') }}">调拨管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_scraps') }}">报废管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_workflow_nodes') }}">审批流程管理</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#workflowQueryModal">流程状态查询</a></li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{{ url_for('main.notifications') }}">
+                            通知
+                            {% set unread_count = current_user.notifications|selectattr('is_read', 'equalto', False)|list|length %}
+                            {% if unread_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="unread-notification-count">
+                                {{ unread_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+                            {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 流程状态查询模态框 -->
+    <div class="modal fade" id="workflowQueryModal" tabindex="-1" aria-labelledby="workflowQueryLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="workflowQueryLabel">流程状态查询</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">流程类型</label>
+              <select class="form-control" id="wfType">
+                <option value="repair_order">维修工单</option>
+                <option value="part_request_order">配件申请</option>
+                <option value="equipment_transfer">设备调拨</option>
+                <option value="equipment_scrap">设备报废</option>
+                <option value="equipment_loan">设备借用</option>
+                <option value="equipment_application">设备申请</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">单据编号</label>
+              <input type="number" class="form-control" id="wfId" placeholder="例如 1001">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="wfGo">查看</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main role="main" class="container-lg py-5">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4">
+        <div class="container">
+            <p class="mb-0 footer-small">© 2025 皇冠新材料科技股份有限公司. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    {# 使用兼容旧浏览器的 jQuery 1.12.4 和 Bootstrap 4.6.2 #}
+    <!--[if lt IE 9]>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <!--<![endif]-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment-timezone@0.5.43/builds/moment-timezone-with-data.min.js"></script>
+    
+    {# 添加 polyfills 以支持旧浏览器 #}
+    <script src="https://cdn.jsdelivr.net/npm/es6-promise@4.2.8/dist/es6-promise.auto.min.js"></script>
+    <script>
+        // fetch polyfill for IE11
+        if (!window.fetch) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.js"><\/script>');
+        }
+    </script>
+
+    {# 回退：如果 CDN 无法加载，则加载本地静态文件 #}
+    <script>
+        (function() {
+            // fallback for jQuery
+            if (typeof jQuery === 'undefined') {
+                var s = document.createElement('script');
+                s.src = "{{ url_for('static', filename='js/jquery-1.12.4.min.js') }}";
+                document.head.appendChild(s);
+            }
+            // fallback for bootstrap bundle
+            if (typeof bootstrap === 'undefined' && typeof $.fn.modal === 'undefined') {
+                var s2 = document.createElement('script');
+                s2.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
+                document.head.appendChild(s2);
+            }
+            // moment fallback
+            if (typeof moment === 'undefined') {
+                var s3 = document.createElement('script');
+                s3.src = "{{ url_for('static', filename='js/moment.min.js') }}";
+                document.head.appendChild(s3);
+            }
+        })();
+    </script>
+    <script>
+        // 将 CSRF token 暴露到全局并为 jQuery/fetch 请求自动注入 header
+        (function() {
+            try {
+                window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            } catch (e) {
+                window.CSRF_TOKEN = '';
+            }
+
+            if (window.jQuery) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                            xhr.setRequestHeader('X-CSRFToken', window.CSRF_TOKEN);
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                        }
+                    }
+                });
+            }
+
+            // 包装 fetch，自动在非安全方法中注入 CSRF header
+            if (window.fetch) {
+                const _oldFetch = window.fetch.bind(window);
+                window.fetch = function(input, init) {
+                    init = init || {};
+                    init.headers = init.headers || {};
+                    const method = (init.method || 'GET').toUpperCase();
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+                        init.headers['X-CSRFToken'] = window.CSRF_TOKEN;
+                        init.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+                    }
+                    return _oldFetch(input, init);
+                };
+            }
+        })();
+    </script>
+    <script>
+        // 设置中文与中国时区
+        (function(){
+            if (typeof moment !== 'undefined') {
+                moment.locale('zh-cn');
+                if (moment.tz) {
+                    moment.tz.setDefault('Asia/Shanghai');
+                }
+            }
+        })();
+    </script>
+    <script>
+      // 流程查询跳转
+      (function(){
+        const btn = document.getElementById('wfGo');
+        if(btn){
+          btn.addEventListener('click', function(){
+            const type = document.getElementById('wfType').value;
+            const id = document.getElementById('wfId').value;
+            if(!id){
+              alert('请输入单据编号');
+              return;
+            }
+            window.location.href = `/workflow/status/${type}/${id}`;
+          });
+        }
+      })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>皇冠新材IT资产管理系统</h1>
+            <p class="lead">欢迎使用皇冠新材IT资产管理系统</p>
+            
+            <div class="row mt-4">
+                {% if current_user.role in ['admin', 'technician'] %}
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">维修工单</h5>
+                            <p class="card-text">查看和管理所有维修工单</p>
+                            <a href="{{ url_for('main.repair_orders') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">设备管理</h5>
+                            <p class="card-text">查看和管理所有IT设备</p>
+                            <a href="{{ url_for('main.equipment_list') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">配件管理</h5>
+                            <p class="card-text">查看和管理配件库存</p>
+                            <a href="{{ url_for('main.spare_parts') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">提交维修申请</h5>
+                            <p class="card-text">提交新的设备维修申请</p>
+                            <a href="{{ url_for('main.create_repair_order') }}" class="btn btn-primary">新建工单</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">我的工单</h5>
+                            <p class="card-text">查看我提交的维修工单</p>
+                            <a href="{{ url_for('main.repair_orders') }}" class="btn btn-primary">查看</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

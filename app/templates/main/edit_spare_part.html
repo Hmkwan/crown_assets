@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>编辑配件</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">配件名称</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ spare_part.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="part_number" class="form-label">配件编号</label>
+                            <input type="text" class="form-control" id="part_number" name="part_number" value="{{ spare_part.part_number }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="price" class="form-label">价格</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" value="{{ spare_part.price }}" min="0">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="stock_quantity" class="form-label">库存数量</label>
+                            <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" value="{{ spare_part.stock_quantity }}" min="0" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="purchase_date" class="form-label">入库日期</label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                                   value="{% if spare_part.purchase_date %}{{ spare_part.purchase_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department" class="form-label">所属部门</label>
+                            <select class="form-control" id="department" name="department" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept }}" {% if spare_part.department == dept %}selected{% endif %}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">存放位置</label>
+                            <input type="text" class="form-control" id="location" name="location" value="{{ spare_part.location or '' }}" placeholder="例如：信息部仓库A区-01号货架">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">更新</button>
+                            <a href="{{ url_for('main.spare_parts') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>设备列表</h1>
+                {% if current_user.role in ['admin', 'technician'] %}
+                <a href="{{ url_for('main.add_equipment') }}" class="btn btn-primary">添加设备</a>
+                <a href="{{ url_for('main.export_report', type='equipment') }}" class="btn btn-success ms-2">导出</a>
+                <button class="btn btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#importEquipmentModal">
+                    <i class="fas fa-file-import"></i> 导入
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>类型</th>
+                            <th>品牌型号</th>
+                            <th>序列号</th>
+                            <th>所属部门</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equipment in equipments %}
+                        <tr>
+                            <td>{{ equipment.name }}</td>
+                            <td>{{ equipment.type }}</td>
+                            <td>{{ equipment.brand }} {{ equipment.model }}</td>
+                            <td>{{ equipment.serial_number }}</td>
+                            <td>{{ equipment.department }}</td>
+                            <td>
+                                {% if equipment.status == 'active' %}
+                                <span class="badge bg-success">正常</span>
+                                {% elif equipment.status == 'repair' %}
+                                <span class="badge bg-warning">维修中</span>
+                                {% elif equipment.status == 'retired' %}
+                                <span class="badge bg-secondary">已报废</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if current_user.role in ['admin', 'technician'] %}
+                                <a href="{{ url_for('main.edit_equipment', id=equipment.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-sm btn-outline-danger delete-equipment" data-id="{{ equipment.id }}">删除</button>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        <!-- Import Equipment Modal -->
+        <div class="modal fade" id="importEquipmentModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="importEquipmentForm" enctype="multipart/form-data" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">导入设备 (CSV)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label for="equipmentFile" class="form-label">CSV 文件</label>
+                                <input class="form-control" type="file" id="equipmentFile" name="file" accept=".csv" required>
+                            </div>
+                            <div class="form-text">第一列应为设备名称; 可选列: serial, type, location</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">上传并导入</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            const form = document.getElementById('importEquipmentForm');
+            if (!form) return;
+            form.addEventListener('submit', function(e){
+                e.preventDefault();
+                const fileInput = document.getElementById('equipmentFile');
+                if (!fileInput.files.length) return alert('请选择CSV文件');
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                fetch("{{ url_for('main.import_equipment') }}", {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(r=>r.json()).then(data=>{
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('导入失败: ' + (data.error || JSON.stringify(data)));
+                    }
+                }).catch(err=>{alert('网络错误: '+err)});
+            });
+        });
+        </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if current_user.role == 'admin' %}
+<script>
+    $(document).ready(function() {
+        $('.delete-equipment').click(function() {
+            if (confirm('确定要删除这个设备吗？')) {
+                var equipmentId = $(this).data('id');
+                $.ajax({
+                    url: '/equipment/delete/' + equipmentId,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('删除失败: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('删除失败');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

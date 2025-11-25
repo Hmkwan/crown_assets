@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>{{ title }}</h1>
+            
+            <!-- 维修工单审批 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>维修工单审批</h5>
+                </div>
+                <div class="card-body">
+                    {% if repair_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>工单ID</th>
+                                    <th>设备</th>
+                                    <th>申请人</th>
+                                    <th>申请部门</th>
+                                    <th>故障描述</th>
+                                    <th>优先级</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in repair_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.equipment.name }}</td>
+                                    <td>{{ item.order.requester.username }}</td>
+                                    <td>{{ item.order.requester.department }}</td>
+                                    <td>{{ item.order.description[:50] }}...</td>
+                                    <td>
+                                        {% if item.order.status == 'submitted' %}
+                                        <span class="badge bg-warning">已提交</span>
+                                        {% elif item.order.status == 'department_head_approved' %}
+                                        <span class="badge bg-info">部门领导已批准</span>
+                                        {% elif item.order.status == 'admin_approved' %}
+                                        <span class="badge bg-info">管理员已批准</span>
+                                        {% elif item.order.status == 'in_progress' %}
+                                        <span class="badge bg-primary">处理中</span>
+                                        {% elif item.order.status == 'completed' %}
+                                        <span class="badge bg-success">已完成</span>
+                                        {% elif item.order.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">已取消</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>
+                                        {% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}
+                                        {% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" 
+                                                data-toggle="modal" 
+                                                data-target="#approveModal"
+                                                data-order-id="{{ item.order.id }}"
+                                                data-order-type="repair"
+                                                data-action="approve">
+                                            批准
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                data-toggle="modal" 
+                                                data-target="#rejectModal"
+                                                data-order-id="{{ item.order.id }}"
+                                                data-order-type="repair"
+                                                data-action="reject">
+                                            拒绝
+                                        </button>
+                                        <a href="{{ url_for('main.repair_order_detail', id=item.order.id) }}" class="btn btn-sm btn-outline-primary">查看详情</a>
+                                        <a href="{{ url_for('main.workflow_status', order_type='repair_order', order_id=item.order.id) }}" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的维修工单。</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 配件申请审批 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>配件申请审批</h5>
+                </div>
+                <div class="card-body">
+                    {% if part_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>配件名称</th>
+                                    <th>配件编号</th>
+                                    <th>数量</th>
+                                    <th>申请人</th>
+                                    <th>申请部门</th>
+                                    <th>申请原因</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in part_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.part_name }}</td>
+                                    <td>{{ item.order.part_number }}</td>
+                                    <td>{{ item.order.quantity }}</td>
+                                    <td>{{ item.order.requester.username }}</td>
+                                    <td>{{ item.order.requester.department }}</td>
+                                    <td>{{ item.order.reason[:50] }}...</td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>{% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}{% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}</td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="{{ item.order.id }}" data-order-type="part" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="{{ item.order.id }}" data-order-type="part" data-action="reject">拒绝</button>
+                                        <a href="{{ url_for('main.part_request_order_detail', id=item.order.id) }}" class="btn btn-sm btn-outline-primary">查看详情</a>
+                                        <a href="{{ url_for('main.workflow_status', order_type='part_request_order', order_id=item.order.id) }}" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的配件申请。</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 设备调拨审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备调拨审批</h5>
+                </div>
+                <div class="card-body">
+                    {% if transfer_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>设备</th>
+                                    <th>调出部门</th>
+                                    <th>调入部门</th>
+                                    <th>申请人</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in transfer_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.equipment.name }}</td>
+                                    <td>{{ item.order.from_department }}</td>
+                                    <td>{{ item.order.to_department }}</td>
+                                    <td>{{ item.order.requester.username }}</td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>{% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}{% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}</td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="{{ item.order.id }}" data-order-type="transfer" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="{{ item.order.id }}" data-order-type="transfer" data-action="reject">拒绝</button>
+                                        <a href="{{ url_for('main.admin_transfers') }}" class="btn btn-sm btn-outline-primary">查看列表</a>
+                                        <a href="{{ url_for('main.workflow_status', order_type='equipment_transfer', order_id=item.order.id) }}" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的设备调拨。</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 设备报废审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备报废审批</h5>
+                </div>
+                <div class="card-body">
+                    {% if scrap_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>设备</th>
+                                    <th>申请人</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in scrap_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.equipment.name }}</td>
+                                    <td>{{ item.order.requester.username }}</td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>{% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}{% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}</td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="{{ item.order.id }}" data-order-type="scrap" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="{{ item.order.id }}" data-order-type="scrap" data-action="reject">拒绝</button>
+                                        <a href="{{ url_for('main.admin_scraps') }}" class="btn btn-sm btn-outline-primary">查看列表</a>
+                                        <a href="{{ url_for('main.workflow_status', order_type='equipment_scrap', order_id=item.order.id) }}" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的设备报废。</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 设备借用审批 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>设备借用审批</h5>
+                </div>
+                <div class="card-body">
+                    {% if loan_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>设备</th>
+                                    <th>申请人</th>
+                                    <th>申请部门</th>
+                                    <th>借用期限</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in loan_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.equipment.name }}</td>
+                                    <td>{{ item.order.requester.username }}</td>
+                                    <td>{{ item.order.requester_dept }}</td>
+                                    <td>{{ moment(item.order.start_date).format('YYYY-MM-DD') }} 至 {{ moment(item.order.end_date).format('YYYY-MM-DD') }}</td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>{% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}{% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}</td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="{{ item.order.id }}" data-order-type="loan" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="{{ item.order.id }}" data-order-type="loan" data-action="reject">拒绝</button>
+                                        <a href="{{ url_for('main.loan_requests') }}" class="btn btn-sm btn-outline-primary">查看列表</a>
+                                        <a href="{{ url_for('main.workflow_status', order_type='equipment_loan', order_id=item.order.id) }}" class="btn btn-sm btn-outline-secondary">流程图</a>
+                                        {% endif %}
+                                        {% if current_user.role == 'admin' %}
+                                            {% if item.order.status != 'borrowed' %}
+                                                <button class="btn btn-sm btn-success borrow-btn" data-loan-id="{{ item.order.id }}">标记借出</button>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-warning return-btn" data-loan-id="{{ item.order.id }}">标记归还</button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的设备借用。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设备申请审批 -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><h5>设备申请审批</h5></div>
+                <div class="card-body">
+                    {% if application_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请ID</th>
+                                    <th>设备</th>
+                                    <th>申请人</th>
+                                    <th>申请部门</th>
+                                    <th>申请原因</th>
+                                    <th>申请时间</th>
+                                    <th>审批级别</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in application_orders %}
+                                <tr>
+                                    <td>{{ item.order.id }}</td>
+                                    <td>{{ item.order.equipment.name }}</td>
+                                    <td>{{ item.order.applicant.username }}</td>
+                                    <td>{{ item.order.applicant_dept }}</td>
+                                    <td>{{ (item.order.reason or '')[:50] }}</td>
+                                    <td>{{ moment(item.order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>{% if item.approval.approval_level == 'department_head' %}部门领导{% elif item.approval.approval_level == 'admin' %}管理员{% elif item.approval.approval_level == 'technician' %}技术员{% else %}{{ item.approval.approval_level }}{% endif %}{% if item.approval.auto_assigned %}<span class="badge bg-danger ml-2">自动分配</span>{% endif %}</td>
+                                    <td>
+                                        {% if item.approval.status == 'approved' %}
+                                        <span class="badge bg-success">已审批</span>
+                                        {% elif item.approval.status == 'rejected' %}
+                                        <span class="badge bg-secondary">已拒绝</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#approveModal" data-order-id="{{ item.order.id }}" data-order-type="application" data-action="approve">批准</button>
+                                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal" data-order-id="{{ item.order.id }}" data-order-type="application" data-action="reject">拒绝</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p>暂无待审批的设备申请。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 批准确认模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">批准确认</h5>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="approve_order_id" name="order_id">
+                    <input type="hidden" id="approve_order_type" name="order_type">
+                    <div class="mb-3">
+                        <label for="approve_comments" class="form-label">审批意见（可选）</label>
+                        <textarea class="form-control" id="approve_comments" rows="3"></textarea>
+                    </div>
+                </form>
+                <p>确定要批准这个申请吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmApprove">确认批准</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 拒绝确认模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">拒绝确认</h5>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="reject_order_id" name="order_id">
+                    <input type="hidden" id="reject_order_type" name="order_type">
+                    <div class="mb-3">
+                        <label for="reject_comments" class="form-label">拒绝原因（必填）</label>
+                        <textarea class="form-control" id="reject_comments" rows="3" required></textarea>
+                    </div>
+                </form>
+                <p>确定要拒绝这个申请吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmReject">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $.ajaxSetup({
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    });
+    // 设置批准模态框数据
+    $('#approveModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var orderId = button.data('order-id');
+        var orderType = button.data('order-type');
+        
+        var modal = $(this);
+        modal.find('#approve_order_id').val(orderId);
+        modal.find('#approve_order_type').val(orderType);
+    });
+    
+    // 设置拒绝模态框数据
+    $('#rejectModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var orderId = button.data('order-id');
+        var orderType = button.data('order-type');
+        
+        var modal = $(this);
+        modal.find('#reject_order_id').val(orderId);
+        modal.find('#reject_order_type').val(orderType);
+    });
+    
+    // 确认批准（使用 fetch，带更好错误处理）
+    async function postAction(url, body) {
+        const headers = { 'X-CSRFToken': '{{ csrf_token() }}' };
+        const resp = await fetch(url, { method: 'POST', headers: headers, body: new URLSearchParams(body) });
+        if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(text || ('HTTP ' + resp.status));
+        }
+        return resp;
+    }
+
+    // 显示 Bootstrap toast
+    function showToast(message, type) {
+        type = type || 'info';
+        const toastId = 'toast-' + Date.now();
+        const html = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+          <div class="toast-header ${type === 'danger' ? 'bg-danger text-white' : (type === 'success' ? 'bg-success text-white' : 'bg-secondary text-white')}">
+            <strong class="mr-auto">通知</strong>
+            <small class="text-muted">刚刚</small>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="toast-body">${message}</div>
+        </div>`;
+        $('#toastContainer').append(html);
+        const $t = $('#' + toastId);
+        $t.toast('show');
+        $t.on('hidden.bs.toast', function(){ $t.remove(); });
+    }
+
+    // 显示确认模态，返回 Promise<boolean>
+    function showConfirm(message) {
+        return new Promise(function(resolve){
+            $('#confirmActionModalBody').text(message);
+            $('#confirmActionModal').modal('show');
+            $('#confirmOk').off('click').on('click', function(){
+                $('#confirmActionModal').modal('hide');
+                resolve(true);
+            });
+            $('#confirmCancel').off('click').on('click', function(){
+                $('#confirmActionModal').modal('hide');
+                resolve(false);
+            });
+        });
+    }
+
+    $('#confirmApprove').click(async function() {
+        var orderId = $('#approve_order_id').val();
+        var orderType = $('#approve_order_type').val();
+        var comments = $('#approve_comments').val();
+
+        var formData = { comments: comments };
+        var url = null;
+        if (orderType === 'repair') {
+            url = '{{ url_for("main.approve_repair_order", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'part') {
+            url = '{{ url_for("main.approve_part_order", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'transfer') {
+            url = '{{ url_for("main.approve_transfer", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'scrap') {
+            url = '{{ url_for("main.approve_scrap", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'application') {
+            url = '{{ url_for("main.approve_equipment_application", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'loan') {
+            url = '{{ url_for("main.approve_loan", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+        }
+
+        if (!url) { showToast('无法解析审批地址', 'danger'); return; }
+
+        try {
+            $('#confirmApprove').prop('disabled', true).text('处理中...');
+            await postAction(url, formData);
+            showToast('审批成功', 'success');
+            location.reload();
+        } catch (err) {
+            console.error(err);
+            showToast('审批失败：' + err.message, 'danger');
+        } finally {
+            $('#confirmApprove').prop('disabled', false).text('确认批准');
+        }
+    });
+
+    // 确认拒绝（使用 fetch）
+    $('#confirmReject').click(async function() {
+        var orderId = $('#reject_order_id').val();
+        var orderType = $('#reject_order_type').val();
+        var comments = $('#reject_comments').val();
+
+        if (!comments || !comments.trim()) { alert('请填写拒绝原因'); return; }
+
+        var formData = { comments: comments };
+        var url = null;
+        if (orderType === 'repair') {
+            url = '{{ url_for("main.approve_repair_order", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'part') {
+            url = '{{ url_for("main.approve_part_order", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'transfer') {
+            url = '{{ url_for("main.approve_transfer", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'scrap') {
+            url = '{{ url_for("main.approve_scrap", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'application') {
+            url = '{{ url_for("main.approve_equipment_application", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        } else if (orderType === 'loan') {
+            url = '{{ url_for("main.approve_loan", order_id=0, action="reject") }}'.replace('/0/', '/' + orderId + '/');
+        }
+
+        if (!url) { showToast('无法解析拒绝地址', 'danger'); return; }
+
+        try {
+            $('#confirmReject').prop('disabled', true).text('处理中...');
+            await postAction(url, formData);
+            showToast('拒绝成功', 'success');
+            location.reload();
+        } catch (err) {
+            console.error(err);
+            showToast('拒绝失败：' + err.message, 'danger');
+        } finally {
+            $('#confirmReject').prop('disabled', false).text('确认拒绝');
+        }
+    });
+
+    // 管理员：标记借出/归还 按钮处理
+    $(document).on('click', '.borrow-btn', async function() {
+        var loanId = $(this).data('loan-id');
+        var ok = await showConfirm('确定将该设备标记为已借出吗？');
+        if (!ok) return;
+        var url = '{{ url_for("main.mark_loan_borrowed", loan_id=0) }}'.replace('/0', '/' + loanId);
+        postAction(url, {}).then(function(){ showToast('已标记为借出', 'success'); location.reload(); }).catch(function(err){ showToast('操作失败：' + err.message, 'danger'); });
+    });
+
+    $(document).on('click', '.return-btn', async function() {
+        var loanId = $(this).data('loan-id');
+        var ok = await showConfirm('确定将该设备标记为已归还吗？');
+        if (!ok) return;
+        var url = '{{ url_for("main.mark_loan_returned", loan_id=0) }}'.replace('/0', '/' + loanId);
+        postAction(url, {}).then(function(){ showToast('已标记为归还', 'success'); location.reload(); }).catch(function(err){ showToast('操作失败：' + err.message, 'danger'); });
+    });
+});
+</script>
+{% endblock %}

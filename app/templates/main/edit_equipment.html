@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>编辑设备</h1>
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <div class="card border-info"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><div>
+                  <div class="text-muted">设备申请</div>
+                  <div class="fs-4">{{ apps_count }}</div>
+                </div><a href="{{ url_for('main.approvals') }}" class="btn btn-sm btn-outline-info">查看</a></div></div></div>
+              </div>
+              <div class="col-md-4">
+                <div class="card border-primary"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><div>
+                  <div class="text-muted">设备借用</div>
+                  <div class="fs-4">{{ loans_count }}</div>
+                </div><a href="{{ url_for('main.loan_requests') }}" class="btn btn-sm btn-outline-primary">查看</a></div></div></div>
+              </div>
+              <div class="col-md-4">
+                <div class="card border-warning"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><div>
+                  <div class="text-muted">设备调拨</div>
+                  <div class="fs-4">{{ transfers_count }}</div>
+                </div><a href="{{ url_for('main.admin_transfers') }}" class="btn btn-sm btn-outline-warning">查看</a></div></div></div>
+              </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">设备名称</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ equipment.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="type_id" class="form-label">设备类型</label>
+                            <select class="form-control" id="type_id" name="type_id" required>
+                                <option value="">请选择设备类型</option>
+                                {% for type in equipment_types %}
+                                <option value="{{ type.id }}" {% if equipment.type_id == type.id %}selected{% endif %}>
+                                    {{ type.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="brand" class="form-label">品牌</label>
+                            <input type="text" class="form-control" id="brand" name="brand" value="{{ equipment.brand or '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="model" name="model" value="{{ equipment.model or '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="serial_number" class="form-label">序列号</label>
+                            <input type="text" class="form-control" id="serial_number" name="serial_number" value="{{ equipment.serial_number }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="purchase_date" class="form-label">购买日期</label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                                   value="{% if equipment.purchase_date %}{{ equipment.purchase_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">所属部门</label>
+                            <select class="form-control" id="department_id" name="department_id" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if equipment.department_id == dept.id %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">状态</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="active" {% if equipment.status == 'active' %}selected{% endif %}>正常</option>
+                                <option value="repair" {% if equipment.status == 'repair' %}selected{% endif %}>维修中</option>
+                                <option value="retired" {% if equipment.status == 'retired' %}selected{% endif %}>已报废</option>
+                                <option value="available" {% if equipment.status == 'available' %}selected{% endif %}>可申请</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_public_pool" name="is_public_pool" {% if equipment.is_public_pool %}checked{% endif %}>
+                            <label class="form-check-label" for="is_public_pool">加入信息部公开仓库</label>
+                            <small class="text-muted d-block">勾选后，该设备将出现在“公开设备仓库”，供其他部门申请或借用</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <a href="{{ url_for('main.equipment_list') }}" class="btn btn-secondary">取消</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

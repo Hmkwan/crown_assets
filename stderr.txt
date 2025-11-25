@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "C:\Users\it03.GD\Desktop\TEST\app.py", line 4, in <module>
+    app = create_app()
+          ^^^^^^^^^^^^
+  File "C:\Users\it03.GD\Desktop\TEST\app\__init__.py", line 80, in create_app
+    from app.main import bp as main_bp
+  File "C:\Users\it03.GD\Desktop\TEST\app\main\__init__.py", line 5, in <module>
+    from app.main import routes
+  File "C:\Users\it03.GD\Desktop\TEST\app\main\routes.py", line 1078
+    query = query.filter(Equipment.type_id == type_id)
+    ^
+IndentationError: expected an indented block after 'if' statement on line 1077

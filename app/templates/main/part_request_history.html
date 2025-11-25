@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1>配件申请历史</h1>
+            
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>申请单ID</th>
+                                    <th>配件名称</th>
+                                    <th>数量</th>
+                                    <th>状态</th>
+                                    <th>申请时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in requests.items %}
+                                <tr>
+                                    <td>{{ request.id }}</td>
+                                    <td>{{ request.part_name or '未知配件' }}</td>
+                                    <td>{{ request.quantity }}</td>
+                                    <td>
+                                        {% if request.status == 'submitted' %}
+                                        <span class="badge bg-warning">待审批</span>
+                                        {% elif request.status == 'department_head_approved' %}
+                                        <span class="badge bg-info">部门领导已批准</span>
+                                        {% elif request.status == 'admin_approved' %}
+                                        <span class="badge bg-success">管理员已批准</span>
+                                        {% elif request.status == 'completed' %}
+                                        <span class="badge bg-success">已完成</span>
+                                        {% elif request.status == 'cancelled' %}
+                                        <span class="badge bg-danger">已取消</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ moment(request.created_date).format('YYYY-MM-DD HH:mm') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('main.part_request_order_detail', id=request.id) }}" class="btn btn-sm btn-outline-primary">查看</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+            
+                    <!-- 分页 -->
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if requests.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.part_request_history', page=requests.prev_num) }}">上一页</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">上一页</span>
+                            </li>
+                            {% endif %}
+                    
+                            {% for page_num in requests.iter_pages() %}
+                            {% if page_num %}
+                            {% if page_num != requests.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.part_request_history', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                    
+                            {% if requests.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.part_request_history', page=requests.next_num) }}">下一页</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">下一页</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    {% if requests.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.part_request_history', page=requests.prev_num) }}">上一页</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">上一页</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in requests.iter_pages() %}
+                    {% if page_num %}
+                    {% if page_num != requests.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.part_request_history', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if requests.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.part_request_history', page=requests.next_num) }}">下一页</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">下一页</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}

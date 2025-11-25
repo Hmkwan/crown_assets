@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>编辑设备</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">设备名称</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ equipment.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="type" class="form-label">设备类型</label>
+                            <input type="text" class="form-control" id="type" name="type" value="{{ equipment.type }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="brand" class="form-label">品牌</label>
+                            <input type="text" class="form-control" id="brand" name="brand" value="{{ equipment.brand or '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="model" name="model" value="{{ equipment.model or '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="serial_number" class="form-label">序列号</label>
+                            <input type="text" class="form-control" id="serial_number" name="serial_number" value="{{ equipment.serial_number }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="purchase_date" class="form-label">购买日期</label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                                   value="{% if equipment.purchase_date %}{{ equipment.purchase_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department_id" class="form-label">所属部门</label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">请选择部门</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if equipment.department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">状态</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="active" {% if equipment.status == 'active' %}selected{% endif %}>正常</option>
+                                <option value="repair" {% if equipment.status == 'repair' %}selected{% endif %}>维修中</option>
+                                <option value="retired" {% if equipment.status == 'retired' %}selected{% endif %}>已报废</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">更新</button>
+                            <a href="{{ url_for('main.equipment_list') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

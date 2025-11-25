@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>管理面板</h1>
+            <p class="lead">欢迎来到管理系统</p>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">用户管理</h5>
+                            <p class="card-text">管理系统中的所有用户</p>
+                            <a href="{{ url_for('main.user_management') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">部门管理</h5>
+                            <p class="card-text">管理系统中的所有部门</p>
+                            <a href="{{ url_for('main.department_management') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">设备管理</h5>
+                            <p class="card-text">查看和管理所有IT设备</p>
+                            <a href="{{ url_for('main.equipment_list') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">配件管理</h5>
+                            <p class="card-text">查看和管理配件库存</p>
+                            <a href="{{ url_for('main.spare_parts') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">维修工单</h5>
+                            <p class="card-text">查看和管理所有维修工单</p>
+                            <a href="{{ url_for('main.repair_orders') }}" class="btn btn-primary">进入</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

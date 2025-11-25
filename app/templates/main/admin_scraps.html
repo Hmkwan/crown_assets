@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>设备报废管理</h1>
+    <p>列出所有设备报废申请，管理员可查看详情并进行操作。</p>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>设备</th>
+                <th>申请人</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>流程图</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in scraps %}
+            <tr>
+                <td>{{ s.id }}</td>
+                <td>{{ s.equipment.name if s.equipment else '—' }}</td>
+                <td>{{ s.requester.username if s.requester else '—' }}</td>
+                <td>{{ s.status }}</td>
+                <td>{{ moment(s.created_date).format('YYYY-MM-DD HH:mm:ss') }}</td>
+                <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.workflow_status', order_type='equipment_scrap', order_id=s.id) }}">查看</a></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">暂无报废申请</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

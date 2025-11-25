@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="display-6">欢迎回来，{{ current_user.username }}！</h1>
+    <p class="lead">皇冠新材 IT 资产管理系统</p>
+    {% if pending_repairs > 0 or pending_approvals > 0 %}
+    <div class="mt-3">
+        {% if pending_repairs > 0 %}
+        <a href="{{ url_for('main.repair_orders', filter='submitted') }}" class="badge bg-warning me-2 text-decoration-none">待处理维修工单: {{ pending_repairs }}</a>
+        {% endif %}
+        {% if pending_approvals > 0 %}
+        <a href="{{ url_for('main.approvals') }}" class="badge bg-info text-decoration-none">待审批事项: {{ pending_approvals }}</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{# 目标：4 行 x 5 列 的布局（共 20 槽位），不足用占位符补齐，保证网格稳固显示 #}
+{# tiles 现在由后端在视图函数中构建并传入模板（变量名：tiles） #}
+
+<div class="row dashboard-grid row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">
+    {% for t in tiles %}
+    <div class="col">
+        <a href="{{ t.url }}" class="text-decoration-none text-body">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ t.title }}</h5>
+                    <p class="card-text">{{ t.text }}</p>
+                    <div class="mt-auto">
+                        <button class="btn btn-sm btn-primary">进入</button>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">设备申请</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label class="form-label">选择可申请设备</label>
+              <select class="form-control" name="equipment_id" required>
+                {% for eq in equipments %}
+                  <option value="{{ eq.id }}">{{ eq.name }}（序列号：{{ eq.serial_number }}，当前部门：{{ eq.department }}）</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">申请原因（可选）</label>
+              <textarea class="form-control" name="reason" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">提交申请</button>
+            <a href="{{ url_for('main.public_equipment') }}" class="btn btn-outline-secondary ml-2">查看公开设备仓库</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

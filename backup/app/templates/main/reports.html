@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>统计报表</h1>
+                <div>
+                    <a href="{{ url_for('main.export_report', type='summary') }}" class="btn btn-success">导出汇总报表</a>
+                    <a href="{{ url_for('main.export_report', type='equipment') }}" class="btn btn-success">导出设备报表</a>
+                    <a href="{{ url_for('main.export_report', type='users') }}" class="btn btn-success">导出用户报表</a>
+                    <a href="{{ url_for('main.export_report', type='repair_orders') }}" class="btn btn-success">导出工单报表</a>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">总用户数</h5>
+                            <p class="card-text display-4">{{ total_users }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">总设备数</h5>
+                            <p class="card-text display-4">{{ total_equipment }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">维修工单数</h5>
+                            <p class="card-text display-4">{{ total_repair_orders }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">配件种类数</h5>
+                            <p class="card-text display-4">{{ total_spare_parts }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备状态统计 -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>设备状态统计</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>状态</th>
+                                        <th>数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for status, count in equipment_by_status %}
+                                    <tr>
+                                        <td>
+                                            {% if status == 'active' %}
+                                            正常
+                                            {% elif status == 'repair' %}
+                                            维修中
+                                            {% elif status == 'retired' %}
+                                            已报废
+                                            {% else %}
+                                            {{ status }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设备类型统计 -->
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>设备类型统计</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>类型</th>
+                                        <th>数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for type, count in equipment_by_type %}
+                                    <tr>
+                                        <td>{{ type }}</td>
+                                        <td>{{ count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 维修工单统计 -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>维修工单状态统计</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>状态</th>
+                                        <th>数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for status, count in repair_orders_by_status %}
+                                    <tr>
+                                        <td>
+                                            {% if status == 'submitted' %}
+                                            已提交
+                                            {% elif status == 'in_progress' %}
+                                            处理中
+                                            {% elif status == 'completed' %}
+                                            已完成
+                                            {% elif status == 'cancelled' %}
+                                            已取消
+                                            {% else %}
+                                            {{ status }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>维修工单优先级统计</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>优先级</th>
+                                        <th>数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for priority, count in repair_orders_by_priority %}
+                                    <tr>
+                                        <td>
+                                            {% if priority == 'low' %}
+                                            低
+                                            {% elif priority == 'medium' %}
+                                            中
+                                            {% elif priority == 'high' %}
+                                            高
+                                            {% else %}
+                                            {{ priority }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

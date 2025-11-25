@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>更新工单状态</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>工单 #{{ repair_order.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">状态</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="approved" {% if repair_order.status == 'approved' %}selected{% endif %}>已批准</option>
+                                <option value="in_progress" {% if repair_order.status == 'in_progress' %}selected{% endif %}>处理中</option>
+                                <option value="completed" {% if repair_order.status == 'completed' %}selected{% endif %}>已完成</option>
+                                <option value="cancelled" {% if repair_order.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="technician_id" class="form-label">分配技术员</label>
+                            <select class="form-control" id="technician_id" name="technician_id">
+                                <option value="">不分配</option>
+                                {% for technician in technicians %}
+                                <option value="{{ technician.id }}" {% if repair_order.technician_id == technician.id %}selected{% endif %}>
+                                    {{ technician.username }} ({{ technician.department or '未分配部门' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="repair_description" class="form-label">维修描述</label>
+                            <textarea class="form-control" id="repair_description" name="repair_description" rows="4" placeholder="请输入维修描述...">{{ repair_order.repair_description or '' }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">更新状态</button>
+                            <a href="{{ url_for('main.repair_order_detail', id=repair_order.id) }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

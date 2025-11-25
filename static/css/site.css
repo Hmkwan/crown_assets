@@ -1,0 +1,75 @@
+/* Minimal fallback styles to make the app readable when CDN is unavailable */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  margin: 0;
+  background: #f8f9fa;
+  color: #212529;
+}
+.navbar {
+  background-color: #343a40;
+  color: #fff;
+  padding: 0.5rem 1rem;
+}
+.navbar .navbar-brand, .navbar .nav-link {
+  color: #fff;
+  text-decoration: none;
+}
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+}
+.card .card-body {
+  padding: 1rem;
+}
+.btn {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  color: #fff;
+  background-color: #0d6efd;
+  border: 1px solid #0d6efd;
+  border-radius: 0.25rem;
+  text-decoration: none;
+}
+.btn:hover { opacity: 0.9; }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th, .table td {
+  border: 1px solid #dee2e6;
+  padding: 0.5rem;
+}
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  color: #fff;
+  background-color: #dc3545;
+  border-radius: 0.25rem;
+}
+.alert {
+  padding: 0.75rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+footer.bg-light {
+  background: #f1f1f1;
+  padding: 1rem 0;
+}
+/* basic responsive grid fallback */
+.row { display: flex; flex-wrap: wrap; margin-right: -0.5rem; margin-left: -0.5rem; }
+.col-md-4 { flex: 0 0 33.3333%; max-width: 33.3333%; padding: 0.5rem; }
+.col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0.5rem; }
+.col-md-12 { flex: 0 0 100%; max-width: 100%; padding: 0.5rem; }
+@media (max-width: 768px) {
+  .col-md-4, .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+}

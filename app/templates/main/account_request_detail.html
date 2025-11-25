@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">{{ title }}</h2>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">申请信息</h5>
+                    {% if account_request.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">待审批</span>
+                    {% elif account_request.status == 'approved' %}
+                    <span class="badge bg-success">已通过</span>
+                    {% else %}
+                    <span class="badge bg-secondary">已拒绝</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">用户名</dt>
+                        <dd class="col-sm-9">{{ account_request.username }}</dd>
+
+                        <dt class="col-sm-3">姓名</dt>
+                        <dd class="col-sm-9">{{ account_request.full_name }}</dd>
+
+                        <dt class="col-sm-3">工号</dt>
+                        <dd class="col-sm-9">{{ account_request.employee_no }}</dd>
+
+                        <dt class="col-sm-3">邮箱</dt>
+                        <dd class="col-sm-9">{{ account_request.email }}</dd>
+
+                        <dt class="col-sm-3">所属部门</dt>
+                        <dd class="col-sm-9">{{ account_request.department }}</dd>
+
+                        <dt class="col-sm-3">申请角色</dt>
+                        <dd class="col-sm-9">
+                            {% for value,label in role_choices %}
+                                {% if value == account_request.role_requested %}
+                                    {{ label }}
+                                {% endif %}
+                            {% endfor %}
+                        </dd>
+
+                        <dt class="col-sm-3">申请说明</dt>
+                        <dd class="col-sm-9">{{ account_request.reason or '未填写' }}</dd>
+
+                        <dt class="col-sm-3">提交时间</dt>
+                        <dd class="col-sm-9">{{ moment(account_request.created_date).format('YYYY-MM-DD HH:mm') }}</dd>
+
+                        {% if account_request.status != 'pending' %}
+                        <dt class="col-sm-3">处理结果</dt>
+                        <dd class="col-sm-9">
+                            {% if account_request.status == 'approved' %}
+                                已通过
+                            {% else %}
+                                已拒绝
+                            {% endif %}
+                        </dd>
+                        <dt class="col-sm-3">处理时间</dt>
+                        <dd class="col-sm-9">{{ moment(account_request.processed_date).format('YYYY-MM-DD HH:mm') if account_request.processed_date else '-' }}</dd>
+                        <dt class="col-sm-3">管理员备注</dt>
+                        <dd class="col-sm-9">{{ account_request.approver_comments or '无' }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">审批操作</h5>
+                </div>
+                <div class="card-body">
+                    {% if account_request.status == 'pending' %}
+                    <form method="post" id="approve-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="approve">
+                        <div class="mb-3">
+                            <label class="form-label">授予角色</label>
+                            <select name="role" class="form-control">
+                                {% for value,label in role_choices %}
+                                <option value="{{ value }}" {% if value == account_request.role_requested %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">审批备注（可选）</label>
+                            <textarea name="comments" rows="3" class="form-control" placeholder="可填写审批说明，审批通过后会记录在申请中。"></textarea>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">批准并创建账号</button>
+                        </div>
+                    </form>
+                    <hr>
+                    <form method="post" onsubmit="return confirm('确定拒绝该申请吗？');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="reject">
+                        <div class="mb-3">
+                            <label class="form-label">拒绝原因</label>
+                            <textarea name="comments" rows="3" class="form-control" placeholder="请填写拒绝原因，便于记录。"></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-danger">拒绝申请</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info">
+                        该申请已于 {{ moment(account_request.processed_date).format('YYYY-MM-DD HH:mm') if account_request.processed_date else '-' }} 处理，无需重复操作。
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

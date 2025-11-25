@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}资产/配件管理中心{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>资产/配件管理中心</h1>
+    <p class="lead">统一管理资产和配件，整合申请、调拨、借用、归还、报废等功能</p>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">设备总数</h5>
+                <h2 class="text-primary">{{ equipment_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">配件总数</h5>
+                <h2 class="text-success">{{ spare_parts_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">待处理事项</h5>
+                <h2 class="text-warning">{{ pending_transfers + pending_scraps + pending_loans + pending_part_requests }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">快速操作</h5>
+                <a href="{{ url_for('main.asset_center') }}#operations" class="btn btn-primary btn-sm">查看</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 功能模块 -->
+<div class="row" id="operations">
+    <!-- 设备管理 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">设备管理</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('main.equipment_list') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-list"></i> 设备列表
+                    </a>
+                    <a href="{{ url_for('main.add_equipment') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus"></i> 添加设备
+                    </a>
+                    <a href="{{ url_for('main.create_transfer') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-exchange-alt"></i> 发起调拨
+                        {% if pending_transfers > 0 %}
+                        <span class="badge bg-warning float-end">{{ pending_transfers }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.create_scrap') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-trash"></i> 发起报废
+                        {% if pending_scraps > 0 %}
+                        <span class="badge bg-warning float-end">{{ pending_scraps }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.create_loan_request') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-hand-holding"></i> 设备借用
+                        {% if pending_loans > 0 %}
+                        <span class="badge bg-warning float-end">{{ pending_loans }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.create_equipment_application') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-alt"></i> 设备申请
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配件管理 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">配件管理</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('main.spare_parts') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-list"></i> 配件列表
+                    </a>
+                    <a href="{{ url_for('main.add_spare_part') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus"></i> 添加配件
+                    </a>
+                    <a href="{{ url_for('main.create_part_request_order') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-shopping-cart"></i> 配件申请
+                        {% if pending_part_requests > 0 %}
+                        <span class="badge bg-warning float-end">{{ pending_part_requests }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.part_request_orders') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-history"></i> 申请历史
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 标签生成工具 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">标签生成工具</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>设备标签生成</h6>
+                        <p class="text-muted">为设备生成70*70mm二维码标签，支持在线预览和下载</p>
+                        <div class="input-group mb-3">
+                            <input type="number" class="form-control" id="equipment-id" placeholder="输入设备ID">
+                            <button class="btn btn-primary" onclick="generateEquipmentLabel()">生成标签</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>配件标签生成</h6>
+                        <p class="text-muted">为配件生成70*70mm二维码标签，支持在线预览和下载</p>
+                        <div class="input-group mb-3">
+                            <input type="number" class="form-control" id="spare-part-id" placeholder="输入配件ID">
+                            <button class="btn btn-primary" onclick="generateSparePartLabel()">生成标签</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 标签预览区域 -->
+                <div id="label-preview" class="mt-4" style="display: none;">
+                    <hr>
+                    <h6>标签预览</h6>
+                    <div class="text-center">
+                        <img id="label-image" src="" alt="标签预览" class="img-fluid" style="max-width: 300px; border: 1px solid #ddd; padding: 10px;">
+                    </div>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-success" id="download-btn" onclick="downloadLabel()">下载标签</button>
+                        <button class="btn btn-secondary" onclick="closePreview()">关闭预览</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审批管理 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">审批管理</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('main.approvals') }}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-check-circle"></i> 我的审批
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('main.admin_transfers') }}" class="btn btn-outline-info w-100 mb-2">
+                            <i class="fas fa-exchange-alt"></i> 调拨管理
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('main.admin_scraps') }}" class="btn btn-outline-danger w-100 mb-2">
+                            <i class="fas fa-trash"></i> 报废管理
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('main.loan_requests') }}" class="btn btn-outline-warning w-100 mb-2">
+                            <i class="fas fa-hand-holding"></i> 借用管理
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentAssetType = '';
+let currentAssetId = 0;
+
+function generateEquipmentLabel() {
+    const equipmentId = document.getElementById('equipment-id').value;
+    if (!equipmentId) {
+        alert('请输入设备ID');
+        return;
+    }
+    generateLabel('equipment', equipmentId);
+}
+
+function generateSparePartLabel() {
+    const sparePartId = document.getElementById('spare-part-id').value;
+    if (!sparePartId) {
+        alert('请输入配件ID');
+        return;
+    }
+    generateLabel('spare_part', sparePartId);
+}
+
+function generateLabel(assetType, assetId) {
+    currentAssetType = assetType;
+    currentAssetId = assetId;
+    
+    fetch(`/asset/generate_qrcode/${assetType}/${assetId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('label-image').src = data.image;
+                document.getElementById('label-preview').style.display = 'block';
+                document.getElementById('download-btn').style.display = 'inline-block';
+            } else {
+                alert('生成失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('生成标签时发生错误');
+        });
+}
+
+function downloadLabel() {
+    if (currentAssetType && currentAssetId) {
+        window.location.href = `/asset/download_label/${currentAssetType}/${currentAssetId}`;
+    }
+}
+
+function closePreview() {
+    document.getElementById('label-preview').style.display = 'none';
+    currentAssetType = '';
+    currentAssetId = 0;
+}
+</script>
+{% endblock %}
+

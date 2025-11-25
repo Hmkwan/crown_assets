@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>审批流程管理</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">审批流程管理</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">流程节点列表</h5>
+                    {% if current_user.role == 'admin' %}
+                    <button class="btn btn-primary" data-toggle="modal" data-target="#addNodeModal">
+                        <i class="fas fa-plus"></i> 添加节点
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>节点名称</th>
+                                    <th>工单类型</th>
+                                    <th>所需角色</th>
+                                    <th>顺序</th>
+                                    {% if current_user.role == 'admin' %}<th>操作</th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for node in nodes %}
+                                <tr>
+                                    <td>{{ node.name }}</td>
+                                    <td>
+                                        {% if node.order_type == 'repair_order' %}
+                                        维修工单
+                                        {% elif node.order_type == 'part_request_order' %}
+                                        配件申请
+                                        {% elif node.order_type == 'equipment_loan' %}
+                                        设备借用
+                                        {% elif node.order_type == 'equipment_transfer' %}
+                                        设备调拨
+                                        {% elif node.order_type == 'equipment_scrap' %}
+                                        设备报废
+                                        {% elif node.order_type == 'equipment_application' %}
+                                        设备申请
+                                        {% else %}
+                                        {{ node.order_type }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if node.role_required == 'admin' %}管理员
+                                        {% elif node.role_required == 'department_head' %}部门领导
+                                        {% elif node.role_required == 'technician' %}技术员
+                                        {% else %}{{ node.role_required }}{% endif %}
+                                    </td>
+                                    <td>{{ node.sequence }}</td>
+                                    {% if current_user.role == 'admin' %}
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary edit-node" 
+                                                data-id="{{ node.id }}"
+                                                data-name="{{ node.name }}"
+                                                data-order-type="{{ node.order_type }}"
+                                                data-role-required="{{ node.role_required }}"
+                                                data-sequence="{{ node.sequence }}">
+                                            编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-node" data-id="{{ node.id }}">
+                                            删除
+                                        </button>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加节点模态框 -->
+{% if current_user.role == 'admin' %}
+<div class="modal fade" id="addNodeModal" tabindex="-1" aria-labelledby="addNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addNodeForm" action="{{ url_for('main.add_workflow_node') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addNodeModalLabel">添加流程节点</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">节点名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="order_type" class="form-label">工单类型</label>
+                        <select class="form-control" id="order_type" name="order_type" required>
+                            <option value="repair_order">维修工单</option>
+                            <option value="part_request_order">配件申请</option>
+                            <option value="equipment_loan">设备借用</option>
+                            <option value="equipment_transfer">设备调拨</option>
+                            <option value="equipment_scrap">设备报废</option>
+                            <option value="equipment_application">设备申请</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role_required" class="form-label">所需角色</label>
+                        <select class="form-control" id="role_required" name="role_required" required>
+                            <option value="department_head">部门领导</option>
+                            <option value="admin">管理员</option>
+                            <option value="technician">技术员</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sequence" class="form-label">顺序</label>
+                        <input type="number" class="form-control" id="sequence" name="sequence" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1" aria-labelledby="editNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editNodeForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNodeModalLabel">编辑流程节点</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_node_id" name="node_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">节点名称</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_order_type" class="form-label">工单类型</label>
+                        <select class="form-control" id="edit_order_type" name="order_type" required>
+                            <option value="repair_order">维修工单</option>
+                            <option value="part_request_order">配件申请</option>
+                            <option value="equipment_loan">设备借用</option>
+                            <option value="equipment_transfer">设备调拨</option>
+                            <option value="equipment_scrap">设备报废</option>
+                            <option value="equipment_application">设备申请</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_role_required" class="form-label">所需角色</label>
+                        <select class="form-control" id="edit_role_required" name="role_required" required>
+                            <option value="department_head">部门领导</option>
+                            <option value="admin">管理员</option>
+                            <option value="technician">技术员</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_sequence" class="form-label">顺序</label>
+                        <input type="number" class="form-control" id="edit_sequence" name="sequence" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 示例流程图说明 -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>审批流程示例</h5>
+            </div>
+            <div class="card-body">
+                <h6>普通用户发起维修申请流程：</h6>
+                <ol>
+                    <li>1. 部门领导审批</li>
+                    <li>2. 系统管理员审批</li>
+                    <li>3. 技术员处理</li>
+                </ol>
+                
+                <h6>普通用户发起配件申请流程：</h6>
+                <ol>
+                    <li>1. 部门领导审批</li>
+                    <li>2. 系统管理员审批</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>说明：</strong>
+                    <ul>
+                        <li>审批节点按顺序执行，当前节点审批完成后自动进入下一个节点</li>
+                        <li>任一节点拒绝将终止整个审批流程</li>
+                        <li>所有节点批准后工单状态更新为"已批准"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if current_user.role == 'admin' %}
+<script>
+    // 编辑节点（仅管理员）
+    $('.edit-node').click(function() {
+        var nodeId = $(this).data('id');
+        var name = $(this).data('name');
+        var orderType = $(this).data('order-type');
+        var roleRequired = $(this).data('role-required');
+        var sequence = $(this).data('sequence');
+        
+        $('#edit_node_id').val(nodeId);
+        $('#edit_name').val(name);
+        $('#edit_order_type').val(orderType);
+        $('#edit_role_required').val(roleRequired);
+        $('#edit_sequence').val(sequence);
+        
+        $('#editNodeForm').attr('action', '/admin/workflow_nodes/edit/' + nodeId);
+        $('#editNodeModal').modal('show');
+    });
+    
+    // 删除节点
+    $('.delete-node').click(function() {
+        if (confirm('确定要删除这个流程节点吗？')) {
+            var nodeId = $(this).data('id');
+            $.ajax({
+                url: '/admin/workflow_nodes/delete/' + nodeId,
+                type: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('删除失败');
+                }
+            });
+        }
+    });
+    
+    // 添加节点表单提交
+    $('#addNodeForm').submit(function(e) {
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('添加失败: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('添加失败');
+            }
+        });
+    });
+    
+    // 编辑节点表单提交
+    $('#editNodeForm').on('submit', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    location.reload();
+                } else {
+                    alert('更新失败: ' + (response?.message || '未知错误'));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('更新失败:', error);
+                alert('更新失败: ' + (xhr.responseJSON?.message || '请求发生错误'));
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -13,6 +13,10 @@ from app.models import (
 from app.utils.qrcode_generator import (
     generate_asset_label, image_to_base64, image_to_bytes
 )
+from app.utils.import_export import content_disposition
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
 
 
 def _log_activity(action, description):
@@ -136,7 +140,7 @@ def generate_asset_qrcode(asset_type, asset_id):
 @login_required
 def download_asset_label(asset_type, asset_id):
     """
-    下载资产标签（70*70mm，PNG格式）
+    下载资产标签（PDF格式，70*70mm）
     
     Args:
         asset_type: 'equipment' 或 'spare_part'
@@ -148,18 +152,18 @@ def download_asset_label(asset_type, asset_id):
             asset_name = asset.name
             asset_code = asset.serial_number or f"EQ{asset_id:06d}"
             department = asset.department
-            filename = f"设备标签_{asset_code}.png"
+            pdf_filename = f'设备标签_{asset_code}.pdf'
         elif asset_type == 'spare_part':
             asset = SparePart.query.get_or_404(asset_id)
             asset_name = asset.name
             asset_code = asset.part_number or f"SP{asset_id:06d}"
             department = asset.department
-            filename = f"配件标签_{asset_code}.png"
+            pdf_filename = f'配件标签_{asset_code}.pdf'
         else:
             flash('无效的资产类型')
             return redirect(url_for('main.asset_center'))
         
-        # 生成标签
+        # 生成标签图像（PNG）
         label_img = generate_asset_label(
             asset_type=asset_type,
             asset_id=asset_id,
@@ -168,15 +172,44 @@ def download_asset_label(asset_type, asset_id):
             department=department
         )
         
-        # 转换为字节流
+        # 获取PNG图像字节
         img_bytes = image_to_bytes(label_img, format='PNG')
+        img_bytes.seek(0)
+        
+        # 创建PDF，嵌入PNG图像（70mm x 70mm 标签）
+        import tempfile
+        pdf_buffer = BytesIO()
+        pdf_canvas = canvas.Canvas(pdf_buffer, pagesize=(70*mm, 70*mm))
+        
+        # reportlab的drawImage需要文件路径，所以用临时文件
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            tmp.write(img_bytes.getvalue())
+            tmp_path = tmp.name
+        
+        try:
+            # 在PDF上绘制PNG图像
+            pdf_canvas.drawImage(
+                tmp_path,
+                x=0,
+                y=0,
+                width=70*mm,
+                height=70*mm
+            )
+            pdf_canvas.save()
+        finally:
+            # 清理临时文件
+            import os
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+        
+        pdf_buffer.seek(0)
         
         _log_activity('下载标签', f'{asset_type}#{asset_id}')
         return Response(
-            img_bytes.getvalue(),
-            mimetype='image/png',
+            pdf_buffer.getvalue(),
+            mimetype='application/pdf',
             headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
+                'Content-Disposition': content_disposition(pdf_filename, 'label.pdf')
             }
         )
     except Exception as e:

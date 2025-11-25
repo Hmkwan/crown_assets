@@ -3834,7 +3834,8 @@ def export_loans():
     from flask import Response
     csv_data = output.getvalue()
     output.close()
-    return Response(csv_data, mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=equipment_loans.csv'})
+    filename = f'设备借用_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    return Response(csv_data, mimetype='text/csv', headers={'Content-Disposition': content_disposition(filename, 'equipment_loans.csv')})
 
 
 @bp.route('/approvals/loan/<int:order_id>/<action>', methods=['POST'])

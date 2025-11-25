@@ -13,6 +13,38 @@ login.login_message = '请先登录以访问此页面。'
 csrf = CSRFProtect()
 
 
+def ensure_ascii_headers(response):
+    """
+    WSGI 中间件：确保所有响应头都是 ASCII 编码的字符串或正确编码的字节。
+    这样可以避免 UnicodeEncodeError: 'latin-1' codec can't encode characters...
+    """
+    for key, value in list(response.headers):
+        # 如果头值包含非 ASCII 字符，则将其进行 RFC 5987 编码（用于文件名）或直接移除
+        if isinstance(value, str):
+            try:
+                value.encode('latin-1')  # 尝试用 latin-1 编码（HTTP 头标准）
+            except UnicodeEncodeError:
+                # 包含非 ASCII 字符，尝试 UTF-8 编码后 base64 or quote
+                if key.lower() == 'content-disposition':
+                    # 已由 content_disposition() 处理，不应该出现这种情况
+                    # 如果仍出现，移除该头或替换为 ASCII 版本
+                    response.headers[key] = 'attachment; filename="download.csv"'
+                else:
+                    # 其他头移除非 ASCII 内容
+                    try:
+                        safe_value = value.encode('utf-8', 'ignore').decode('ascii', 'ignore')
+                        if safe_value:
+                            response.headers[key] = safe_value
+                        else:
+                            # 如果全是非 ASCII 字符，移除该头
+                            del response.headers[key]
+                    except Exception:
+                        # 最后的手段：移除该头
+                        if key in response.headers:
+                            del response.headers[key]
+    return response
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -26,6 +58,9 @@ def create_app(config_class=Config):
     except Exception as e:
         # 如果 CSRF 初始化失败，不阻塞应用启动，但记录信息
         print('Warning: CSRFProtect init failed:', e)
+    
+    # 注册响应头过滤中间件，确保所有头都是 ASCII 兼容的
+    app.after_request(ensure_ascii_headers)
 
     @login.user_loader
     def load_user(user_id):

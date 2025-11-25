@@ -16,9 +16,26 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# Import the application and use its SQLAlchemy metadata so
+# Alembic can autogenerate migrations from the models.
+try:
+    # Try to import the app factory and db from the package
+    from app import create_app, db
+
+    _app = create_app()
+    # Make sure the app config is loaded before reading DB URL
+    with _app.app_context():
+        target_metadata = db.metadata
+        # Set sqlalchemy.url in alembic config from app config so offline mode works
+        db_url = _app.config.get('SQLALCHEMY_DATABASE_URI')
+        if db_url:
+            config.set_main_option('sqlalchemy.url', db_url)
+        else:
+            # fallback to default in alembic.ini
+            target_metadata = db.metadata
+except Exception:
+    # If import fails, fall back to no target metadata. Autogenerate won't work.
+    target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

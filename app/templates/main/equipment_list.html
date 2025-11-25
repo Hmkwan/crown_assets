@@ -166,10 +166,10 @@
                                             </div>
                                             
                                             <!-- 借用状态 -->
-                                            {% if equipment_loan_status and equipment_loan_status[equipment.id] %}
+                                            {% set loan_info = equipment_loan_status.get(equipment.id) if equipment_loan_status else None %}
+                                            {% if loan_info %}
                                             <div>
                                                 <small class="text-muted">
-                                                    {% set loan_info = equipment_loan_status[equipment.id] %}
                                                     {% if loan_info.status == 'borrowed' %}
                                                     <span class="badge bg-danger">已借出</span>
                                                     <small>(借用人: {{ loan_info.requester }})</small>

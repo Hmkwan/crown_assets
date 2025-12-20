@@ -17,21 +17,23 @@ body {
   line-height: 1.6;
 }
 
-/* 导航栏美化 */
+/* 导航栏美化 - 浅色主题与Logo协调 */
 .navbar {
-  background: #1e293b;
-  background: -webkit-linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
-  background: -o-linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
-  background: -moz-linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  background: -webkit-linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  background: -o-linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  background: -moz-linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .navbar-brand {
   font-weight: 600;
   font-size: 1.25rem;
   letter-spacing: 0.5px;
+  color: #1e293b !important;
   -webkit-transition: all 0.3s ease;
   -o-transition: all 0.3s ease;
   -moz-transition: all 0.3s ease;
@@ -47,6 +49,7 @@ body {
 
 .nav-link {
   font-weight: 500;
+  color: #475569 !important;
   -webkit-transition: all 0.3s ease;
   -o-transition: all 0.3s ease;
   -moz-transition: all 0.3s ease;
@@ -54,6 +57,25 @@ body {
   border-radius: 0.375rem;
   margin: 0 0.25rem;
   padding: 0.5rem 0.75rem !important;
+}
+
+.nav-link:hover {
+  color: #1e293b !important;
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.dropdown-menu {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+  color: #475569;
+}
+
+.dropdown-item:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
 }
 
 .nav-link:hover {
@@ -263,6 +285,7 @@ main.container-lg {
   border-radius: 9999px;
   font-weight: 500;
   font-size: 0.75rem;
+  color: #ffffff !important;
 }
 
 .badge.bg-primary {
@@ -271,6 +294,7 @@ main.container-lg {
   background: -o-linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
   background: -moz-linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+  color: #ffffff !important;
 }
 
 .badge.bg-success {
@@ -279,6 +303,7 @@ main.container-lg {
   background: -o-linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   background: -moz-linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
 }
 
 .badge.bg-warning {
@@ -287,6 +312,7 @@ main.container-lg {
   background: -o-linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
   background: -moz-linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #ffffff !important;
 }
 
 .badge.bg-info {
@@ -295,6 +321,35 @@ main.container-lg {
   background: -o-linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
   background: -moz-linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-danger {
+  color: #ffffff !important;
+}
+
+.badge.bg-secondary {
+  color: #ffffff !important;
+}
+
+.badge.bg-dark {
+  color: #ffffff !important;
+}
+
+.badge.bg-light {
+  color: #1e293b !important;
+}
+
+.badge.bg-body {
+  color: #1e293b !important;
+}
+
+.badge.bg-purple {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+  border: 1px solid rgba(124, 58, 237, 0.3);
 }
 
 /* 警告框美化 */
@@ -411,12 +466,73 @@ main.container-lg {
   -o-transition: all 0.3s ease;
   -moz-transition: all 0.3s ease;
   transition: all 0.3s ease;
+  /* 明确设置文字颜色与背景，避免不同浏览器/页面下文字对比度过低 */
+  color: #0f172a; /* 深色文本，提升可读性 */
+  background-color: #ffffff;
 }
 
 .form-control:focus, .form-select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   outline: none;
+}
+
+/* 下拉选项在某些浏览器可能继承不明显的颜色，强制设置以保证可读性 */
+.form-control option, .form-select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+/* 只读/禁用状态下保持足够对比 */
+.form-control:disabled, .form-select:disabled, .form-control[readonly], .form-select[readonly] {
+  color: rgba(15,23,42,0.7);
+  background-color: #f8fafc;
+}
+
+/* 下拉控件额外增强：固定最小高度、垂直居中文本、隐藏默认箭头在自定义样式下的兼容处理 */
+.form-select {
+  min-height: 44px; /* 更舒适的点击区域 */
+  line-height: 1.25; /* 保证文本垂直居中 */
+  padding-right: 2.5rem; /* 给右侧箭头留出空间 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #334155 50%),
+                    linear-gradient(135deg, #334155 50%, transparent 50%);
+  background-position: calc(100% - 1rem) calc(50% - 4px), calc(100% - 0.6rem) calc(50% - 4px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* 在 IE/Edge 的旧版中隐藏默认箭头 */
+.form-select::-ms-expand { display: none; }
+
+/* 小屏幕下保持合适高度 */
+@media (max-width: 576px) {
+  .form-select { min-height: 42px; padding-right: 2rem; }
+}
+
+/* 进一步针对 select 元素强制样式，覆盖第三方样式导致的垂直偏移问题 */
+select.form-select, select.form-control, .form-select, .form-control {
+  box-sizing: border-box;
+  font-size: 14px;
+  height: 44px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 12px !important;
+  padding-right: 2.5rem !important;
+  line-height: 20px !important; /* 当浏览器不遵循 height + line-height 同时生效时，保证文本不会被裁剪 */
+  vertical-align: middle;
+}
+
+/* 有些页面直接在 select 上使用内联样式或更具体选择器，增加高优先级的选择器以覆盖 */
+html body select.form-select, html body select.form-control {
+  height: 44px !important;
+}
+
+/* 小屏幕下的调整 */
+@media (max-width: 480px) {
+  select.form-select, select.form-control { height: 42px !important; padding-top: 5px !important; padding-bottom: 5px !important; }
 }
 
 .form-label {
@@ -602,4 +718,324 @@ footer.bg-light {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4);
   color: white !important;
+}
+
+/* ============ 现代化深色导航栏样式 ============ */
+.navbar-modern {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 0 !important;
+  min-height: 68px;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.navbar-modern .navbar-brand {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #ffffff !important;
+  transition: all 0.3s ease;
+  margin-right: 2rem;
+  min-height: 68px;
+}
+
+.navbar-modern .navbar-brand:hover {
+  color: #60a5fa !important;
+}
+
+.navbar-modern .navbar-logo {
+  height: 48px;
+  width: auto;
+  margin-right: 12px;
+  filter: brightness(1.1);
+}
+
+.navbar-modern .brand-text {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.navbar-modern .nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500;
+  padding: 0.75rem 1rem !important;
+  border-radius: 6px;
+  margin: 0 2px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.navbar-modern .nav-link i {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.navbar-modern .nav-link:hover,
+.navbar-modern .nav-link.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  -webkit-transform: translateY(-2px);
+  -ms-transform: translateY(-2px);
+  -o-transform: translateY(-2px);
+  transform: translateY(-2px);
+}
+
+.navbar-modern .dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  margin-top: 8px;
+  padding: 0.5rem;
+  background: #ffffff;
+  min-width: 220px;
+}
+
+.navbar-modern .dropdown-header {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.navbar-modern .dropdown-item {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  margin: 2px 0;
+  font-size: 0.9rem;
+  color: #1e293b !important;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-modern .dropdown-item i {
+  width: 18px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.navbar-modern .dropdown-item:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af !important;
+  transform: translateX(4px);
+}
+
+.navbar-modern .dropdown-item:active {
+  background: #3b82f6;
+  color: #ffffff !important;
+}
+
+.navbar-modern .user-menu {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  padding: 0.5rem 1.2rem !important;
+  font-weight: 600;
+}
+
+.navbar-modern .user-menu:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.navbar-modern .dropdown-item:hover {
+  background-color: #dbeafe;
+  color: #1e40af !important;
+  -webkit-transform: translateX(4px);
+  -ms-transform: translateX(4px);
+  -o-transform: translateX(4px);
+  transform: translateX(4px);
+}
+
+.navbar-modern .dropdown-divider {
+  margin: 0.5rem 0;
+  border-color: #e2e8f0;
+}
+
+.navbar-modern .dropdown-header {
+  color: #64748b;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navbar-modern .user-menu-link {
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  padding-left: 1rem !important;
+  margin-left: 1rem;
+}
+
+.navbar-modern .notification-badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  position: absolute;
+  top: 8px;
+  right: -8px;
+  min-width: 18px;
+  border-radius: 10px;
+}
+
+/* ============ 现代化配色方案 ============ */
+:root {
+  --primary-color: #2563eb;
+  --primary-dark: #1e40af;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --info-color: #06b6d4;
+  --secondary-color: #64748b;
+  --light-color: #f1f5f9;
+  --gray-color: #e2e8f0;
+}
+
+/* ============ 卡片状态指示器 ============ */
+.card-status-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.card.status-success .card-status-indicator {
+  background: #10b981;
+}
+
+.card.status-warning .card-status-indicator {
+  background: #f59e0b;
+}
+
+.card.status-danger .card-status-indicator {
+  background: #ef4444;
+}
+
+.card.status-info .card-status-indicator {
+  background: #06b6d4;
+}
+
+/* ============ 表单增强 ============ */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-label .badge-required {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #ef4444;
+  border-radius: 50%;
+  margin-left: 4px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+/* ============ 快捷操作栏 ============ */
+.action-bar {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.action-bar .btn {
+  margin: 0;
+}
+
+/* ============ 统计卡片 ============ */
+.stat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  -webkit-transition: all 0.3s ease;
+  -o-transition: all 0.3s ease;
+  -moz-transition: all 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.1);
+  -webkit-transform: translateY(-4px);
+  -ms-transform: translateY(-4px);
+  -o-transform: translateY(-4px);
+  transform: translateY(-4px);
+}
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0.5rem 0;
+}
+
+.stat-card-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ============ 响应式导航 ============ */
+@media (max-width: 992px) {
+  .navbar-modern .nav-link {
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .navbar-modern .user-menu-link {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 1rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar-modern .navbar-brand {
+    font-size: 1.1rem;
+    gap: 4px;
+  }
+  
+  .navbar-modern .brand-icon {
+    font-size: 1.25rem;
+  }
+  
+  .action-bar {
+    flex-direction: column;
+  }
+  
+  .action-bar .btn {
+    width: 100%;
+  }
 }

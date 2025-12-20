@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}审批流程详情 - 管理员{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{{ url_for('admin.approval_flows') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧: 审批详情 -->
+        <div class="col-md-8">
+            <!-- 当前审批信息 -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">当前审批节点</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>节点名称:</strong> {{ approval.workflow_node.name if approval.workflow_node else '-' }}</p>
+                            <p><strong>审批人:</strong> {{ approval.approver.username if approval.approver else '-' }}</p>
+                            <p><strong>状态:</strong> 
+                                {% if approval.status == 'pending' %}
+                                <span class="badge bg-warning">待审批</span>
+                                {% elif approval.status == 'approved' %}
+                                <span class="badge bg-success">已批准</span>
+                                {% elif approval.status == 'rejected' %}
+                                <span class="badge bg-danger">已拒绝</span>
+                                {% elif approval.status == 'terminated' %}
+                                <span class="badge bg-secondary">已终止</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>创建时间:</strong> {{ approval.created_date.strftime('%Y-%m-%d %H:%M:%S') if approval.created_date else '-' }}</p>
+                            <p><strong>审批时间:</strong> {{ approval.approved_date.strftime('%Y-%m-%d %H:%M:%S') if approval.approved_date else '-' }}</p>
+                            {% if approval.admin_action %}
+                            <p><strong>管理员操作:</strong> 
+                                <span class="badge bg-info">
+                                    {% if approval.admin_action == 'terminate' %}终止流程
+                                    {% elif approval.admin_action == 'jump' %}跳转节点
+                                    {% elif approval.admin_action == 'jump_to_node' %}跳转节点
+                                    {% elif approval.admin_action == 'skip' %}跳过节点
+                                    {% elif approval.admin_action == 'force_approve' %}强制批准
+                                    {% elif approval.admin_action == 'force_reject' %}强制拒绝
+                                    {% elif approval.admin_action == 'reset' %}重置流程
+                                    {% else %}{{ approval.admin_action }}
+                                    {% endif %}
+                                </span>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if approval.comments %}
+                    <hr>
+                    <p><strong>审批意见:</strong></p>
+                    <p class="text-muted">{{ approval.comments }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 工单信息 -->
+            {% if order_info %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">工单信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>工单编号:</strong> #{{ order_info.id }}</p>
+                            <p><strong>工单类型:</strong> 
+                                {% if order_info.type == 'repair_order' %}维修工单
+                                {% elif order_info.type == 'part_request_order' %}配件申请
+                                {% elif order_info.type == 'equipment_application' %}设备申请
+                                {% elif order_info.type == 'equipment_transfer' %}设备调拨
+                                {% elif order_info.type == 'equipment_scrap' %}设备报废
+                                {% elif order_info.type == 'equipment_loan' %}设备借用
+                                {% else %}{{ order_info.type }}
+                                {% endif %}
+                            </p>
+                            <p><strong>申请人:</strong> {{ order_info.requester.username if order_info.requester else '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>工单状态:</strong> 
+                                {% if order_info.status == 'submitted' %}已提交
+                                {% elif order_info.status == 'in_progress' %}处理中
+                                {% elif order_info.status == 'completed' %}已完成
+                                {% elif order_info.status == 'cancelled' %}已取消
+                                {% elif order_info.status == 'rejected' %}已拒绝
+                                {% elif order_info.status == 'approved' %}已批准
+                                {% elif order_info.status == 'pending' %}待审批
+                                {% else %}{{ order_info.status }}
+                                {% endif %}
+                            </p>
+                            <p><strong>创建时间:</strong> {{ order_info.created_date.strftime('%Y-%m-%d %H:%M') if order_info.created_date else '-' }}</p>
+                        </div>
+                    </div>
+                    {% if order_info.description %}
+                    <hr>
+                    <p><strong>说明:</strong></p>
+                    <p class="text-muted">{{ order_info.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 审批历史 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">审批流程历史</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>节点</th>
+                                    <th>审批人</th>
+                                    <th>状态</th>
+                                    <th>时间</th>
+                                    <th>意见</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appr in all_approvals %}
+                                <tr {% if appr.id == approval.id %}class="table-primary"{% endif %}>
+                                    <td>{{ appr.workflow_node.name if appr.workflow_node else '-' }}</td>
+                                    <td>{{ appr.approver.username if appr.approver else '-' }}</td>
+                                    <td>
+                                        {% if appr.status == 'pending' %}
+                                        <span class="badge bg-warning">待审批</span>
+                                        {% elif appr.status == 'approved' %}
+                                        <span class="badge bg-success">已批准</span>
+                                        {% elif appr.status == 'rejected' %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% elif appr.status == 'terminated' %}
+                                        <span class="badge bg-secondary">已终止</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ appr.approved_date.strftime('%m-%d %H:%M') if appr.approved_date else '-' }}</td>
+                                    <td>{{ appr.comments[:30] if appr.comments else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧: 管理员操作 -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> 管理员操作</h5>
+                </div>
+                <div class="card-body">
+                    {% if approval.status == 'pending' %}
+                    
+                    <!-- 跳过当前节点 -->
+                    <div class="mb-3">
+                        <button class="btn btn-info w-100" onclick="showSkipModal()">
+                            <i class="fas fa-forward"></i> 跳过当前节点
+                        </button>
+                        <small class="text-muted">自动批准当前节点,进入下一节点</small>
+                    </div>
+
+                    <!-- 重新分配审批人 -->
+                    <div class="mb-3">
+                        <button class="btn btn-primary w-100" onclick="showReassignModal()">
+                            <i class="fas fa-user-edit"></i> 重新分配审批人
+                        </button>
+                        <small class="text-muted">将当前审批分配给其他人</small>
+                    </div>
+
+                    <hr>
+                    {% endif %}
+
+                    <!-- 打回到指定节点 -->
+                    {% if order_info and order_info.status != 'cancelled' %}
+                    <div class="mb-3">
+                        <button class="btn btn-warning w-100" onclick="showJumpModal()">
+                            <i class="fas fa-undo"></i> 打回到指定节点
+                        </button>
+                        <small class="text-muted">终止当前流程,重新从指定节点开始</small>
+                    </div>
+
+                    <hr>
+                    {% endif %}
+
+                    <!-- 可用节点列表 -->
+                    <h6>流程节点列表</h6>
+                    <div class="list-group list-group-flush">
+                        {% for node in workflow_nodes %}
+                        <div class="list-group-item px-0 py-2">
+                            <span class="badge bg-secondary">{{ node.sequence }}</span>
+                            {{ node.name }}
+                            <small class="text-muted d-block">
+                                {% if node.approval_role %}
+                                    <i class="fas {{ node.approval_role.icon }}"></i> {{ node.approval_role.name }}
+                                {% elif node.role_required %}
+                                    {{ node.role_required }}
+                                {% else %}
+                                    未设置角色
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 跳过节点模态框 -->
+<div class="modal fade" id="skipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">跳过当前节点</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>确定要跳过当前审批节点吗?</p>
+                <div class="mb-3">
+                    <label class="form-label">操作原因</label>
+                    <textarea id="skipReason" class="form-control" rows="3" placeholder="请说明跳过原因..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info" onclick="skipNode()">确认跳过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 重新分配模态框 -->
+<div class="modal fade" id="reassignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">重新分配审批人</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">选择新审批人</label>
+                    <select id="newApproverId" class="form-select">
+                        <option value="">请选择...</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }} ({{ user.department }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">操作原因</label>
+                    <textarea id="reassignReason" class="form-control" rows="3" placeholder="请说明重新分配原因..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="reassignApprover()">确认分配</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 打回节点模态框 -->
+<div class="modal fade" id="jumpModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">打回到指定节点</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">选择目标节点</label>
+                    <select id="targetNodeId" class="form-select">
+                        <option value="">请选择...</option>
+                        {% for node in workflow_nodes %}
+                        <option value="{{ node.id }}">{{ node.sequence }}. {{ node.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">打回原因</label>
+                    <textarea id="jumpReason" class="form-control" rows="3" placeholder="请说明打回原因..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="jumpToNode()">确认打回</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const approvalId = {{ approval.id }};
+
+function showSkipModal() {
+    $('#skipModal').modal('show');
+}
+
+function showReassignModal() {
+    $('#reassignModal').modal('show');
+}
+
+function showJumpModal() {
+    $('#jumpModal').modal('show');
+}
+
+function skipNode() {
+    const reason = document.getElementById('skipReason').value;
+    
+    fetch(`/admin/approval_flow/${approvalId}/skip_node`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reason: reason})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+
+function reassignApprover() {
+    const approverId = document.getElementById('newApproverId').value;
+    const reason = document.getElementById('reassignReason').value;
+    
+    if (!approverId) {
+        alert('请选择新的审批人');
+        return;
+    }
+    
+    fetch(`/admin/approval_flow/${approvalId}/reassign`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            approver_id: parseInt(approverId),
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+
+function jumpToNode() {
+    const nodeId = document.getElementById('targetNodeId').value;
+    const reason = document.getElementById('jumpReason').value;
+    
+    if (!nodeId) {
+        alert('请选择目标节点');
+        return;
+    }
+    
+    if (!reason) {
+        alert('请填写打回原因');
+        return;
+    }
+    
+    fetch(`/admin/approval_flow/${approvalId}/jump_to_node`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            node_id: parseInt(nodeId),
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+</script>
+
+{% endblock %}

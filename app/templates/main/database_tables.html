@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ title }}</h2>
+        <div>
+            <a href="{{ url_for('main.database_management') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回数据库管理
+            </a>
+        </div>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">数据表总数</h5>
+                    <h2 class="text-primary">{{ tables|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">总记录数</h5>
+                    <h2 class="text-success">{{ "{:,}".format(total_records) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">平均每表记录数</h5>
+                    <h2 class="text-info">
+                        {% if tables|length > 0 %}
+                            {{ "{:,.0f}".format(total_records / tables|length) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据表列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-table"></i> 数据表详情</h5>
+        </div>
+        <div class="card-body">
+            {% if tables %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>表名</th>
+                            <th>中文名称</th>
+                            <th>记录数</th>
+                            <th>字段数</th>
+                            <th>字段列表</th>
+                            <th>占比</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for table in tables %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <code>{{ table.name }}</code>
+                                {% if table.error %}
+                                <br><small class="text-danger">错误: {{ table.error }}</small>
+                                {% endif %}
+                            </td>
+                            <td><strong class="text-primary">{{ table.chinese_name }}</strong></td>
+                            <td>
+                                <span class="badge bg-primary">{{ "{:,}".format(table.record_count) }}</span>
+                            </td>
+                            <td>{{ table.column_count }}</td>
+                            <td>
+                                <small class="text-muted">
+                                    {% if table.columns|length > 5 %}
+                                        {{ table.columns[:5]|join(', ') }}, ...
+                                    {% else %}
+                                        {{ table.columns|join(', ') }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                {% if total_records > 0 %}
+                                    {% set percentage = (table.record_count / total_records * 100)|round(1) %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" role="progressbar" 
+                                             data-percentage="{{ percentage }}"
+                                             aria-valuenow="{{ percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ percentage }}%
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.view_table_data', table_name=table.name) }}" 
+                                   class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye"></i> 查看数据
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ddd;"></i>
+                <p class="text-muted mt-3">暂无数据表</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 说明信息 -->
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle"></i>
+        <strong>说明：</strong>
+        <ul class="mb-0 mt-2">
+            <li>表按记录数从多到少排序</li>
+            <li>点击"查看数据"可以查看表中的详细数据</li>
+            <li>占比表示该表记录数占总记录数的百分比</li>
+            <li>此功能仅供管理员查看,不可修改数据</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 设置进度条宽度
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-percentage]').forEach(function(bar) {
+        const percentage = bar.getAttribute('data-percentage');
+        bar.style.width = percentage + '%';
+    });
+});
+</script>
+{% endblock %}

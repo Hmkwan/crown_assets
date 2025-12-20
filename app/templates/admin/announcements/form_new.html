@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}{% if announcement %}编辑公告{% else %}创建公告{% endif %}{% endblock %}
+
+{% block styles %}
+<style>
+:root { --grad-start:#6a5acd; --grad-end:#3b82f6; --card-shadow:0 10px 25px rgba(31,41,55,.12); }
+.note-editor.note-frame { border:1px solid #e5e7eb; border-radius:12px; width:100% !important; min-width:0; box-shadow:var(--card-shadow); }
+.note-toolbar {
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+.note-editor {
+    box-shadow: none !important;
+}
+#content .note-editable { min-height:560px; }
+.note-editor:not(.codeview) .note-codable { display:none !important; }
+.note-editor.codeview .note-editable { display:none !important; }
+#content { width:100% !important; min-width:0; }
+.attachment-item { padding:12px; border:1px dashed #d1d5db; border-radius:12px; margin-bottom:12px; background:#f9fafb; transition:all .2s ease; }
+.attachment-item:hover { background:#f3f4f6; border-color:#9ca3af; }
+.card.modern { border:none; border-radius:16px; box-shadow:var(--card-shadow); overflow:hidden; }
+.card-header.modern { background:linear-gradient(135deg,var(--grad-start),var(--grad-end)); color:#fff; padding:20px 24px; }
+.card-header.modern .card-title { font-weight:600; letter-spacing:.5px; }
+.card-tools .btn { border:none; background:rgba(255,255,255,.15); color:#fff; transition:all .2s ease; }
+.card-tools .btn:hover { background:rgba(255,255,255,.25); }
+.form-label-strong { font-weight:600; color:#374151; }
+.form-control { border-radius:12px; border-color:#e5e7eb; }
+.form-control:focus { box-shadow:0 0 0 3px rgba(59,130,246,.15); border-color:#93c5fd; }
+.custom-control.custom-checkbox .custom-control-label { padding-left:.25rem; color:#374151; }
+.switch { position:relative; display:inline-block; width:46px; height:26px; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#d1d5db; transition:.2s; border-radius:26px; }
+.slider:before { position:absolute; content:""; height:22px; width:22px; left:2px; bottom:2px; background:white; transition:.2s; border-radius:50%; }
+.switch input:checked + .slider { background:#60a5fa; }
+.switch input:checked + .slider:before { transform:translateX(20px); }
+.btn-primary { background:linear-gradient(90deg,var(--grad-start),var(--grad-end)); border:none; border-radius:12px; padding:.6rem 1.1rem; box-shadow:0 8px 16px rgba(59,130,246,.25); }
+.btn-primary:hover { filter:brightness(1.08); }
+.btn-default { border-radius:12px; }
+.section-title { font-size:14px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.5rem; }
+.grid-gap { row-gap:1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card modern">
+                <div class="card-header modern">
+                    <h3 class="card-title">
+                        <i class="fas fa-{% if announcement %}edit{% else %}plus{% endif %}"></i>
+                        {% if announcement %}编辑公告{% else %}创建公告{% endif %}
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('main.admin_announcements') }}" class="btn btn-sm btn-default">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                    </div>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="content" id="content_hidden">
+                    <input type="hidden" id="announcement_id" name="announcement_id" value="{{ announcement.id if announcement else '' }}">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <div class="section-title">基本信息</div>
+                            <label for="title" class="form-label-strong">公告标题 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ announcement.title if announcement else '' }}" 
+                                   required maxlength="200" placeholder="请输入公告标题">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <div class="section-title">公告内容</div>
+                                    <label for="content" class="form-label-strong">填写公告内容</label>
+                                    <textarea id="content" name="content" class="form-control" rows="18" style="font-size:16px; padding:10px; border-radius:8px;" placeholder="请输入公告内容...">{% if announcement %}{{ announcement.content }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="section-title">设置</div>
+                                <div class="form-group">
+                                    <label for="type" class="form-label-strong">公告类型</label>
+                                    <select class="form-control" id="type" name="type">
+                                        <option value="notice" {% if announcement and announcement.type == 'notice' %}selected{% endif %}>📢 普通通知</option>
+                                        <option value="update" {% if announcement and announcement.type == 'update' %}selected{% endif %}>🆕 功能更新</option>
+                                        <option value="system" {% if announcement and announcement.type == 'system' %}selected{% endif %}>🔧 系统维护</option>
+                                        <option value="urgent" {% if announcement and announcement.type == 'urgent' %}selected{% endif %}>⚠️ 紧急公告</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="priority" class="form-label-strong">优先级</label>
+                                    <select class="form-control" id="priority" name="priority">
+                                        <option value="low" {% if announcement and announcement.priority == 'low' %}selected{% endif %}>低</option>
+                                        <option value="normal" {% if announcement and announcement.priority == 'normal' %}selected{% elif not announcement %}selected{% endif %}>普通</option>
+                                        <option value="high" {% if announcement and announcement.priority == 'high' %}selected{% endif %}>高</option>
+                                        <option value="urgent" {% if announcement and announcement.priority == 'urgent' %}selected{% endif %}>紧急</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="publish_time" class="form-label-strong">发布时间</label>
+                                    <input type="datetime-local" class="form-control" id="publish_time" name="publish_time"
+                                           value="{% if announcement and announcement.publish_time %}{{ announcement.publish_time|format_dt('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                    <small class="form-text text-muted">留空则立即发布</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="expire_time" class="form-label-strong">过期时间</label>
+                                    <input type="datetime-local" class="form-control" id="expire_time" name="expire_time"
+                                           value="{% if announcement and announcement.expire_time %}{{ announcement.expire_time|format_dt('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                    <small class="form-text text-muted">留空则永不过期</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label-strong"><i class="fas fa-paperclip"></i> 附件上传</label>
+                                    <input type="file" class="form-control-file" id="attachments" name="attachments" multiple
+                                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.bmp,.webp">
+                                    <small class="form-text text-muted">可选择多个文件,支持文档/图片等,单个文件最大50MB</small>
+                                    <div id="attachment-preview" style="margin-top:.5rem;"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label-strong d-block mb-2">显示设置</label>
+                                    <div class="mb-2">置顶显示
+                                        <label class="switch ml-2"><input type="checkbox" id="is_pinned" name="is_pinned" value="1" {% if announcement and announcement.is_pinned %}checked{% endif %}><span class="slider"></span></label>
+                                    </div>
+                                    <div>立即启用
+                                        <label class="switch ml-2"><input type="checkbox" id="is_active" name="is_active" value="1" {% if not announcement or announcement.is_published %}checked{% endif %}><span class="slider"></span></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if announcement and announcement.attachments %}
+                        <div class="form-group">
+                            <label class="form-label-strong"><i class="fas fa-file"></i> 已上传的附件</label>
+                            {% for att in announcement.attachments %}
+                            <div class="attachment-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-file-alt text-primary"></i>
+                                        <strong>{{ att.filename }}</strong>
+                                        <small class="text-muted ml-2">
+                                            ({{ (att.file_size / 1024 / 1024)|round(2) }} MB)
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <a href="{{ url_for('main.download_announcement_attachment', attachment_id=att.id) }}" 
+                                           class="btn btn-sm btn-info" target="_blank">
+                                            <i class="fas fa-download"></i> 下载
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger delete-attachment-btn" 
+                                                data-attachment-id="{{ att.id }}" data-filename="{{ att.filename }}">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+
+                    </div>
+                    
+                    <div class="card-footer">
+                        <button type="button" id="previewBtn" class="btn btn-default">
+                            <i class="fas fa-eye"></i> 预览
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存公告
+                        </button>
+                        <a href="{{ url_for('main.admin_announcements') }}" class="btn btn-default">
+                            <i class="fas fa-times"></i> 取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Summernote (prefer local official vendor when available) -->
+<link href="{{ url_for('static', filename='css/summernote-bs4.min.css') }}" rel="stylesheet">
+{% if SUMMERNOTE_FULL_AVAILABLE %}
+<script src="{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}"></script>
+{% else %}
+<script src="{{ url_for('static', filename='js/summernote-bs4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/summernote-zh-CN.min.js') }}"></script>
+{% endif %}
+
+<script>
+$(document).ready(function() {
+    // 初始化 Summernote 编辑器 (支持从 textarea 读取初始值)
+    $('#content').summernote({
+        height: 400,
+        lang: 'zh-CN',
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture']],
+            ['view', ['fullscreen', 'help']]
+        ]
+    });
+
+    // 如果 textarea 有初始 HTML 内容，确保 Summernote 使用该内容
+    var initial = $('#content').val();
+    if (initial && initial.trim().length) {
+        $('#content').summernote('code', initial);
+    }
+
+    // 预览按钮: 在模态窗口中展示当前编辑器 HTML
+    $('#previewBtn').on('click', function() {
+        var html = $('#content').summernote('code');
+        var modalHtml = '<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">' +
+                        '<div class="modal-dialog modal-xl" role="document">' +
+                        '<div class="modal-content">' +
+                        '<div class="modal-header"><h5 class="modal-title">公告预览</h5>' +
+                        '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>' +
+                        '<div class="modal-body">' + html + '</div></div></div></div>';
+        $('#previewModal').remove();
+        $('body').append(modalHtml);
+        $('#previewModal').modal('show');
+    });
+
+    // 如果 URL 带有 preview=1 参数，自动打开预览（保存操作后回显）
+    (function() {
+        function getQueryParam(name) {
+            var params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+        if (getQueryParam('preview') === '1') {
+            // 延迟展示，确保编辑器已就绪
+            setTimeout(function(){ $('#previewBtn').trigger('click'); }, 500);
+        }
+    })();
+
+    // 富文本编辑器中的内嵌 base64 图片上传到服务器（仅对已有公告 ID 生效）
+    function uploadInlineImagesIfNeeded(html) {
+        return new Promise(function(resolve, reject){
+            var announcementId = $('#announcement_id').val();
+            if (!announcementId) { return resolve(html); }
+
+            var $tmp = $('<div>').html(html);
+            var $imgs = $tmp.find('img');
+            var uploads = [];
+
+            $imgs.each(function(){
+                var src = $(this).attr('src') || '';
+                if (src.startsWith('data:')) {
+                    // convert base64 to blob
+                    var arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1], bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+                    var file = new File([u8arr], 'pasted_image.png', {type: mime});
+
+                    var fd = new FormData(); fd.append('file', file);
+                    var p = $.ajax({
+                        url: '/api/announcements/' + announcementId + '/upload_image',
+                        method: 'POST',
+                        data: fd,
+                        processData: false,
+                        contentType: false
+                    }).then(function(resp){
+                        if (resp && resp.success && resp.url) {
+                            // replace src with uploaded url
+                            $tmp.find('img[src="' + src + '"]').attr('src', resp.url);
+                        }
+                    }).fail(function(){
+                        // ignore upload failure, leave base64 as-is
+                    });
+
+                    uploads.push(p);
+                }
+            });
+
+            if (uploads.length === 0) return resolve(html);
+            $.when.apply($, uploads).always(function(){
+                resolve($tmp.html());
+            });
+        });
+    }
+
+    // 删除附件事件绑定
+    $(document).on('click', '.delete-attachment-btn', function() {
+        var attachmentId = $(this).data('attachmentId');
+        var filename = $(this).data('filename');
+        if (!confirm('确定要删除附件 "' + filename + '" 吗?')) return;
+        $.ajax({
+            url: '/api/announcements/attachments/' + attachmentId,
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': "{{ csrf_token() }}" },
+            success: function(response) {
+                if (response.success) {
+                    if (window.toastr) { toastr.success('附件已删除'); } else { alert('附件已删除'); }
+                    setTimeout(function() { location.reload(); }, 1000);
+                } else {
+                    if (window.toastr) { toastr.error(response.error || '删除失败'); } else { alert(response.error || '删除失败'); }
+                }
+            },
+            error: function() {
+                if (window.toastr) { toastr.error('删除失败,请稍后重试'); } else { alert('删除失败,请稍后重试'); }
+            }
+        });
+    });
+
+    // 附件选择时预览文件名
+    $('#attachments').on('change', function() {
+        var files = this.files;
+        var $preview = $('#attachment-preview');
+        $preview.empty();
+        if (!files || !files.length) return;
+        for (var i = 0; i < files.length; i++) {
+            var f = files[i];
+            var sizeMB = (f.size / 1024 / 1024).toFixed(2);
+            var $item = $('<div>').addClass('attachment-item').css({'padding':'8px','margin-bottom':'8px'});
+            $item.text(f.name + ' (' + sizeMB + ' MB)');
+            $preview.append($item);
+        }
+    });
+
+    // 表单提交：从 Summernote 获取 HTML，同步到隐藏字段并进行校验
+    $('form').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var title = $('#title').val().trim();
+        var html = $('#content').summernote('code');
+        if (!title) {
+            if (window.toastr) { toastr.error('请输入公告标题'); } else { alert('请输入公告标题'); }
+            $('#title').focus();
+            return false;
+        }
+        if (!html || html === '<p><br></p>') {
+            if (window.toastr) { toastr.error('请输入公告内容'); } else { alert('请输入公告内容'); }
+            return false;
+        }
+        // 客户端检查附件大小（单文件最大 50MB）
+        var files = $('#attachments')[0].files;
+        if (files && files.length) {
+            for (var i = 0; i < files.length; i++) {
+                if (files[i].size > 50 * 1024 * 1024) {
+                    if (window.toastr) { toastr.error('单个附件大小不得超过 50MB'); } else { alert('单个附件大小不得超过 50MB'); }
+                    return false;
+                }
+            }
+        }
+
+        // 如果有内嵌 base64 图片并且公告已存在，先上传这些内嵌图片并替换为服务器 URL
+        uploadInlineImagesIfNeeded(html).then(function(finalHtml){
+            // 写入隐藏域供后端读取，同时保证<textarea name="content">也被更新，避免多字段名导致后端读取到空值
+            $('#content_hidden').val(finalHtml);
+            $('#content').val(finalHtml);
+            // 显示加载提示并真正提交表单
+            var btn = $form.find('button[type="submit"]');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 保存中...');
+            $form.off('submit'); // 防止递归
+            $form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

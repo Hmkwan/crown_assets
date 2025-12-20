@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}审批角色管理{% endblock %}
+
+{% block content %}
+<style>
+    .role-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+    .role-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .role-header {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .role-icon {
+        font-size: 2.5rem;
+        margin-right: 1rem;
+    }
+    .role-info h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #3a3b45;
+    }
+    .role-code {
+        font-size: 0.85rem;
+        color: #858796;
+        font-family: 'Courier New', monospace;
+    }
+    .role-level {
+        margin-left: auto;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    .role-body {
+        padding: 1.25rem;
+    }
+    .permission-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .permission-item {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 0.9rem;
+        background: #f8f9fc;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    .permission-item i {
+        margin-right: 0.5rem;
+        color: #1cc88a;
+    }
+    .permission-item.disabled {
+        opacity: 0.4;
+    }
+    .permission-item.disabled i {
+        color: #d1d3e2;
+    }
+    .role-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e3e6f0;
+    }
+    .user-count {
+        color: #858796;
+        font-size: 0.9rem;
+    }
+    .user-count i {
+        color: #4e73df;
+        margin-right: 0.3rem;
+    }
+    .btn-group {
+        gap: 0.5rem;
+    }
+    .system-badge {
+        background: #f6c23e;
+        color: #fff;
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    .page-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+    }
+    
+    /* 模态框样式 */
+    .modal-header {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+        color: white;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .modal-header .close {
+        color: white;
+        opacity: 0.8;
+    }
+    .modal-header .close:hover {
+        opacity: 1;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #5a5c69;
+        margin-bottom: 0.5rem;
+    }
+    .permission-checkbox {
+        padding: 0.75rem;
+        background: #f8f9fc;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        transition: background 0.2s;
+    }
+    .permission-checkbox:hover {
+        background: #e2e6ea;
+    }
+    .permission-checkbox label {
+        margin: 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .permission-checkbox input[type="checkbox"] {
+        margin-right: 0.6rem;
+        transform: scale(1.2);
+        cursor: pointer;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="page-header">
+        <h1><i class="fas fa-user-shield"></i> 审批角色管理</h1>
+        <p>配置和管理系统审批角色及权限</p>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5>共 <span id="roleCount" class="text-primary">{{ roles|length }}</span> 个角色</h5>
+        </div>
+        <button class="btn btn-success" onclick="showCreateModal()">
+            <i class="fas fa-plus"></i> 创建新角色
+        </button>
+    </div>
+
+    <div class="row" id="rolesContainer">
+        {% for role in roles %}
+        <div class="col-lg-6 col-xl-4">
+            <div class="role-card">
+                <div class="role-header" style="display: flex; align-items: center;">
+                    <div class="role-info">
+                        <h5 style="margin-bottom: 0.5rem;">{{ role.name }}{% if role.is_system_role %}<span style="color:#888; font-size:0.9em; margin-left:0.5em;">（系统）</span>{% endif %}</h5>
+                        <div class="role-code" style="color:#888; font-size:0.95em;">{{ role.code }}</div>
+                    </div>
+                </div>
+                <div class="role-body">
+                    <div style="color:#666; margin-bottom:0.5em;">{{ role.description or '暂无描述' }}</div>
+                    <div style="margin-bottom:0.5em;">
+                        <strong>审批权限：</strong>
+                        <ul style="padding-left:1.2em; margin-bottom:0;">
+                            {% if role.can_approve_repair %}<li>维修工单</li>{% endif %}
+                            {% if role.can_approve_part_request %}<li>备件申请</li>{% endif %}
+                            {% if role.can_approve_equipment_transfer %}<li>设备调拨</li>{% endif %}
+                            {% if role.can_approve_equipment_scrap %}<li>设备报废</li>{% endif %}
+                            {% if role.can_approve_equipment_loan %}<li>设备借用</li>{% endif %}
+                            {% if role.can_approve_equipment_application %}<li>设备申购</li>{% endif %}
+                        </ul>
+                    </div>
+                    <div style="margin-bottom:0.5em;">
+                        <strong>最大审批金额：</strong>
+                        {% if role.max_approval_amount %}
+                            ¥{{ '{:,.2f}'.format(role.max_approval_amount) }}
+                        {% else %}
+                            无金额限制
+                        {% endif %}
+                    </div>
+                    <div style="margin-bottom:0.5em;">
+                        <strong>关联用户数：</strong>
+                        {{ role.users|length if role.users else 0 }}
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-info" onclick="viewRoleDetails({{ role.id }})">详情</button>
+                        {% if not role.is_system_role %}
+                        <button class="btn btn-sm btn-primary" onclick="editRole({{ role.id }})">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRole({{ role.id }}, '{{ role.name }}')">删除</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 创建/编辑角色模态框 -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; padding: 1rem 1.5rem; border-bottom: none;">
+                <h5 class="modal-title" id="roleModalTitle" style="font-weight: 600;"><i class="fas fa-user-shield me-2"></i>创建新角色</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+                    <span aria-hidden="true" style="font-size: 1.5rem;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">角色代码 *</label>
+                                <input type="text" class="form-control" id="roleCode" required>
+                                <small class="form-text text-muted">唯一标识,仅英文和下划线</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">角色名称 *</label>
+                                <input type="text" class="form-control" id="roleName" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">角色描述</label>
+                        <textarea class="form-control" id="roleDescription" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- 颜色和级别字段已移除 -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">最大审批金额</label>
+                        <input type="number" class="form-control" id="roleMaxAmount" step="0.01" placeholder="留空表示无限制">
+                        <small class="form-text text-muted">超过此金额需更高级别审批</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">审批权限</label>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permRepair">
+                                <span>维修工单审批</span>
+                            </label>
+                        </div>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permPartRequest">
+                                <span>备件申请审批</span>
+                            </label>
+                        </div>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permTransfer">
+                                <span>设备调拨审批</span>
+                            </label>
+                        </div>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permScrap">
+                                <span>设备报废审批</span>
+                            </label>
+                        </div>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permLoan">
+                                <span>设备借用审批</span>
+                            </label>
+                        </div>
+                        <div class="permission-checkbox">
+                            <label>
+                                <input type="checkbox" id="permApplication">
+                                <span>设备申购审批</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="saveRole()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 角色详情模态框 -->
+<div class="modal fade" id="roleDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; padding: 1rem 1.5rem;">
+                <h5 class="modal-title" style="font-weight: 600;"><i class="fas fa-info-circle me-2"></i>角色详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+                    <span aria-hidden="true" style="font-size: 1.5rem;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="roleDetailsContent">
+                <!-- 动态加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 加载用户统计
+$(document).ready(function() {
+    $('.role-card').each(function() {
+        const roleId = $(this).find('[id^="userCount-"]').attr('id').split('-')[1];
+        loadUserCount(roleId);
+    });
+});
+
+function loadUserCount(roleId) {
+    $.get(`/admin/approval_roles/${roleId}`, function(data) {
+        if (data.success) {
+            $(`#userCount-${roleId}`).text(data.role.users.length);
+        }
+    });
+}
+
+function showCreateModal() {
+    $('#roleModalTitle').text('创建新角色');
+    $('#roleForm')[0].reset();
+    $('#roleId').val('');
+    $('#roleCode').prop('disabled', false);
+    $('#roleModal').modal('show');
+}
+
+function editRole(roleId) {
+    $.get(`/admin/approval_roles/${roleId}`, function(data) {
+        if (data.success) {
+            const role = data.role;
+            $('#roleModalTitle').text('编辑角色');
+            $('#roleId').val(role.id);
+            $('#roleCode').val(role.code).prop('disabled', true);
+            $('#roleName').val(role.name);
+            $('#roleDescription').val(role.description);
+            $('#roleMaxAmount').val(role.max_approval_amount || '');
+            
+            $('#permRepair').prop('checked', role.can_approve_repair);
+            $('#permPartRequest').prop('checked', role.can_approve_part_request);
+            $('#permTransfer').prop('checked', role.can_approve_equipment_transfer);
+            $('#permScrap').prop('checked', role.can_approve_equipment_scrap);
+            $('#permLoan').prop('checked', role.can_approve_equipment_loan);
+            $('#permApplication').prop('checked', role.can_approve_equipment_application);
+            
+            $('#roleModal').modal('show');
+        }
+    });
+}
+
+function saveRole() {
+    const roleId = $('#roleId').val();
+    const isEdit = roleId !== '';
+    
+    const data = {
+        code: $('#roleCode').val(),
+        name: $('#roleName').val(),
+        description: $('#roleDescription').val(),
+        max_approval_amount: $('#roleMaxAmount').val() || null,
+        can_approve_repair: $('#permRepair').is(':checked'),
+        can_approve_part_request: $('#permPartRequest').is(':checked'),
+        can_approve_equipment_transfer: $('#permTransfer').is(':checked'),
+        can_approve_equipment_scrap: $('#permScrap').is(':checked'),
+        can_approve_equipment_loan: $('#permLoan').is(':checked'),
+        can_approve_equipment_application: $('#permApplication').is(':checked')
+    };
+    
+    const url = isEdit ? `/admin/approval_roles/${roleId}/update` : '/admin/approval_roles/create';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                alert(response.message);
+                location.reload();
+            } else {
+                alert('保存失败: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON ? xhr.responseJSON.error : '未知错误';
+            alert('保存失败: ' + error);
+        }
+    });
+}
+
+function deleteRole(roleId, roleName) {
+    if (!confirm(`确定要删除角色"${roleName}"吗?\n此操作不可恢复!`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/admin/approval_roles/${roleId}/delete`,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                alert(response.message);
+                location.reload();
+            } else {
+                alert('删除失败: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON ? xhr.responseJSON.error : '未知错误';
+            alert('删除失败: ' + error);
+        }
+    });
+}
+
+function viewRoleDetails(roleId) {
+    $.get(`/admin/approval_roles/${roleId}`, function(data) {
+        if (data.success) {
+            const role = data.role;
+            let html = `
+                <div class="p-3">
+                    <div class="text-center mb-4">
+                        <div style="width: 100px; height: 100px; margin: 0 auto; border-radius: 50%; background-color: ${role.color || '#6c757d'}; color: white; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold;">${role.name[0] || 'R'}</div>
+                        <h3 class="mt-3">${role.name}</h3>
+                        <p class="text-muted">${role.description || '暂无描述'}</p>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-center">
+                            <h5>最大金额</h5>
+                            <h3 class="text-success">${role.max_approval_amount ? '¥' + role.max_approval_amount.toFixed(2) : '无限制'}</h3>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <h5>用户数</h5>
+                            <h3 class="text-info">${role.users.length}</h3>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">拥有此角色的用户</h5>
+            `;
+            
+            if (role.users.length > 0) {
+                html += '<div class="list-group">';
+                role.users.forEach(user => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${user.real_name || user.username}</h6>
+                                    <small class="text-muted">${user.department_name} • 分配日期: ${user.assigned_date}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-muted text-center">暂无用户</p>';
+            }
+            
+            html += '</div>';
+            
+            $('#roleDetailsContent').html(html);
+            $('#roleDetailsModal').modal('show');
+        }
+    });
+}
+</script>
+{% endblock %}

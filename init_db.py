@@ -1,86 +1,95 @@
 from app import create_app, db
 from app.models import User, Equipment, SparePart, Department, RepairOrder, PartReplacement, PartRequestOrder, ApprovalWorkflow, WorkflowNode, EquipmentType
-from werkzeug.security import generate_password_hash
-
-
 def init_db():
     app = create_app()
     with app.app_context():
         # 创建所有表
         db.create_all()
-        
+
         # 创建默认部门
         default_departments = [
-            {'name': 'IT部', 'code': 'IT', 'cost_center': 'CC001', 'location': 'A座5楼', 'description': '信息技术部门'},
+            {'name': '信息部', 'code': 'IT', 'cost_center': 'CC001', 'location': 'A座5楼', 'description': '信息技术部门'},
             {'name': '财务部', 'code': 'FIN', 'cost_center': 'CC002', 'location': 'A座3楼', 'description': '财务管理部门'},
-            {'name': '人事部', 'code': 'HR', 'cost_center': 'CC003', 'location': 'A座2楼', 'description': '人力资源部门'},
-            {'name': '销售部', 'code': 'SALES', 'cost_center': 'CC004', 'location': 'B座1楼', 'description': '销售部门'},
-            {'name': '生产部', 'code': 'PROD', 'cost_center': 'CC005', 'location': 'C厂房', 'description': '生产制造部门'}
+            {'name': '人力行政部', 'code': 'HR', 'cost_center': 'CC003', 'location': 'A座2楼', 'description': '人力资源部门'},
+            {'name': '国内销售中心', 'code': 'SALES', 'cost_center': 'CC004', 'location': 'B座1楼', 'description': '销售部门'},
+            {'name': '生产办', 'code': 'PROD', 'cost_center': 'CC005', 'location': 'C厂房', 'description': '生产制造部门'},
+            {'name': '企管部', 'code': 'ADMIN', 'cost_center': 'CC006', 'location': 'A座4楼', 'description': '企业管理部门'}
         ]
-        
+
         for dept_data in default_departments:
             dept = Department.query.filter_by(code=dept_data['code']).first()
             if not dept:
                 dept = Department(**dept_data)
                 db.session.add(dept)
-                
+
         # 提交部门数据
         db.session.commit()
-                
-        # 创建默认管理员用户
+
+        # 创建默认管理员用户（超级管理员不属于任何部门）
         admin = User.query.filter_by(username='admin').first()
         if not admin:
-            # 获取IT部门
-            it_dept = Department.query.filter_by(code='IT').first()
             admin = User(
                 username='admin',
                 email='admin@example.com',
                 role='admin',
-                department='IT部'
+                department='超级管理员',
+                department_id=None  # 超级管理员不属于任何部门
             )
-            if it_dept:
-                admin.department_id = it_dept.id
             admin.set_password('admin123')
             db.session.add(admin)
-            
-        # 创建默认审批流程节点
+
+        # 创建默认流程模板
+        from app.approval_models import WorkflowTemplate
+        # 添加 order_type 字段到默认流程模板
+        template = WorkflowTemplate.query.first()
+        if not template:
+            template = WorkflowTemplate(
+                code='default',
+                name='默认流程模板',
+                description='系统自动创建的默认流程模板',
+                is_default=True,
+                order_type='default_order'  # 添加默认的 order_type
+            )
+            db.session.add(template)
+            db.session.commit()
+        template_id = template.id
         default_nodes = [
             {
                 'name': '部门领导审批',
-                'order_type': 'repair_order',
-                'role_required': 'department_head',
-                'sequence': 1
+                'sequence': 1,
+                'template_id': template_id,
+                'code': 'leader_approval_1'  # 添加默认 code
             },
             {
                 'name': '管理员审批',
-                'order_type': 'repair_order',
-                'role_required': 'admin',
-                'sequence': 2
+                'sequence': 2,
+                'template_id': template_id,
+                'code': 'admin_approval_2'  # 添加默认 code
             },
             {
                 'name': '部门领导审批',
-                'order_type': 'part_request_order',
-                'role_required': 'department_head',
-                'sequence': 1
+                'sequence': 1,
+                'template_id': template_id,
+                'code': 'leader_approval_3'  # 添加默认 code
             },
             {
                 'name': '管理员审批',
-                'order_type': 'part_request_order',
-                'role_required': 'admin',
-                'sequence': 2
+                'sequence': 2,
+                'template_id': template_id,
+                'code': 'admin_approval_4'  # 添加默认 code
             }
         ]
-        
+
         for node_data in default_nodes:
             node = WorkflowNode.query.filter_by(
                 name=node_data['name'],
-                order_type=node_data['order_type'],
-                sequence=node_data['sequence']
+                sequence=node_data['sequence'],
+                template_id=template_id
             ).first()
             if not node:
                 node = WorkflowNode(**node_data)
                 db.session.add(node)
-        
+
         # 创建示例设备
         equipments = [
             {
@@ -108,7 +117,7 @@ def init_db():
                 'department': '销售部'
             }
         ]
-        
+
         for equip_data in equipments:
             equip = Equipment.query.filter_by(serial_number=equip_data['serial_number']).first()
             if not equip:
@@ -118,19 +127,23 @@ def init_db():
                 if dept:
                     equip.department_id = dept.id
                 db.session.add(equip)
-                
+
         # 创建示例配件
         parts = [
             {'name': '内存条 8GB DDR4', 'part_number': 'MEM001', 'price': 280.0, 'stock_quantity': 10},
             {'name': '固态硬盘 256GB SATA', 'part_number': 'SSD001', 'price': 180.0, 'stock_quantity': 5},
             {'name': '电源适配器 65W', 'part_number': 'PWR001', 'price': 95.0, 'stock_quantity': 8}
         ]
-        
+
         for part_data in parts:
             part = SparePart.query.filter_by(part_number=part_data['part_number']).first()
             if not part:
                 part = SparePart(**part_data)
                 db.session.add(part)
+
+        db.session.commit()
+        print('数据库初始化完成')
+        print('默认管理员账号: admin / admin123')
                 
         db.session.commit()
         print('数据库初始化完成')

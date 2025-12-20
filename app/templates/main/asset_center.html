@@ -145,13 +145,26 @@
                 <!-- 标签预览区域 -->
                 <div id="label-preview" class="mt-4" style="display: none;">
                     <hr>
-                    <h6>标签预览</h6>
-                    <div class="text-center">
-                        <img id="label-image" src="" alt="标签预览" class="img-fluid" style="max-width: 300px; border: 1px solid #ddd; padding: 10px;">
+                    <h6 class="mb-3">标签预览</h6>
+                    <div class="d-flex justify-content-center">
+                        <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <img id="label-image" src="" alt="标签预览" style="max-width: 500px; width: 100%; border: 2px solid #3498db; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        </div>
                     </div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-success" id="download-btn" onclick="downloadLabel()">下载标签</button>
-                        <button class="btn btn-secondary" onclick="closePreview()">关闭预览</button>
+                    <div class="text-center mt-4">
+                        <button class="btn btn-primary btn-lg me-2" id="print-btn" onclick="printLabel()">
+                            <i class="fas fa-print"></i> 在线打印
+                        </button>
+                        <button class="btn btn-success btn-lg me-2" id="download-btn" onclick="downloadLabel()">
+                            <i class="fas fa-download"></i> 下载PDF
+                        </button>
+                        <button class="btn btn-secondary btn-lg" onclick="closePreview()">
+                            <i class="fas fa-times"></i> 关闭预览
+                        </button>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>提示：</strong>预览图片已放大显示以便查看细节。实际打印尺寸为 70mm × 70mm。
                     </div>
                 </div>
             </div>
@@ -242,6 +255,12 @@ function generateLabel(assetType, assetId) {
 function downloadLabel() {
     if (currentAssetType && currentAssetId) {
         window.location.href = `/asset/download_label/${currentAssetType}/${currentAssetId}`;
+    }
+}
+
+function printLabel() {
+    if (currentAssetType && currentAssetId) {
+        window.open(`/asset/print_label/${currentAssetType}/${currentAssetId}`, '_blank');
     }
 }
 

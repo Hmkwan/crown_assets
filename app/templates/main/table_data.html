@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ title }}</h2>
+            <p class="text-muted mb-0">
+                <strong class="text-primary">{{ table_chinese_name }}</strong>
+                <span class="ms-2">|</span>
+                <code class="ms-2">{{ table_name }}</code>
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('main.database_tables') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回表列表
+            </a>
+        </div>
+    </div>
+    
+    <!-- 表信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">表名</h6>
+                    <h5 class="text-primary">{{ table_name }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">总记录数</h6>
+                    <h5 class="text-success">{{ "{:,}".format(total_count) }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">字段数</h6>
+                    <h5 class="text-info">{{ columns|length }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">当前页</h6>
+                    <h5 class="text-warning">{{ page }} / {{ total_pages }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 字段信息 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-columns"></i> 字段信息</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>字段名</th>
+                            <th>数据类型</th>
+                            <th>可为空</th>
+                            <th>默认值</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for col in column_info %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><code>{{ col.name }}</code></td>
+                            <td>{{ col.type }}</td>
+                            <td>
+                                {% if col.nullable %}
+                                    <span class="badge bg-success">是</span>
+                                {% else %}
+                                    <span class="badge bg-danger">否</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ col.default or 'NULL' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据表格 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-table"></i> 数据内容</h5>
+            <div>
+                <span class="text-muted">
+                    显示 {{ (page-1)*per_page + 1 }} - {{ [page*per_page, total_count]|min }} 
+                    / 共 {{ "{:,}".format(total_count) }} 条
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if data %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            {% for col in columns %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td>{{ (page-1)*per_page + loop.index }}</td>
+                            {% for col in columns %}
+                            <td>
+                                {% if row[col] is none %}
+                                    <span class="text-muted fst-italic">NULL</span>
+                                {% elif row[col] is sameas true %}
+                                    <span class="badge bg-success">True</span>
+                                {% elif row[col] is sameas false %}
+                                    <span class="badge bg-secondary">False</span>
+                                {% elif row[col]|string|length > 50 %}
+                                    <small>{{ row[col]|truncate(50) }}</small>
+                                {% else %}
+                                    {{ row[col] }}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if total_pages > 1 %}
+            <nav aria-label="数据分页" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1&per_page={{ per_page }}">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for p in range([1, page - 2]|max, [page + 3, total_pages + 1]|min) %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}">末页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- 每页显示条数 -->
+                <div class="text-center mt-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <span class="btn btn-outline-secondary disabled">每页显示:</span>
+                        {% for size in [25, 50, 100, 200] %}
+                        <a href="?page=1&per_page={{ size }}" 
+                           class="btn btn-outline-primary {% if per_page == size %}active{% endif %}">
+                            {{ size }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ddd;"></i>
+                <p class="text-muted mt-3">暂无数据</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 提示信息 -->
+    <div class="alert alert-warning mt-4">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>注意：</strong>
+        <ul class="mb-0 mt-2">
+            <li>此页面仅用于查看数据,不支持编辑</li>
+            <li>长文本字段会自动截断显示</li>
+            <li>NULL值以灰色斜体显示</li>
+            <li>布尔值以徽章形式显示</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.table th, .table td {
+    vertical-align: middle;
+}
+code {
+    color: #e83e8c;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+</style>
+{% endblock %}

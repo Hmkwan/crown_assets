@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fas fa-wrench"></i> 保养计划管理</h2>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('main.create_maintenance_plan') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 创建保养计划
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-left-primary">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        总计划数
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.total }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-left-success">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        启用中
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.active }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-left-warning">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        即将到期(7天内)
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.due_soon }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选和导航 -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <form method="GET" class="form-inline">
+                            <label class="mr-2">筛选:</label>
+                            <select name="status" class="form-control mr-2" onchange="this.form.submit()">
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>启用中</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>已停用</option>
+                                <option value="due_soon" {% if status_filter == 'due_soon' %}selected{% endif %}>即将到期</option>
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部</option>
+                            </select>
+                        </form>
+                        <a href="{{ url_for('main.maintenance_records') }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-history"></i> 保养记录
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 计划列表 -->
+            <div class="card">
+                <div class="card-body">
+                    {% if plans %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>计划ID</th>
+                                    <th>设备信息</th>
+                                    <th>计划名称</th>
+                                    <th>保养类型</th>
+                                    <th>间隔天数</th>
+                                    <th>下次保养</th>
+                                    <th>负责人</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plan in plans %}
+                                {% set days_until = (plan.next_maintenance_date - now().date()).days if plan.next_maintenance_date else None %}
+                                <tr {% if days_until is not none and days_until <= 0 %}class="table-danger"{% elif days_until and days_until <= 7 %}class="table-warning"{% endif %}>
+                                    <td>#{{ plan.id }}</td>
+                                    <td>
+                                        <strong>{{ plan.equipment.name if plan.equipment else '未知' }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ plan.equipment.serial_number if plan.equipment and plan.equipment.serial_number else '无编号' }}
+                                        </small>
+                                    </td>
+                                    <td>{{ plan.plan_name }}</td>
+                                    <td>
+                                        {% if plan.maintenance_type == 'daily' %}每日
+                                        {% elif plan.maintenance_type == 'weekly' %}每周
+                                        {% elif plan.maintenance_type == 'monthly' %}每月
+                                        {% elif plan.maintenance_type == 'quarterly' %}每季度
+                                        {% elif plan.maintenance_type == 'yearly' %}每年
+                                        {% elif plan.maintenance_type == 'custom' %}自定义
+                                        {% else %}{{ plan.maintenance_type }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ plan.interval_days }}天</td>
+                                    <td>
+                                        {% if plan.next_maintenance_date %}
+                                            {{ plan.next_maintenance_date.strftime('%Y-%m-%d') }}
+                                            {% if days_until is not none %}
+                                                <br>
+                                                {% if days_until < 0 %}
+                                                    <span class="badge badge-danger">已逾期{{ -days_until }}天</span>
+                                                {% elif days_until == 0 %}
+                                                    <span class="badge badge-danger">今天</span>
+                                                {% elif days_until <= 7 %}
+                                                    <span class="badge badge-warning">{{ days_until }}天后</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ plan.responsible.username if plan.responsible else '-' }}</td>
+                                    <td>
+                                        {% if plan.is_active %}
+                                            <span class="badge badge-success">启用中</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">已停用</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if plan.is_active and (current_user.role == 'admin' or plan.responsible_person == current_user.id) %}
+                                            <a href="{{ url_for('main.complete_maintenance', plan_id=plan.id) }}" 
+                                               class="btn btn-sm btn-success"
+                                               title="完成保养">
+                                                <i class="fas fa-check"></i> 完成
+                                            </a>
+                                        {% endif %}
+                                        {% if current_user.role == 'admin' %}
+                                            <a href="{{ url_for('main.edit_maintenance_plan', plan_id=plan.id) }}" 
+                                               class="btn btn-sm btn-primary"
+                                               title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 当前筛选条件下无保养计划
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+</style>
+{% endblock %}

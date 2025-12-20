@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">🔄 资产生命周期</h1>
+        <p class="lead text-muted">追踪 IT 资产从采购、部署、维护到报废的全生命周期及成本</p>
+    </div>
+
+    <!-- 生命周期成本概览 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">总生命周期成本</h6>
+                    <p class="h3 text-primary">¥{{ "%.2f"|format(total_lifecycle_cost) }}</p>
+                    <small class="text-muted">所有资产事件相关成本</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">事件总数</h6>
+                    <p class="h3 text-success">{{ events|length }}</p>
+                    <small class="text-muted">设备生命周期事件记录</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 事件类型统计 -->
+    {% if event_type_stats %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">按事件类型统计</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>事件类型</th>
+                            <th class="text-center">事件数</th>
+                            <th class="text-end">累计成本</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event_type, stats in event_type_stats.items() %}
+                        <tr>
+                            <td>{{ event_type }}</td>
+                            <td class="text-center">{{ stats.count }}</td>
+                            <td class="text-end">¥{{ "%.2f"|format(stats.total_cost) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 生命周期事件列表 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📝 生命周期事件</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>设备类型</th>
+                            <th class="text-end">设备价值</th>
+                            <th>事件类型</th>
+                            <th>事件日期</th>
+                            <th>状态变化</th>
+                            <th>描述</th>
+                            <th class="text-end">成本</th>
+                            <th>责任人</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in events %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('main.edit_equipment', id=event.equipment_id) if event.equipment_id else '#' }}">
+                                    {{ event.equipment.name if event.equipment else '未知设备' }}
+                                </a>
+                            </td>
+                            <td>{{ event.equipment.type if event.equipment else '-' }}</td>
+                            <td class="text-end">¥{{ "%.2f"|format(event.equipment.price or 0) if event.equipment else '-' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {% if event.event_type == 'purchase' %}采购
+                                    {% elif event.event_type == 'deployment' %}部署
+                                    {% elif event.event_type == 'maintenance' %}维护
+                                    {% elif event.event_type == 'upgrade' %}升级
+                                    {% elif event.event_type == 'retirement' %}报废
+                                    {% else %}{{ event.event_type or '其他' }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>{{ event.event_date.strftime('%Y-%m-%d %H:%M') if event.event_date else '-' }}</td>
+                            <td>
+                                <small>
+                                    {{ event.old_status or '-' }} → {{ event.new_status or '-' }}
+                                </small>
+                            </td>
+                            <td>{{ event.description[:50] + '...' if event.description and event.description|length > 50 else (event.description or '-') }}</td>
+                            <td class="text-end">
+                                {% if event.cost_involved and event.cost_involved > 0 %}
+                                <strong class="text-danger">¥{{ "%.2f"|format(event.cost_involved) }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ event.responsible_user.real_name if event.responsible_user else (event.responsible_user.username if event.responsible_user else '-') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">暂无生命周期事件记录</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

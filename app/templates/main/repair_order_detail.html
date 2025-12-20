@@ -48,6 +48,21 @@
                             <p>{{ order.description }}</p>
                         </div>
                     </div>
+                    
+                    {% if order.repair_cost and order.repair_cost > 0 %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <strong>💰 维修金额评估:</strong> 
+                                <span class="h5 text-primary">¥{{ "%.2f"|format(order.repair_cost) }}</span>
+                                {% set admin_approval = order.approvals|selectattr('approval_level', 'equalto', 'admin')|selectattr('repair_cost_input', 'defined')|first %}
+                                {% if admin_approval and admin_approval.approver %}
+                                    <small class="text-muted">(由 {{ admin_approval.approver.username }} 评估)</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
             
                     {% if order.repair_description %}
                     <div class="row">
@@ -62,8 +77,16 @@
             
             <!-- 审批流程状态 -->
             <div class="card mt-4">
-                <div class="card-header">
-                    <h5>审批流程状态</h5>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">审批流程状态</h5>
+                    {% if current_user.role in ['admin', 'super_admin'] %}
+                    {% set pending_approval = order.approvals|selectattr('status', 'equalto', 'pending')|first %}
+                    {% if pending_approval %}
+                    <a href="{{ url_for('admin.approval_flow_detail', approval_id=pending_approval.id) }}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-tools"></i> 管理员干预
+                    </a>
+                    {% endif %}
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     {% set approvals = order.approvals %}
@@ -76,6 +99,7 @@
                                     <th>审批人角色</th>
                                     <th>审批人</th>
                                     <th>状态</th>
+                                    <th>维修金额</th>
                                     <th>审批时间</th>
                                     <th>备注</th>
                                 </tr>
@@ -113,6 +137,15 @@
                                         <span class="badge bg-success">已批准</span>
                                         {% elif approval.status == 'rejected' %}
                                         <span class="badge bg-danger">已拒绝</span>
+                                        {% elif approval.status == 'returned' %}
+                                        <span class="badge bg-secondary">已退回</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.repair_cost_input and approval.repair_cost_input > 0 %}
+                                            <span class="text-primary fw-bold">¥{{ "%.2f"|format(approval.repair_cost_input) }}</span>
+                                        {% else %}
+                                            -
                                         {% endif %}
                                     </td>
                                     <td>
@@ -122,7 +155,12 @@
                                             -
                                         {% endif %}
                                     </td>
-                                    <td>{{ approval.comments or '-' }}</td>
+                                    <td>
+                                        {{ approval.comments or '-' }}
+                                        {% if approval.action_type == 'return' %}
+                                            <span class="badge bg-warning">退回重评</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -145,6 +183,80 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('main.approve_repair_order', order_id=order.id, action='approve') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <!-- 管理员评估维修金额 -->
+                        {% if pending_approval.approval_level == 'admin' %}
+                        <div class="alert alert-warning mb-3">
+                            <h6 class="mb-0">💰 维修金额评估</h6>
+                        </div>
+                        <div class="mb-3">
+                            <label for="repair_cost" class="form-label">
+                                预计维修金额 <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">¥</span>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="repair_cost" 
+                                       name="repair_cost" 
+                                       step="0.01" 
+                                       min="0" 
+                                       placeholder="请输入预计维修金额"
+                                       required>
+                            </div>
+                            <small class="text-muted">作为管理员,请评估此维修工单的预计维修金额。部门负责人将根据您的评估进行确认。</small>
+                            {% if order.repair_cost %}
+                            <div class="mt-2">
+                                <strong>当前维修金额:</strong> ¥{{ "%.2f"|format(order.repair_cost) }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 部门负责人确认金额 -->
+                        {% if pending_approval.approval_level == 'department_head' and order.repair_cost and order.repair_cost > 0 %}
+                        <div class="alert alert-info mb-3">
+                            <h6 class="mb-0">✅ 维修金额确认</h6>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-light border">
+                                <p class="mb-2">管理员已评估维修金额,请确认是否合理</p>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2"><strong>评估金额:</strong></span>
+                                    <span class="h4 text-primary mb-0">
+                                        ¥{{ "%.2f"|format(order.repair_cost) }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="confirm_cost" id="confirm_yes" value="yes" checked>
+                                <label class="form-check-label" for="confirm_yes">
+                                    <strong>确认金额合理</strong> - 继续审批流程
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="confirm_cost" id="confirm_no" value="no">
+                                <label class="form-check-label" for="confirm_no">
+                                    <strong>金额不符,退回重评</strong> - 要求管理员重新评估维修金额
+                                </label>
+                            </div>
+                            
+                            <div id="return_reason_div" class="mt-3" style="display:none;">
+                                <label for="return_reason" class="form-label">退回原因 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="return_reason" name="return_reason" rows="2" placeholder="请说明为什么需要重新评估金额"></textarea>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 技术员查看批准预算 -->
+                        {% if pending_approval.approval_level == 'technician' and order.repair_cost and order.repair_cost > 0 %}
+                        <div class="alert alert-success mb-3">
+                            <p class="mb-1"><strong>批准维修预算:</strong></p>
+                            <p class="h4 text-success mb-0">¥{{ "%.2f"|format(order.repair_cost) }}</p>
+                        </div>
+                        {% endif %}
+                        
                         <div class="mb-3">
                             <label for="comments" class="form-label">审批意见</label>
                             <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
@@ -152,6 +264,24 @@
                         <button type="submit" class="btn btn-success">批准</button>
                         <button type="submit" class="btn btn-danger" formaction="{{ url_for('main.approve_repair_order', order_id=order.id, action='reject') }}">拒绝</button>
                     </form>
+                    
+                    <script>
+                    // 部门负责人退回重评功能
+                    document.querySelectorAll('input[name="confirm_cost"]').forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            const returnDiv = document.getElementById('return_reason_div');
+                            const returnReason = document.getElementById('return_reason');
+                            if (this.value === 'no') {
+                                returnDiv.style.display = 'block';
+                                returnReason.required = true;
+                            } else {
+                                returnDiv.style.display = 'none';
+                                returnReason.required = false;
+                                returnReason.value = '';
+                            }
+                        });
+                    });
+                    </script>
                 </div>
             </div>
             {% endif %}

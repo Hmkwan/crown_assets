@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>配件类型管理</h1>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">配件类型列表</h5>
+                    <div>
+                        <a href="{{ url_for('main.export_spare_part_types') }}" class="btn btn-success">
+                            <i class="fas fa-download"></i> 导出
+                        </a>
+                        <button class="btn btn-info" data-toggle="modal" data-target="#importTypeModal">
+                            <i class="fas fa-upload"></i> 导入
+                        </button>
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#addTypeModal">
+                            <i class="fas fa-plus"></i> 添加类型
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>类型名称</th>
+                                    <th>描述</th>
+                                    <th>创建时间</th>
+                                    <th>配件数量</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for type in types %}
+                                <tr>
+                                    <td>{{ type.name }}</td>
+                                    <td>{{ type.description or '-' }}</td>
+                                    <td>
+                                        {% if type.created_date %}
+                                            {{ moment(type.created_date).format('YYYY-MM-DD HH:mm:ss') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ type.spare_parts|length }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger delete-type" data-id="{{ type.id }}">
+                                            删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加类型模态框 -->
+<div class="modal fade" id="addTypeModal" tabindex="-1" aria-labelledby="addTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addTypeForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTypeModalLabel">添加配件类型</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">类型名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入类型模态框 -->
+<div class="modal fade" id="importTypeModal" tabindex="-1" aria-labelledby="importTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="importTypeForm" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importTypeModalLabel">导入配件类型</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <p><strong>CSV文件格式说明：</strong></p>
+                        <ul class="mb-0">
+                            <li>第一列：类型名称（必填）</li>
+                            <li>第二列：描述（可选）</li>
+                            <li>第一行为表头，将被跳过</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label for="file" class="form-label">选择CSV文件</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 添加配件类型表单提交
+    document.getElementById('addTypeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        
+        fetch('{{ url_for("main.add_spare_part_type") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('添加失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('添加失败: ' + error);
+        });
+    });
+    
+    // 导入配件类型表单提交
+    document.getElementById('importTypeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        
+        fetch('{{ url_for("main.import_spare_part_types") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('导入失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('导入失败: ' + error);
+        });
+    });
+    
+    // 删除配件类型按钮点击事件
+    document.querySelectorAll('.delete-type').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var typeId = this.getAttribute('data-id');
+            if (confirm('确定要删除这个配件类型吗？')) {
+                var url = '/spare_parts/types/delete/' + typeId;
+                if (confirm('类型下配件将保留但解绑类型。是否强制删除？')) {
+                    url += '?force=1';
+                }
+                fetch(url, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('删除失败: ' + error);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

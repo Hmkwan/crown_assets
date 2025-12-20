@@ -11,12 +11,13 @@ from app.models import (
     EquipmentLoan, PartRequestOrder
 )
 from app.utils.qrcode_generator import (
-    generate_asset_label, image_to_base64, image_to_bytes
+    generate_asset_label, generate_qrcode, image_to_base64, image_to_bytes
 )
 from app.utils.import_export import content_disposition
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
+import base64
 
 
 def _log_activity(action, description):
@@ -100,25 +101,36 @@ def generate_asset_qrcode(asset_type, asset_id):
     """
     try:
         if asset_type == 'equipment':
-            asset = Equipment.query.get_or_404(asset_id)
+            asset = Equipment.query.get(asset_id)
+            if not asset:
+                return jsonify({'success': False, 'message': f'设备ID {asset_id} 不存在'}), 404
             asset_name = asset.name
             asset_code = asset.serial_number or f"EQ{asset_id:06d}"
             department = asset.department
+            purchase_date = asset.purchase_date
+            location = getattr(asset, 'location', None)
         elif asset_type == 'spare_part':
-            asset = SparePart.query.get_or_404(asset_id)
+            asset = SparePart.query.get(asset_id)
+            if not asset:
+                return jsonify({'success': False, 'message': f'配件ID {asset_id} 不存在'}), 404
             asset_name = asset.name
             asset_code = asset.part_number or f"SP{asset_id:06d}"
-            department = asset.department
+            department = getattr(asset, 'department', None)
+            purchase_date = asset.purchase_date if hasattr(asset, 'purchase_date') else None
+            location = getattr(asset, 'location', None)
         else:
             return jsonify({'success': False, 'message': '无效的资产类型'}), 400
         
-        # 生成标签
+        # 生成标签 (使用较低DPI以便在屏幕上预览)
         label_img = generate_asset_label(
             asset_type=asset_type,
             asset_id=asset_id,
             asset_name=asset_name,
             asset_code=asset_code,
-            department=department
+            department=department,
+            purchase_date=purchase_date,
+            location=location,
+            dpi=150  # 降低DPI使文字在屏幕预览时更清晰
         )
         
         # 转换为base64用于在线预览
@@ -148,19 +160,29 @@ def download_asset_label(asset_type, asset_id):
     """
     try:
         if asset_type == 'equipment':
-            asset = Equipment.query.get_or_404(asset_id)
+            asset = Equipment.query.get(asset_id)
+            if not asset:
+                flash(f'设备ID {asset_id} 不存在', 'error')
+                return redirect(url_for('main.asset_center'))
             asset_name = asset.name
             asset_code = asset.serial_number or f"EQ{asset_id:06d}"
             department = asset.department
+            purchase_date = asset.purchase_date
+            location = getattr(asset, 'location', None)
             pdf_filename = f'设备标签_{asset_code}.pdf'
         elif asset_type == 'spare_part':
-            asset = SparePart.query.get_or_404(asset_id)
+            asset = SparePart.query.get(asset_id)
+            if not asset:
+                flash(f'配件ID {asset_id} 不存在', 'error')
+                return redirect(url_for('main.asset_center'))
             asset_name = asset.name
             asset_code = asset.part_number or f"SP{asset_id:06d}"
-            department = asset.department
+            department = getattr(asset, 'department', None)
+            purchase_date = asset.purchase_date if hasattr(asset, 'purchase_date') else None
+            location = getattr(asset, 'location', None)
             pdf_filename = f'配件标签_{asset_code}.pdf'
         else:
-            flash('无效的资产类型')
+            flash('无效的资产类型', 'error')
             return redirect(url_for('main.asset_center'))
         
         # 生成标签图像（PNG）
@@ -169,7 +191,9 @@ def download_asset_label(asset_type, asset_id):
             asset_id=asset_id,
             asset_name=asset_name,
             asset_code=asset_code,
-            department=department
+            department=department,
+            purchase_date=purchase_date,
+            location=location
         )
         
         # 获取PNG图像字节
@@ -215,6 +239,68 @@ def download_asset_label(asset_type, asset_id):
     except Exception as e:
         current_app.logger.error(f'下载标签失败: {str(e)}')
         flash(f'下载失败: {str(e)}')
+        return redirect(url_for('main.asset_center'))
+
+
+@bp.route('/asset/print_label/<asset_type>/<int:asset_id>')
+@login_required
+def print_asset_label(asset_type, asset_id):
+    """
+    在线打印资产标签（HTML页面）
+    
+    Args:
+        asset_type: 'equipment' 或 'spare_part'
+        asset_id: 资产ID
+    """
+    try:
+        if asset_type == 'equipment':
+            asset = Equipment.query.get_or_404(asset_id)
+            asset_name = asset.name
+            asset_code = asset.serial_number or f"EQ{asset_id:06d}"
+            department = asset.department
+            purchase_date = asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else "未录入"
+            location = getattr(asset, 'location', None) or "未指定"
+            label_title = "设备标签"
+        elif asset_type == 'spare_part':
+            asset = SparePart.query.get_or_404(asset_id)
+            asset_name = asset.name
+            asset_code = asset.part_number or f"SP{asset_id:06d}"
+            department = getattr(asset, 'department', None) or "未分配"
+            purchase_date = asset.purchase_date.strftime('%Y-%m-%d') if hasattr(asset, 'purchase_date') and asset.purchase_date else "未录入"
+            location = getattr(asset, 'location', None) or "未指定"
+            label_title = "配件标签"
+        else:
+            flash('无效的资产类型', 'error')
+            return redirect(url_for('main.asset_center'))
+        
+        # 生成完整标签图片（而不是单独的二维码）
+        label_img = generate_asset_label(
+            asset_type=asset_type,
+            asset_id=asset_id,
+            asset_name=asset_name,
+            asset_code=asset_code,
+            department=department,
+            purchase_date=purchase_date,
+            location=location
+        )
+        label_base64 = image_to_base64(label_img, format='PNG')
+        
+        _log_activity('打印标签', f'{asset_type}#{asset_id}')
+        return render_template('main/print_label.html',
+            label_title=label_title,
+            asset_name=asset_name,
+            asset_code=asset_code,
+            department=department,
+            purchase_date=purchase_date,
+            location=location,
+            asset_type=asset_type,
+            asset_id=asset_id,
+            label_base64=label_base64  # 传递完整标签图片
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f'生成打印页面失败: {str(e)}')
+        flash(f'生成打印页面失败: {str(e)}')
         return redirect(url_for('main.asset_center'))
 
 

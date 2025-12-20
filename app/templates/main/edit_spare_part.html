@@ -21,6 +21,16 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label for="type_id" class="form-label">配件类型</label>
+                            <select class="form-control" id="type_id" name="type_id">
+                                <option value="">请选择类型</option>
+                                {% for type in spare_part_types %}
+                                <option value="{{ type.id }}" {% if spare_part.type_id == type.id %}selected{% endif %}>{{ type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="price" class="form-label">价格</label>
                             <input type="number" class="form-control" id="price" name="price" step="0.01" value="{{ spare_part.price }}" min="0">
                         </div>

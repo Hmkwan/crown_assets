@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">审批流程模板管理</h1>
+        <p class="lead text-muted">管理可复用的审批流程模板（创建/编辑/删除）</p>
+    </div>
+
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('main.create_workflow_template') }}" class="btn btn-primary">新建模板</a>
+        <div>
+            <small class="text-muted">默认流程会被同步为系统节点，供审批引擎使用。</small>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if templates_info %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>订单类型</th>
+                            <th>创建时间</th>
+                            <th>同步状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in templates_info %}
+                        {% set t = item.template %}
+                        <tr>
+                            <td>
+                                {{ t.name }}
+                                {% if t.is_default %}
+                                <span class="badge badge-success ml-2">默认</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t.order_type }}</td>
+                            <td>{{ t.created_date.strftime('%Y-%m-%d') if t.created_date else '' }}</td>
+                            <td>
+                                已同步 {{ item.node_count }} 个节点
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.edit_workflow_template', template_id=t.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                <form method="post" action="{{ url_for('main.delete_workflow_template', template_id=t.id) }}" style="display:inline-block;" onsubmit="return confirm('确认删除该模板？');">
+                                    <button class="btn btn-sm btn-danger">删除</button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-success set-default-btn" data-template-id="{{ t.id }}" data-template-name="{{ t.name }}">设为默认并同步</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">当前没有审批流程模板。</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 同步进度模态框 -->
+<div class="modal fade" id="syncProgressModal" tabindex="-1" aria-labelledby="syncProgressLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="syncProgressLabel">正在设置默认流程并同步...</h5>
+      </div>
+      <div class="modal-body">
+        <div class="progress" style="height: 20px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="syncProgress"></div>
+        </div>
+        <p class="mt-3" id="syncStatus">准备同步...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+  $('.set-default-btn').click(function(e) {
+    e.preventDefault();
+    const templateId = $(this).data('template-id');
+    const templateName = $(this).data('template-name');
+    
+    if (!confirm(`确定要将 "${templateName}" 设置为默认流程并同步节点吗？`)) {
+      return;
+    }
+    
+    $('#syncProgressModal').modal('show');
+    $('#syncStatus').text('正在同步，请稍候...');
+    $('#syncProgress').css('width', '50%');
+    
+    const setDefaultUrlTemplate = '{{ url_for("main.set_default_workflow_template", template_id=0) }}';
+    $.ajax({
+      url: setDefaultUrlTemplate.replace('/0', '/' + templateId),
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      success: function(response) {
+        $('#syncProgress').css('width', '100%');
+        $('#syncStatus').html(`
+          <div class="alert alert-success mb-0">
+            <strong>同步完成！</strong><br>
+            ${response.message}
+          </div>
+        `);
+        setTimeout(function() {
+          $('#syncProgressModal').modal('hide');
+          location.reload();
+        }, 2000);
+      },
+      error: function(xhr) {
+        $('#syncProgress').addClass('bg-danger').css('width', '100%');
+        const errMsg = xhr.responseJSON?.error || '同步失败';
+        $('#syncStatus').html(`
+          <div class="alert alert-danger mb-0">
+            <strong>同步失败！</strong><br>
+            ${errMsg}
+          </div>
+        `);
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}

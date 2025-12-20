@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2><i class="fas fa-clipboard-check"></i> 待验收归还列表</h2>
+    
+    {% if pending_loans %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-circle"></i>
+        <strong>提示:</strong> 当前有 {{ pending_loans|length }} 条待验收的归还申请
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>借用ID</th>
+                            <th>设备名称</th>
+                            <th>设备编号</th>
+                            <th>借用人</th>
+                            <th>借用部门</th>
+                            <th>借出时间</th>
+                            <th>归还申请时间</th>
+                            <th>申报状态</th>
+                            <th>归还说明</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in pending_loans %}
+                        <tr>
+                            <td>{{ loan.id }}</td>
+                            <td>{{ loan.equipment.name if loan.equipment else '-' }}</td>
+                            <td>{{ loan.equipment.equipment_number if loan.equipment else '-' }}</td>
+                            <td>{{ loan.requester.username if loan.requester else '-' }}</td>
+                            <td>{{ loan.requester_dept or '-' }}</td>
+                            <td>{{ loan.borrowed_date.strftime('%Y-%m-%d %H:%M') if loan.borrowed_date else '-' }}</td>
+                            <td>
+                                {{ loan.return_request_date.strftime('%Y-%m-%d %H:%M') if loan.return_request_date else '-' }}
+                                {% if loan.return_request_date and (now() - loan.return_request_date).days > 2 %}
+                                    <span class="badge badge-danger">延迟{{ (now() - loan.return_request_date).days }}天</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loan.return_condition == 'good' %}
+                                    <span class="badge badge-success">完好</span>
+                                {% elif loan.return_condition == 'damaged' %}
+                                    <span class="badge badge-warning">损坏</span>
+                                {% elif loan.return_condition == 'lost' %}
+                                    <span class="badge badge-danger">丢失</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ loan.return_condition or '-' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span title="{{ loan.return_notes }}">
+                                    {{ loan.return_notes[:30] + '...' if loan.return_notes and loan.return_notes|length > 30 else (loan.return_notes or '-') }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.inspect_loan_return', id=loan.id) }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-clipboard-check"></i> 验收
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <strong>暂无待验收的归还申请</strong>
+    </div>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{{ url_for('main.loan_requests') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回借用管理
+        </a>
+    </div>
+</div>
+{% endblock %}

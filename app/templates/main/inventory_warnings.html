@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">⚠️ 库存预警管理</h1>
+        <p class="lead text-muted">监控配件库存，及时发现缺货风险</p>
+    </div>
+
+    <!-- 库存概览 -->
+    <div class="dashboard-section-title">库存概览</div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">配件总数</h6>
+                    <p class="metric-value text-success">{{ inventory_summary.total_parts }}</p>
+                    <small class="text-muted">种类</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">设备总数</h6>
+                    <p class="metric-value text-primary">{{ inventory_summary.total_equipment }}</p>
+                    <small class="text-muted">台/件</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">库存总价值（含设备）</h6>
+                    <p class="metric-value text-info">¥{{ "%.0f"|format((inventory_summary.total_inventory_value or 0) + (inventory_summary.total_equipment_value or 0)) }}</p>
+                    <small class="text-muted">库存资产（配件+设备）</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">紧急预警</h6>
+                    <p class="metric-value text-danger">{{ warning_status.critical|length }}</p>
+                    <small class="text-muted">需要立即采购</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">一般预警</h6>
+                    <p class="metric-value text-warning">{{ warning_status.warning|length }}</p>
+                    <small class="text-muted">建议采购</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="mb-3">
+        <a href="{{ url_for('main.procurement_plan') }}" class="btn btn-primary">
+            📋 查看采购建议
+        </a>
+        <button class="btn btn-outline-danger" onclick="checkAlerts()">
+            🔄 检查预警
+        </button>
+    </div>
+
+    <!-- 紧急预警 -->
+    {% if warning_status.critical %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">🚨 紧急库存预警 ({{ warning_status.critical|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">紧急阈值</th>
+                            <th class="text-end">建议采购量</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in warning_status.critical %}
+                        <tr class="table-danger">
+                            <td>{{ item.name }}</td>
+                            <td class="text-end"><strong>{{ item.current_stock }}</strong></td>
+                            <td class="text-end">{{ item.critical_threshold }}</td>
+                            <td class="text-end">
+                                <span class="badge bg-danger">+{{ item.reorder_quantity }}</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.manage_inventory_warning', spare_part_id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                                    配置
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 一般预警 -->
+    {% if warning_status.warning %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">⚠️ 库存预警 ({{ warning_status.warning|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">最小阈值</th>
+                            <th class="text-end">建议采购量</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in warning_status.warning %}
+                        <tr class="table-warning">
+                            <td>{{ item.name }}</td>
+                            <td class="text-end">{{ item.current_stock }}</td>
+                            <td class="text-end">{{ item.min_threshold }}</td>
+                            <td class="text-end">{{ item.reorder_quantity }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.manage_inventory_warning', spare_part_id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                                    配置
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 正常库存 -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">✓ 库存正常 ({{ warning_status.normal|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if warning_status.normal %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">最小阈值</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in warning_status.normal[:20] %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td class="text-end">{{ item.current_stock }}</td>
+                            <td class="text-end">{{ item.min_threshold }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.manage_inventory_warning', spare_part_id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                                    配置
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if warning_status.normal|length > 20 %}
+            <p class="text-muted mt-3">还有 {{ warning_status.normal|length - 20 }} 个配件库存正常...</p>
+            {% endif %}
+            {% else %}
+            <p class="text-muted">所有配件库存状态正常</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function checkAlerts() {
+    fetch("{{ url_for('main.api_check_alerts') }}")
+        .then(response => response.json())
+        .then(data => {
+            alert('已检查库存，创建 ' + data.alerts_created + ' 条预警');
+            location.reload();
+        });
+}
+</script>
+{% endblock %}

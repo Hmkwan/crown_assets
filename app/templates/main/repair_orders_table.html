@@ -26,17 +26,35 @@
                 <span class="badge bg-info">部门领导已批准</span>
                 {% elif order.status == 'admin_approved' %}
                 <span class="badge bg-info">管理员已批准</span>
+                {% elif order.status == 'approved' %}
+                <span class="badge bg-success">已批准</span>
                 {% elif order.status == 'in_progress' %}
                 <span class="badge bg-primary">处理中</span>
                 {% elif order.status == 'completed' %}
                 <span class="badge bg-success">已完成</span>
                 {% elif order.status == 'cancelled' %}
                 <span class="badge bg-secondary">已取消</span>
+                {% else %}
+                <span class="badge bg-secondary">{{ order.status }}</span>
                 {% endif %}
             </td>
             <td>{{ moment(order.created_date).format('YYYY-MM-DD HH:mm') }}</td>
             <td>
-                <a href="{{ url_for('main.repair_order_detail', id=order.id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+                <a href="{{ url_for('main.repair_order_detail', id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i> 详情
+                </a>
+                
+                {% if current_user.role == 'admin' or order.requester_id == current_user.id %}
+                    <a href="{{ url_for('main.edit_repair_order', id=order.id) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-edit"></i> 编辑
+                    </a>
+                    
+                    {% if order.status in ['submitted', 'cancelled'] %}
+                    <button onclick="deleteOrder({{ order.id }})" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                    {% endif %}
+                {% endif %}
             </td>
         </tr>
         {% endfor %}

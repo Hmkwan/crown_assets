@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="display-6">💰 资产成本分析</h1>
+                <p class="lead text-muted">{{ equipment.name }} - 成本详细信息</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('main.edit_asset_cost', equipment_id=equipment.id) }}" class="btn btn-primary">
+                    ✏️ 编辑成本
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成本概览 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">采购价格</h6>
+                    <p class="h3 text-primary">¥{{ "%.0f"|format(cost.purchase_price or 0) }}</p>
+                    <small class="text-muted">原始投资</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">累计维护成本</h6>
+                    <p class="h3 text-danger">¥{{ "%.0f"|format(lifecycle_costs.maintenance_cost or 0) }}</p>
+                    <small class="text-muted">已发生支出</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">当前净值</h6>
+                    <p class="h3 text-info">¥{{ "%.0f"|format(current_value or 0) }}</p>
+                    <small class="text-muted">账面价值</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">生命周期总成本</h6>
+                    <p class="h3 text-success">¥{{ "%.0f"|format(lifecycle_costs.total_cost or 0) }}</p>
+                    <small class="text-muted">全部投入</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成本时间轴 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📊 折旧分析</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">年折旧率</p>
+                        <p class="h5">{{ cost.annual_depreciation_rate or 15 }}%</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">年折旧额</p>
+                        <p class="h5 text-warning">
+                            ¥{{ "%.0f"|format((cost.purchase_price or 0) * (cost.annual_depreciation_rate or 15) / 100) }}
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">预期使用年限</p>
+                        <p class="h5">{{ cost.expected_lifespan_years or 5 }} 年</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">预期残值</p>
+                        <p class="h5">¥{{ "%.0f"|format((cost.purchase_price or 0) * (cost.residual_value_percent or 10) / 100) }}</p>
+                        <small class="text-muted">残值率：{{ cost.residual_value_percent or 10 }}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🔧 维护信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">年均维护成本</p>
+                        <p class="h5">¥{{ "%.0f"|format(cost.maintenance_cost or 0) }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">年均维修次数</p>
+                        <p class="h5">0 次</p>
+                        <small class="text-muted">暂无记录</small>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">单次最高维修成本</p>
+                        <p class="h5">¥{{ "%.0f"|format(cost.max_repair_cost or 0) }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted small mb-2">维护成本占比</p>
+                        <p class="h5 text-danger">
+                            {{ "%.1f"|format((lifecycle_costs.maintenance_cost or 0) / (cost.purchase_price or 1) * 100) }}%
+                        </p>
+                        <small class="text-muted">相对采购价格</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成本构成 -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📈 生命周期成本构成</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-3 mb-3">
+                    <p class="text-muted small">采购成本</p>
+                    <p class="h5">¥{{ "%.0f"|format(lifecycle_costs.purchase_price or 0) }}</p>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-primary" data-width="{{ purchase_pct }}">
+                            {{ purchase_pct }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <p class="text-muted small">维护成本</p>
+                    <p class="h5">¥{{ "%.0f"|format(lifecycle_costs.maintenance_cost or 0) }}</p>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-warning" data-width="{{ maintenance_pct }}">
+                            {{ maintenance_pct }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <p class="text-muted small">升级成本</p>
+                    <p class="h5">¥{{ "%.0f"|format(lifecycle_costs.upgrade_cost or 0) }}</p>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" data-width="{{ upgrade_pct }}">
+                            {{ upgrade_pct }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <p class="text-muted small">其他成本</p>
+                    <p class="h5">¥{{ "%.0f"|format(lifecycle_costs.other_cost or 0) }}</p>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-secondary" data-width="{{ other_pct }}">
+                            {{ other_pct }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROI 分析 -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📊 投资回报率分析</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <p class="text-muted small mb-2">当前 ROI</p>
+                        <p class="h3 {% if roi is not none and roi >= 0 %}text-success{% elif roi is not none %}text-danger{% else %}text-muted{% endif %}">
+                            {{ "%.1f"|format(roi or 0) }}%
+                        </p>
+                        <small class="text-muted">
+                            {% if roi is none %}
+                            数据不足
+                            {% elif roi >= 0 %}
+                            还有投资价值
+                            {% else %}
+                            考虑报废处理
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <p class="text-muted small mb-2">平均成本占比</p>
+                        <p class="h3">{{ "%.1f"|format((lifecycle_costs.total_cost or 0) / (cost.purchase_price or 1)) }}x</p>
+                        <small class="text-muted">相对采购价格的倍数</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <p class="text-muted small mb-2">投资回收期</p>
+                        <p class="h3">{{ payback_period or 'N/A' }}</p>
+                        <small class="text-muted">预计投资回收时间</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 资产基本信息 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📋 资产基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">资产编号</dt>
+                        <dd class="col-sm-6"><code>{{ equipment.asset_no }}</code></dd>
+                        
+                        <dt class="col-sm-6">资产名称</dt>
+                        <dd class="col-sm-6">{{ equipment.name }}</dd>
+                        
+                        <dt class="col-sm-6">采购日期</dt>
+                        <dd class="col-sm-6">{{ equipment.purchase_date.strftime('%Y-%m-%d') if equipment.purchase_date else 'N/A' }}</dd>
+                        
+                        <dt class="col-sm-6">资产状态</dt>
+                        <dd class="col-sm-6">
+                            {% if equipment.status == 'active' %}
+                                <span class="badge bg-success">正常</span>
+                            {% elif equipment.status == 'available' %}
+                                <span class="badge bg-info">可申请</span>
+                            {% elif equipment.status == 'repair' %}
+                                <span class="badge bg-warning">维修中</span>
+                            {% elif equipment.status == 'loaned' %}
+                                <span class="badge bg-primary">已借出</span>
+                            {% elif equipment.status == 'retired' %}
+                                <span class="badge bg-secondary">已报废</span>
+                            {% elif equipment.status == 'inactive' %}
+                                <span class="badge bg-secondary">停用</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ equipment.status }}</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-6">所属部门</dt>
+                        <dd class="col-sm-6">{{ equipment.department or 'N/A' }}</dd>
+                        
+                        <dt class="col-sm-6">负责人</dt>
+                        <dd class="col-sm-6">{{ equipment.responsible_person or 'N/A' }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🛡️ 风险评估</h5>
+                </div>
+                <div class="card-body">
+                    {% if cost.purchase_price and lifecycle_costs.maintenance_cost > (cost.purchase_price or 0) * 0.5 %}
+                    <div class="alert alert-warning mb-3">
+                        <strong>⚠️ 高维护成本</strong><br>
+                        <small>该资产的维护成本已超过采购价格的50%，应考虑升级或更换</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if cost.purchase_price and cost.maintenance_cost and cost.maintenance_cost > (cost.purchase_price or 0) * 0.3 %}
+                    <div class="alert alert-warning mb-3">
+                        <strong>⚠️ 高故障频率</strong><br>
+                        <small>该资产平均每年维修次数较多（>5次），建议加强维护或计划更新</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if cost.purchase_price and current_value < (cost.purchase_price or 0) * 0.1 %}
+                    <div class="alert alert-danger mb-3">
+                        <strong>🚨 低残值率</strong><br>
+                        <small>该资产当前净值已低于采购价的10%，建议评估是否需要报废</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not (cost.purchase_price and lifecycle_costs.maintenance_cost > (cost.purchase_price or 0) * 0.5) and not (cost.purchase_price and cost.maintenance_cost and cost.maintenance_cost > (cost.purchase_price or 0) * 0.3) and not (cost.purchase_price and current_value < (cost.purchase_price or 0) * 0.1) %}
+                    <div class="alert alert-success">
+                        <strong>✓ 评估良好</strong><br>
+                        <small>该资产状况良好，无需立即采取行动</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="mb-3">
+        <a href="{{ url_for('main.edit_equipment', id=equipment.id) }}" class="btn btn-outline-secondary">
+            ← 返回资产详情
+        </a>
+        <a href="{{ url_for('main.asset_lifecycle', asset_id=equipment.id) }}" class="btn btn-outline-info">
+            🔄 查看生命周期
+        </a>
+    </div>
+</div>
+
+<script>
+// 处理进度条宽度
+document.querySelectorAll('.progress-bar[data-width]').forEach(bar => {
+    const width = bar.getAttribute('data-width');
+    bar.style.width = width + '%';
+});
+</script>
+{% endblock %}
+

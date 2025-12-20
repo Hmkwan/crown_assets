@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fas fa-tasks"></i> 报废处置管理</h2>
+                <a href="{{ url_for('main.scrap_requests') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回报废申请
+                </a>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-left-warning">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        待处置
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.pending_disposal }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-left-info">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        待核销
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.pending_clear }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-left-success">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        已核销
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ stats.cleared }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选选项 -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="form-inline">
+                        <label class="mr-2">状态筛选:</label>
+                        <select name="status" class="form-control mr-2" onchange="this.form.submit()">
+                            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>待处置</option>
+                            <option value="disposed" {% if status_filter == 'disposed' %}selected{% endif %}>待核销</option>
+                            <option value="cleared" {% if status_filter == 'cleared' %}selected{% endif %}>已核销</option>
+                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 报废列表 -->
+            <div class="card">
+                <div class="card-body">
+                    {% if scraps %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>报废ID</th>
+                                    <th>设备信息</th>
+                                    <th>申请人</th>
+                                    <th>申请时间</th>
+                                    <th>状态</th>
+                                    <th>处置方式</th>
+                                    <th>处置时间</th>
+                                    <th>残值/售价</th>
+                                    <th>财务核销</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scrap in scraps %}
+                                <tr>
+                                    <td>#{{ scrap.id }}</td>
+                                    <td>
+                                        <strong>{{ scrap.equipment.name if scrap.equipment else '未知' }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ scrap.equipment.serial_number if scrap.equipment and scrap.equipment.serial_number else '无编号' }}
+                                        </small>
+                                    </td>
+                                    <td>{{ scrap.requester.username if scrap.requester else '-' }}</td>
+                                    <td>{{ scrap.created_date.strftime('%Y-%m-%d') if scrap.created_date else '-' }}</td>
+                                    <td>
+                                        {% if scrap.status == 'approved' %}
+                                            <span class="badge badge-warning">待处置</span>
+                                        {% elif scrap.status == 'disposed' %}
+                                            <span class="badge badge-info">已处置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scrap.disposal_method %}
+                                            {% if scrap.disposal_method == 'recycling' %}回收利用
+                                            {% elif scrap.disposal_method == 'donation' %}捐赠
+                                            {% elif scrap.disposal_method == 'destruction' %}销毁
+                                            {% elif scrap.disposal_method == 'sale' %}出售
+                                            {% else %}{{ scrap.disposal_method }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">未处置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scrap.disposal_date %}
+                                            {{ scrap.disposal_date.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scrap.disposal_value and scrap.disposal_value > 0 %}
+                                            <span class="text-success">¥{{ scrap.disposal_value }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scrap.financial_cleared %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check"></i> 已核销
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ scrap.financial_cleared_date.strftime('%Y-%m-%d') if scrap.financial_cleared_date else '' }}
+                                            </small>
+                                        {% else %}
+                                            <span class="badge badge-secondary">未核销</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scrap.status == 'approved' %}
+                                            <a href="{{ url_for('main.dispose_scrap', scrap_id=scrap.id) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-recycle"></i> 处置
+                                            </a>
+                                        {% elif scrap.status == 'disposed' and not scrap.financial_cleared %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-success"
+                                                    onclick="financialClear({{ scrap.id }})">
+                                                <i class="fas fa-dollar-sign"></i> 财务核销
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted small">已完成</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 当前筛选条件下无数据
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 财务核销模态框 -->
+<div class="modal fade" id="financialClearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">财务核销</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="financialClearForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>核销备注</label>
+                        <textarea class="form-control" name="financial_notes" rows="3" 
+                                  placeholder="记录核销凭证号、会计分录等信息"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success">确认核销</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentScrapId = null;
+
+function financialClear(scrapId) {
+    currentScrapId = scrapId;
+    $('#financialClearModal').modal('show');
+}
+
+$('#financialClearForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: `/scraps/${currentScrapId}/financial_clear`,
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function(response) {
+            if (response.success) {
+                alert(response.message);
+                location.reload();
+            } else {
+                alert('核销失败: ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            alert('核销失败: ' + (xhr.responseJSON?.message || '未知错误'));
+        }
+    });
+});
+</script>
+
+<style>
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+</style>
+{% endblock %}

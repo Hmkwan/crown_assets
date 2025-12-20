@@ -1,0 +1,126 @@
+{
+  "backup_time": "2025-11-30T00:11:16.036843",
+  "project_path": "C:\\Users\\it03.GD\\Desktop\\TEST",
+  "files": [
+    {
+      "name": "app.py",
+      "size": 1032
+    },
+    {
+      "name": "config.py",
+      "size": 964
+    },
+    {
+      "name": "requirements.txt",
+      "size": 176
+    },
+    {
+      "name": "alembic.ini",
+      "size": 4807
+    },
+    {
+      "name": "boot.bat",
+      "size": 81
+    },
+    {
+      "name": "boot.sh",
+      "size": 89
+    },
+    {
+      "name": "init_db.py",
+      "size": 6867
+    },
+    {
+      "name": "init_default_workflow.py",
+      "size": 14812
+    },
+    {
+      "name": "create_admin.py",
+      "size": 1637
+    },
+    {
+      "name": "check_index.py",
+      "size": 1789
+    },
+    {
+      "name": "download_cdn_resources.py",
+      "size": 3504
+    },
+    {
+      "name": "update_base_template.py",
+      "size": 4626
+    },
+    {
+      "name": "QUICK_START_GUIDE.md",
+      "size": 10105
+    },
+    {
+      "name": "DEPLOYMENT_OPTIMIZATION_GUIDE.md",
+      "size": 6445
+    },
+    {
+      "name": "PERFORMANCE_DIAGNOSIS.md",
+      "size": 2066
+    },
+    {
+      "name": "DEVELOPMENT_REPORT.md",
+      "size": 17504
+    },
+    {
+      "name": "DELIVERY_CHECKLIST.md",
+      "size": 10111
+    },
+    {
+      "name": "FINAL_DELIVERY.md",
+      "size": 15425
+    },
+    {
+      "name": "PERMISSION_SYSTEM_ENHANCEMENT.md",
+      "size": 4379
+    },
+    {
+      "name": "REPORTS_FIXES_SUMMARY.md",
+      "size": 6310
+    },
+    {
+      "name": "SYSTEM_IMPROVEMENT_PLAN.md",
+      "size": 7544
+    },
+    {
+      "name": "WORKFLOW_ENHANCEMENTS.md",
+      "size": 4616
+    },
+    {
+      "name": "app.db",
+      "size": 344064
+    }
+  ],
+  "directories": [
+    {
+      "name": "app",
+      "size": 0
+    },
+    {
+      "name": "alembic",
+      "size": 0
+    },
+    {
+      "name": "migrations",
+      "size": 0
+    },
+    {
+      "name": "scripts",
+      "size": 0
+    },
+    {
+      "name": "static",
+      "size": 0
+    },
+    {
+      "name": "tests",
+      "size": 0
+    }
+  ],
+  "total_size": 468953,
+  "file_count": 23
+}

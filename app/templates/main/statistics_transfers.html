@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-exchange-alt"></i> 设备调拨报表
+                <a href="{{ url_for('main.export_statistics_xlsx', report_type='transfers') }}" 
+                   class="btn btn-success btn-sm float-right">
+                    <i class="fas fa-file-excel"></i> 导出Excel
+                </a>
+            </h2>
+        </div>
+    </div>
+
+    <!-- 汇总卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info"><i class="fas fa-list"></i> 总调拨</h5>
+                    <h3>{{ total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning"><i class="fas fa-clock"></i> 待审批</h5>
+                    <h3>{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary"><i class="fas fa-check"></i> 已批准</h5>
+                    <h3>{{ approved_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success"><i class="fas fa-check-double"></i> 已完成</h5>
+                    <h3>{{ completed_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label class="mr-2">状态:</label>
+                    <select name="status" class="form-control">
+                        <option value="">全部</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审批</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">调出部门:</label>
+                    <select name="department_id" class="form-control">
+                        <option value="">全部</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if department_id == dept.id|string %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">日期:</label>
+                    <input type="date" name="date_from" class="form-control mr-2" value="{{ date_from }}">
+                    <span class="mr-2">至</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+                <a href="{{ url_for('main.statistics_transfers') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> 重置
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-pie"></i> 状态分布
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>数量</th>
+                                <th>占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in status_stats %}
+                            <tr>
+                                <td>
+                                    {% if stat.status == 'pending' %}
+                                        <span class="badge badge-warning">待审批</span>
+                                    {% elif stat.status == 'approved' %}
+                                        <span class="badge badge-primary">已批准</span>
+                                    {% elif stat.status == 'completed' %}
+                                        <span class="badge badge-success">已完成</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ stat.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ "%.1f"|format(stat.count / total_count * 100 if total_count > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 调拨详情 -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-list"></i> 设备调拨详情 (共 {{ transfers|length }} 条)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>调拨ID</th>
+                            <th>设备名称</th>
+                            <th>设备编号</th>
+                            <th>调出部门</th>
+                            <th>调入部门</th>
+                            <th>申请人</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>审批时间</th>
+                            <th>调拨原因</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transfer in transfers %}
+                        <tr>
+                            <td>{{ transfer.id }}</td>
+                            <td>{{ transfer.equipment.name if transfer.equipment else '' }}</td>
+                            <td>{{ transfer.equipment.equipment_number if transfer.equipment else '' }}</td>
+                            <td>{{ transfer.from_department.name if transfer.from_department else '' }}</td>
+                            <td>{{ transfer.to_department.name if transfer.to_department else '' }}</td>
+                            <td>{{ transfer.requester.username if transfer.requester else '' }}</td>
+                            <td>
+                                {% if transfer.status == 'pending' %}
+                                    <span class="badge badge-warning">待审批</span>
+                                {% elif transfer.status == 'approved' %}
+                                    <span class="badge badge-primary">已批准</span>
+                                {% elif transfer.status == 'completed' %}
+                                    <span class="badge badge-success">已完成</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ transfer.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transfer.created_date.strftime('%Y-%m-%d %H:%M') if transfer.created_date else '' }}</td>
+                            <td>{{ transfer.approved_date.strftime('%Y-%m-%d %H:%M') if transfer.approved_date else '' }}</td>
+                            <td>{{ transfer.reason or '' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

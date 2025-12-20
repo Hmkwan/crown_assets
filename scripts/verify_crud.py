@@ -3,7 +3,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config import Config
 from app import create_app, db
-from app.models import User, Department, EquipmentType, Equipment, SparePart, WorkflowNode
+from app.models import User, Department, EquipmentType, Equipment, SparePart
+from app.approval_models import WorkflowNode
 
 
 class TestConfig(Config):

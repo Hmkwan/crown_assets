@@ -1,0 +1,17 @@
+HTTP/1.1 302 FOUND
+Server: gunicorn
+Date: Thu, 18 Dec 2025 01:33:16 GMT
+Connection: keep-alive
+Content-Type: text/html; charset=utf-8
+Content-Length: 228
+Location: http://localhost:5020/auth/login
+Vary: Cookie
+Set-Cookie: session=.eJwVjEEOgyAQAL_S7NmDwC6gXynGAC41qW0TV07Gv0svM3OaE-ayRVlZYHye8Dia4MMi8cXQQaiOtA_VauNCJeyXfyvbOuVG53sV6kBqCNUnLjBdU9eWO8sKY4mbcAdZ9jIfvzd_YQTKKRlnYsFMFj0aytFiUThYo5UjJFJpQQfXDaZSLoQ.aUNZ3A.n_46iDvjufwUcxSZbYx-zpMXLwk; HttpOnly; Path=/
+
+HTTP/1.1 400 BAD REQUEST
+Server: gunicorn
+Date: Thu, 18 Dec 2025 01:33:16 GMT
+Connection: keep-alive
+Content-Type: application/json
+Content-Length: 70
+

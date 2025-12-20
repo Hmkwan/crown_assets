@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}{% if announcement %}编辑公告{% else %}创建公告{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-{% if announcement %}edit{% else %}plus{% endif %}"></i>
+                        {% if announcement %}编辑公告{% else %}创建公告{% endif %}
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('main.admin_announcements') }}" class="btn btn-sm btn-default">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="content" id="contentInput">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">公告标题 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ announcement.title if announcement else '' }}" 
+                                   required maxlength="200">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="type">公告类型</label>
+                                    <select class="form-control" id="type" name="type">
+                                        <option value="notice" {% if announcement and announcement.type == 'notice' %}selected{% endif %}>
+                                            普通通知
+                                        </option>
+                                        <option value="update" {% if announcement and announcement.type == 'update' %}selected{% endif %}>
+                                            功能更新
+                                        </option>
+                                        <option value="system" {% if announcement and announcement.type == 'system' %}selected{% endif %}>
+                                            系统维护
+                                        </option>
+                                        <option value="urgent" {% if announcement and announcement.type == 'urgent' %}selected{% endif %}>
+                                            紧急公告
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="priority">优先级</label>
+                                    <select class="form-control" id="priority" name="priority">
+                                        <option value="low" {% if announcement and announcement.priority == 'low' %}selected{% endif %}>
+                                            低
+                                        </option>
+                                        <option value="normal" {% if announcement and announcement.priority == 'normal' %}selected{% elif not announcement %}selected{% endif %}>
+                                            普通
+                                        </option>
+                                        <option value="high" {% if announcement and announcement.priority == 'high' %}selected{% endif %}>
+                                            高
+                                        </option>
+                                        <option value="urgent" {% if announcement and announcement.priority == 'urgent' %}selected{% endif %}>
+                                            紧急
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="publish_time">发布时间</label>
+                                    <input type="datetime-local" class="form-control" id="publish_time" name="publish_time"
+                                           value="{% if announcement and announcement.publish_time %}{{ announcement.publish_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                    <small class="form-text text-muted">留空则立即发布</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="expire_time">过期时间</label>
+                                    <input type="datetime-local" class="form-control" id="expire_time" name="expire_time"
+                                           value="{% if announcement and announcement.expire_time %}{{ announcement.expire_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                    <small class="form-text text-muted">留空则永不过期</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="content">公告内容 <span class="text-danger">*</span></label>
+                            <div id="content">{{ announcement.content if announcement else '' }}</div>
+                            <small class="form-text text-muted">支持HTML格式</small>
+                        </div>
+                        
+                        <!-- 附件上传区域 -->
+                        <div class="form-group">
+                            <label>附件上传</label>
+                            
+                            <!-- 已上传的附件列表 -->
+                            <div id="attachment-list" class="mb-3">
+                                <div class="list-group">
+                                    <!-- 动态加载附件 -->
+                                </div>
+                            </div>
+                            
+                            <!-- 文件上传区域 -->
+                            <div id="file-dropzone" class="dropzone">
+                                <div class="dz-message" data-dz-message>
+                                    <div class="text-center">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                        <h4>点击或拖拽文件到此处上传</h4>
+                                        <p class="text-muted">
+                                            支持: PDF, Word, Excel, 图片, 视频等<br>
+                                            最大文件大小: 50MB
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_published" name="is_published"
+                                   {% if announcement and announcement.is_published %}checked{% elif not announcement %}checked{% endif %}>
+                            <label class="form-check-label" for="is_published">
+                                立即发布
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_pinned" name="is_pinned"
+                                   {% if announcement and announcement.is_pinned %}checked{% endif %}>
+                            <label class="form-check-label" for="is_pinned">
+                                置顶显示
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <a href="{{ url_for('main.admin_announcements') }}" class="btn btn-default">
+                            取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 富文本编辑器 (优先使用本地官方 vendor) -->
+<link href="{{ url_for('static', filename='css/summernote-bs4.min.css') }}" rel="stylesheet">
+{% if SUMMERNOTE_FULL_AVAILABLE %}
+<script src="{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}"></script>
+{% else %}
+<script src="{{ url_for('static', filename='js/summernote-bs4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/summernote-zh-CN.min.js') }}"></script>
+{% endif %}
+
+<!-- Dropzone.js -->
+<link href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.js"></script>
+
+<style>
+.dropzone {
+    border: 2px dashed #0087F7;
+    border-radius: 5px;
+    background: white;
+    padding: 20px;
+    min-height: 150px;
+}
+
+.dropzone.dz-drag-hover {
+    border-color: #0056b3;
+    background: #f0f8ff;
+}
+
+.attachment-item {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.attachment-item:last-child {
+    border-bottom: none;
+}
+
+.attachment-preview {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.file-icon {
+    width: 50px;
+    height: 50px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.note-editor:not(.codeview) .note-codable { display: none !important; }
+.note-editor.codeview .note-editable { display: none !important; }
+#content .note-editable { min-height: 320px; }
+</style>
+
+<script>
+$(document).ready(function() {
+    // 初始化富文本编辑器
+    $('#content').summernote({
+        height: 400,
+        lang: 'zh-CN',
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture']],
+            ['view', ['fullscreen', 'help']]
+        ]
+    });
+    
+    // 删除附件
+    function deleteAttachment(attachmentId) {
+        if (!confirm('确定要删除这个附件吗?')) return;
+        $.ajax({
+            url: '/api/announcements/attachments/' + attachmentId,
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': "{{ csrf_token() }}" },
+            success: function(response) {
+                if (response.success) {
+                    if (window.toastr) { toastr.success('附件已删除'); } else { alert('附件已删除'); }
+                    setTimeout(function(){ location.reload(); }, 500);
+                } else {
+                    if (window.toastr) { toastr.error(response.error || '删除失败'); } else { alert(response.error || '删除失败'); }
+                }
+            },
+            error: function() {
+                if (window.toastr) { toastr.error('删除失败'); } else { alert('删除失败'); }
+            }
+        });
+    }
+    
+    // 渲染附件列表
+    function renderAttachments(attachments) {
+        var html = '';
+        
+        if (attachments.length === 0) {
+            html = '<div class="text-muted text-center py-3">暂无附件</div>';
+        } else {
+            attachments.forEach(function(att) {
+                var iconHtml = '';
+                
+                if (att.is_image) {
+                    iconHtml = '<img src="{{ url_for("main.preview_attachment", attachment_id=0) }}'.replace('0', att.id) + 
+                               '" class="attachment-preview" alt="' + att.filename + '">';
+                } else {
+                    var iconClass = 'fa-file';
+                    if (att.is_pdf) iconClass = 'fa-file-pdf text-danger';
+                    else if (att.file_type && att.file_type.includes('word')) iconClass = 'fa-file-word text-primary';
+                    else if (att.file_type && att.file_type.includes('excel')) iconClass = 'fa-file-excel text-success';
+                    else if (att.is_video) iconClass = 'fa-file-video text-info';
+                    
+                    iconHtml = '<div class="file-icon"><i class="fas ' + iconClass + '"></i></div>';
+                }
+                
+                html += '<div class="attachment-item d-flex align-items-center">' +
+                        '<div class="mr-3">' + iconHtml + '</div>' +
+                        '<div class="flex-grow-1">' +
+                        '<div class="font-weight-bold">' + att.filename + '</div>' +
+                        '<small class="text-muted">' + att.file_size_formatted + ' | ' + att.created_date + '</small>' +
+                        '</div>' +
+                        '<div class="btn-group">';
+                
+                if (att.can_preview) {
+                    html += '<button class="btn btn-sm btn-info js-preview-att" data-att-id="' + att.id + '" data-filename="' + att.filename + '" data-filetype="' + att.file_type + '">' +
+                            '<i class="fas fa-eye"></i> 预览</button>';
+                }
+                
+                html += '<a href="{{ url_for("main.download_attachment", attachment_id=0) }}'.replace('0', att.id) + 
+                        '" class="btn btn-sm btn-primary"><i class="fas fa-download"></i> 下载</a>' +
+                        '<button class="btn btn-sm btn-danger js-delete-att" data-att-id="' + att.id + '">' +
+                        '<i class="fas fa-trash"></i> 删除</button>' +
+                        '</div></div>';
+            });
+        }
+        
+        $('#attachment-list .list-group').html(html);
+    }
+
+    // 表单提交：写入隐藏域并校验
+    $('form').on('submit', function(e){
+        var title = $('#title').val().trim();
+        var html = $('#content').summernote('code');
+        if(!title){
+            e.preventDefault();
+            if (window.toastr) { toastr.error('请输入公告标题'); } else { alert('请输入公告标题'); }
+            return false;
+        }
+        if(!html || html === '<p><br></p>'){
+            e.preventDefault();
+            if (window.toastr) { toastr.error('请输入公告内容'); } else { alert('请输入公告内容'); }
+            return false;
+        }
+        $('#contentInput').val(html);
+    });
+    
+    // 预览文件
+    window.previewFile = function(attachmentId, filename, fileType) {
+        var previewUrl = "{{ url_for('main.preview_attachment', attachment_id=0) }}".replace('0', attachmentId);
+        
+        var modalHtml = '<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">' +
+                        '<div class="modal-dialog modal-xl" role="document">' +
+                        '<div class="modal-content">' +
+                        '<div class="modal-header">' +
+                        '<h5 class="modal-title"><i class="fas fa-eye"></i> ' + filename + '</h5>' +
+                        '<button type="button" class="close" data-dismiss="modal">' +
+                        '<span>&times;</span></button></div>' +
+                        '<div class="modal-body" style="min-height: 500px;">';
+        
+        if (fileType.startsWith('image/')) {
+            modalHtml += '<img src="' + previewUrl + '" class="img-fluid" alt="' + filename + '">';
+        } else if (fileType === 'application/pdf') {
+            modalHtml += '<iframe src="' + previewUrl + '" width="100%" height="600px" style="border:none;"></iframe>';
+        } else if (fileType.startsWith('video/')) {
+            modalHtml += '<video controls style="width: 100%; max-height: 600px;"><source src="' + previewUrl + '" type="' + fileType + '"></video>';
+        }
+        
+        modalHtml += '</div></div></div></div>';
+        
+        $('#previewModal').remove();
+        $('body').append(modalHtml);
+        $('#previewModal').modal('show');
+    };
+    
+    // 事件委托：预览与删除
+    $(document).on('click', '.js-preview-att', function(){
+        var id = $(this).data('attId');
+        var name = $(this).data('filename');
+        var type = $(this).data('filetype');
+        previewFile(id, name, type);
+    });
+    $(document).on('click', '.js-delete-att', function(){
+        var id = $(this).data('attId');
+        deleteAttachment(id);
+    });
+});
+</script>
+{% endblock %}
+

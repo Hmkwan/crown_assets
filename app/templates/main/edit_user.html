@@ -33,10 +33,9 @@
                             <label for="role" class="form-label">角色</label>
                             <select class="form-control" id="role" required>
                                 <option value="user" {% if user.role == 'user' %}selected{% endif %}>普通用户</option>
-                                <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>技术员</option>
-                                <option value="department_head" {% if user.role == 'department_head' %}selected{% endif %}>部门领导</option>
                                 <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
                             </select>
+                            <small class="form-text text-muted">技术员、部门领导等权限请在权限管理模块中分配</small>
                         </div>
                         <div class="mb-3">
                             <label for="department_id" class="form-label">所属部门</label>

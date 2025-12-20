@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -24,7 +24,7 @@
                                     <option value="">所有用户</option>
                                     {% for user in users %}
                                     <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
-                                        {{ user.username }}
+                                        {{ user.chinese_name or user.username }}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -56,22 +56,59 @@
                     </form>
                     
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th>用户</th>
-                                    <th>操作</th>
+                                    <th style="width: 120px; min-width: 120px;">用户</th>
+                                    <th style="width: 150px;">操作</th>
                                     <th>描述</th>
-                                    <th>时间</th>
+                                    <th style="width: 180px;">时间</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for log in logs.items %}
                                 <tr>
-                                    <td>{{ log.user.username if log.user else '未知用户' }}</td>
-                                    <td><span class="badge bg-info">{{ log.action }}</span></td>
+                                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">
+                                        {% if log.user %}
+                                            <span title="{{ log.user.chinese_name or log.user.username }}">
+                                                {{ log.user.chinese_name or log.user.username }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">未知用户</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
-                                        {{ log.description or '' }}
+                                        <span class="badge bg-info">
+                                            {% if log.action == 'login' %}登录
+                                            {% elif log.action == 'logout' %}登出
+                                            {% elif log.action == 'create' %}创建
+                                            {% elif log.action == 'update' %}更新
+                                            {% elif log.action == 'delete' %}删除
+                                            {% elif log.action == 'approve' %}审批
+                                            {% elif log.action == 'reject' %}拒绝
+                                            {% elif log.action == 'submit' %}提交
+                                            {% elif log.action == 'export' %}导出
+                                            {% elif log.action == 'import' %}导入
+                                            {% elif log.action == 'download' %}下载
+                                            {% elif log.action == 'upload' %}上传
+                                            {% elif log.action == 'view' %}查看
+                                            {% elif log.action == 'access' %}访问
+                                            {% elif log.action == '生成二维码' %}生成二维码
+                                            {% elif log.action == '下载标签' %}下载标签
+                                            {% elif log.action == '打印标签' %}打印标签
+                                            {% else %}{{ log.action }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set desc = log.description or '' %}
+                                        {% if 'equipment#' in desc %}
+                                            {{ desc.replace('equipment#', '设备#') }}
+                                        {% elif 'spare_part#' in desc %}
+                                            {{ desc.replace('spare_part#', '配件#') }}
+                                        {% else %}
+                                            {{ desc }}
+                                        {% endif %}
                                         {% if log_links and log_links.get(log.id) %}
                                           <a href="{{ log_links.get(log.id) }}" class="btn btn-sm btn-outline-primary ml-2">查看</a>
                                         {% endif %}

@@ -41,10 +41,9 @@
                             <select class="form-control" id="role" required>
                                 <option value="">请选择角色</option>
                                 <option value="user">普通用户</option>
-                                <option value="technician">技术员</option>
-                                <option value="department_head">部门领导</option>
                                 <option value="admin">管理员</option>
                             </select>
+                            <small class="form-text text-muted">其他权限请在权限管理模块中分配</small>
                         </div>
                         <div class="mb-3">
                             <label for="department_id" class="form-label">所属部门</label>
@@ -84,13 +83,13 @@
         };
         
         $.ajax({
-            url: '{{ url_for('main.add_user') }}',
+            url: "{{ url_for('main.add_user') }}",
             type: 'POST',
             data: formData,
             success: function(response) {
                 if (response.success) {
                     alert('用户添加成功');
-                    window.location.href = '{{ url_for('main.user_management') }}';
+                    window.location.href = "{{ url_for('main.user_management') }}";
                 } else {
                     alert('添加失败: ' + response.message);
                 }

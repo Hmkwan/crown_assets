@@ -1,0 +1,254 @@
+/* 聊天管理页面样式 */
+
+.chat-admin-container {
+    padding: 20px;
+}
+
+/* 统计卡片 */
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+.stat-icon i {
+    font-size: 24px;
+    color: white;
+}
+
+.stat-icon.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon.bg-success {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon.bg-warning {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+}
+
+.stat-icon.bg-info {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-info p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Tab导航 */
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+}
+
+.nav-tabs .nav-link {
+    color: #666;
+    border: none;
+    padding: 12px 20px;
+    transition: all 0.3s;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    background-color: white;
+    border-bottom: 3px solid #007bff;
+    font-weight: bold;
+}
+
+/* 卡片 */
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 20px;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* 表格 */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.table thead th {
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.badge-conversation-type {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}
+
+.badge-direct {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-group {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* 操作按钮 */
+.btn-action {
+    padding: 5px 10px;
+    font-size: 12px;
+    margin: 0 2px;
+}
+
+.btn-view {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: none;
+}
+
+.btn-view:hover {
+    background-color: #bbdefb;
+    color: #0d47a1;
+}
+
+.btn-delete {
+    background-color: #ffebee;
+    color: #c62828;
+    border: none;
+}
+
+.btn-delete:hover {
+    background-color: #ffcdd2;
+    color: #b71c1c;
+}
+
+/* 分页 */
+.pagination {
+    margin-top: 20px;
+}
+
+.pagination .page-link {
+    color: #007bff;
+    border: 1px solid #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* 图表容器 */
+canvas {
+    max-height: 300px;
+}
+
+/* 搜索框 */
+.input-group-sm .form-control {
+    border-radius: 20px 0 0 20px;
+}
+
+.input-group-sm .btn {
+    border-radius: 0 20px 20px 0;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+/* 加载动画 */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* 消息内容预览 */
+.message-content {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 15px;
+    }
+    
+    .table-responsive {
+        font-size: 12px;
+    }
+    
+    .btn-action {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+}
+
+/* 动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}

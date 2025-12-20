@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-clipboard-list"></i> 配件申请报表
+                <a href="{{ url_for('main.export_statistics_xlsx', report_type='part_requests') }}" 
+                   class="btn btn-success btn-sm float-right">
+                    <i class="fas fa-file-excel"></i> 导出Excel
+                </a>
+            </h2>
+        </div>
+    </div>
+
+    <!-- 汇总卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info"><i class="fas fa-list"></i> 总申请</h5>
+                    <h3>{{ total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning"><i class="fas fa-clock"></i> 待审批</h5>
+                    <h3>{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary"><i class="fas fa-check"></i> 已批准</h5>
+                    <h3>{{ approved_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success"><i class="fas fa-check-double"></i> 已完成</h5>
+                    <h3>{{ completed_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-danger"><i class="fas fa-times"></i> 已拒绝</h5>
+                    <h3>{{ rejected_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-secondary"><i class="fas fa-percentage"></i> 通过率</h5>
+                    <h3>{{ "%.1f"|format((approved_count + completed_count) / total_count * 100 if total_count > 0 else 0) }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label class="mr-2">状态:</label>
+                    <select name="status" class="form-control">
+                        <option value="">全部</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审批</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">日期:</label>
+                    <input type="date" name="date_from" class="form-control mr-2" value="{{ date_from }}">
+                    <span class="mr-2">至</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+                <a href="{{ url_for('main.statistics_part_requests') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> 重置
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-pie"></i> 状态分布
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>数量</th>
+                                <th>占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in status_stats %}
+                            <tr>
+                                <td>
+                                    {% if stat.status == 'pending' %}
+                                        <span class="badge badge-warning">待审批</span>
+                                    {% elif stat.status == 'approved' %}
+                                        <span class="badge badge-primary">已批准</span>
+                                    {% elif stat.status == 'completed' %}
+                                        <span class="badge badge-success">已完成</span>
+                                    {% elif stat.status == 'rejected' %}
+                                        <span class="badge badge-danger">已拒绝</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ stat.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ "%.1f"|format(stat.count / total_count * 100 if total_count > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 申请单详情 -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-list"></i> 配件申请详情 (共 {{ part_requests|length }} 条)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>申请ID</th>
+                            <th>配件名称</th>
+                            <th>配件编号</th>
+                            <th>数量</th>
+                            <th>单位</th>
+                            <th>申请人</th>
+                            <th>申请部门</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pr in part_requests %}
+                        <tr>
+                            <td>{{ pr.id }}</td>
+                            <td>{{ pr.part_name or '' }}</td>
+                            <td>{{ pr.part_number or '' }}</td>
+                            <td>{{ pr.quantity or 0 }}</td>
+                            <td>{{ pr.unit or '' }}</td>
+                            <td>{{ pr.requester.username if pr.requester else '' }}</td>
+                            <td>{{ pr.requester.department if pr.requester else '' }}</td>
+                            <td>
+                                {% if pr.status == 'pending' %}
+                                    <span class="badge badge-warning">待审批</span>
+                                {% elif pr.status == 'approved' %}
+                                    <span class="badge badge-primary">已批准</span>
+                                {% elif pr.status == 'completed' %}
+                                    <span class="badge badge-success">已完成</span>
+                                {% elif pr.status == 'rejected' %}
+                                    <span class="badge badge-danger">已拒绝</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ pr.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pr.created_date.strftime('%Y-%m-%d %H:%M') if pr.created_date else '' }}</td>
+                            <td>{{ pr.notes or '' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

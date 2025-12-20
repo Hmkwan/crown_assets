@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-clipboard-list"></i> 保养记录</h2>
+        <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-primary">
+            <i class="fas fa-wrench"></i> 保养计划
+        </a>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">本月保养次数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ monthly_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">总记录数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ records | length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">累计成本(元)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_cost | round(2) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <label class="mr-2">设备筛选:</label>
+                <select class="form-control mr-3" name="equipment_id" onchange="this.form.submit()">
+                    <option value="">全部设备</option>
+                    {% for eq in equipments %}
+                    <option value="{{ eq.id }}" {% if request.args.get('equipment_id')|int == eq.id %}selected{% endif %}>
+                        {{ eq.name }} ({{ eq.serial_number or '无编号' }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <a href="{{ url_for('main.maintenance_records') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> 重置
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 记录列表 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>保养日期</th>
+                            <th>设备</th>
+                            <th>计划名称</th>
+                            <th>保养类型</th>
+                            <th>执行人</th>
+                            <th>保养内容</th>
+                            <th>成本(元)</th>
+                            <th>下次保养</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.maintenance_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <strong>{{ record.equipment.name }}</strong><br>
+                                <small class="text-muted">{{ record.equipment.serial_number or '无编号' }}</small>
+                            </td>
+                            <td>{{ record.plan.plan_name if record.plan else '-' }}</td>
+                            <td>
+                                <span class="badge badge-primary">
+                                    {{ record.maintenance_type | translate_maintenance_type }}
+                                </span>
+                            </td>
+                            <td>{{ record.performer.username if record.performer else '-' }}</td>
+                            <td>
+                                <div style="max-width: 200px;">
+                                    {{ record.description[:50] }}{% if record.description|length > 50 %}...{% endif %}
+                                </div>
+                            </td>
+                            <td class="text-right">{{ record.cost | round(2) }}</td>
+                            <td>{{ record.next_maintenance_date.strftime('%Y-%m-%d') if record.next_maintenance_date else '-' }}</td>
+                            <td>
+                                {% if record.status == 'completed' %}
+                                <span class="badge badge-success">已完成</span>
+                                {% elif record.status == 'pending' %}
+                                <span class="badge badge-warning">待处理</span>
+                                {% elif record.status == 'cancelled' %}
+                                <span class="badge badge-danger">已取消</span>
+                                {% else %}
+                                <span class="badge badge-secondary">{{ record.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">暂无保养记录</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

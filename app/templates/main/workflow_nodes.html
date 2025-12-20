@@ -29,7 +29,9 @@
                                     <th>节点名称</th>
                                     <th>工单类型</th>
                                     <th>所需角色</th>
+                                    <th>指定审批人</th>
                                     <th>顺序</th>
+                                    <th>同步</th>
                                     {% if current_user.role == 'admin' %}<th>操作</th>{% endif %}
                                 </tr>
                             </thead>
@@ -60,7 +62,32 @@
                                         {% elif node.role_required == 'technician' %}技术员
                                         {% else %}{{ node.role_required }}{% endif %}
                                     </td>
+                                    <td>
+                                        {% set approvers = node.get_approver_users() %}
+                                        {% if approvers and approvers|length > 0 %}
+                                            {% for a in approvers %}
+                                                {{ a.username }} ({{ a.get_department_name() }}){% if not loop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        {% elif node.approver_user_id %}
+                                            {% set approver = node.get_approver_user() %}
+                                            {% if approver %}
+                                                {{ approver.username }} ({{ approver.get_department_name() }})
+                                            {% else %}
+                                                用户已删除
+                                            {% endif %}
+                                        {% else %}
+                                            未指定
+                                        {% endif %}
+                                    </td>
                                     <td>{{ node.sequence }}</td>
+                                    <td>
+                                        {% set is_synced = (node.order_type, node.name) in synced_pairs %}
+                                        {% if is_synced %}
+                                            <span class="badge badge-success">已同步</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">未同步</span>
+                                        {% endif %}
+                                    </td>
                                     {% if current_user.role == 'admin' %}
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary edit-node" 
@@ -68,7 +95,8 @@
                                                 data-name="{{ node.name }}"
                                                 data-order-type="{{ node.order_type }}"
                                                 data-role-required="{{ node.role_required }}"
-                                                data-sequence="{{ node.sequence }}">
+                                                data-sequence="{{ node.sequence }}"
+                                                data-approver-user-ids='{{ node.approver_user_ids or "" }}'>
                                             编辑
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger delete-node" data-id="{{ node.id }}">
@@ -124,6 +152,16 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="approver_user_ids" class="form-label">指定审批人（可选，可多选）</label>
+                        <select class="form-control" id="approver_user_ids" name="approver_user_ids" multiple size="6">
+                            <option value="">未指定（使用角色匹配）</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }} ({{ user.get_department_name() }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">若选择多位审批人，则视为并行审批；系统将默认需要所有被选中人员都批准。</small>
+                    </div>
+                    <div class="mb-3">
                         <label for="sequence" class="form-label">顺序</label>
                         <input type="number" class="form-control" id="sequence" name="sequence" min="1" required>
                     </div>
@@ -174,6 +212,16 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="edit_approver_user_ids" class="form-label">指定审批人（可选，可多选）</label>
+                        <select class="form-control" id="edit_approver_user_ids" name="approver_user_ids" multiple size="6">
+                            <option value="">未指定（使用角色匹配）</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }} ({{ user.get_department_name() }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">若选择多位审批人，则视为并行审批；系统将默认需要所有被选中人员都批准。</small>
+                    </div>
+                    <div class="mb-3">
                         <label for="edit_sequence" class="form-label">顺序</label>
                         <input type="number" class="form-control" id="edit_sequence" name="sequence" min="1" required>
                     </div>
@@ -188,35 +236,22 @@
 </div>
 {% endif %}
 
-<!-- 示例流程图说明 -->
 <div class="row mt-4">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
-                <h5>审批流程示例</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>帮助与示例</h5>
+                <a class="btn btn-outline-secondary" href="{{ url_for('main.admin_workflow_help') }}">查看工作流配置帮助</a>
             </div>
             <div class="card-body">
-                <h6>普通用户发起维修申请流程：</h6>
-                <ol>
-                    <li>1. 部门领导审批</li>
-                    <li>2. 系统管理员审批</li>
-                    <li>3. 技术员处理</li>
-                </ol>
-                
-                <h6>普通用户发起配件申请流程：</h6>
-                <ol>
-                    <li>1. 部门领导审批</li>
-                    <li>2. 系统管理员审批</li>
-                </ol>
-                
-                <div class="alert alert-info">
-                    <strong>说明：</strong>
-                    <ul>
-                        <li>审批节点按顺序执行，当前节点审批完成后自动进入下一个节点</li>
-                        <li>任一节点拒绝将终止整个审批流程</li>
-                        <li>所有节点批准后工单状态更新为"已批准"</li>
-                    </ul>
-                </div>
+                <p>已将所有示例配置和操作指南移至“工作流配置帮助”页面，包含：
+                <ul>
+                    <li>基于角色的标准审批示例</li>
+                    <li>为特定节点指定审批人示例</li>
+                    <li>并行审批示例（多审批人）</li>
+                    <li>拒绝时自动处理配置示例</li>
+                </ul>
+                </p>
             </div>
         </div>
     </div>
@@ -234,13 +269,24 @@
         var orderType = $(this).data('order-type');
         var roleRequired = $(this).data('role-required');
         var sequence = $(this).data('sequence');
-        
+        var approverUserIdsRaw = $(this).attr('data-approver-user-ids') || '';
+        var approverUserIds = [];
+        try {
+            if (approverUserIdsRaw) {
+                approverUserIds = JSON.parse(approverUserIdsRaw);
+            }
+        } catch (e) {
+            // 不是 JSON 的话，尝试把字符串作为单个ID
+            if (approverUserIdsRaw) approverUserIds = [approverUserIdsRaw];
+        }
+
         $('#edit_node_id').val(nodeId);
         $('#edit_name').val(name);
         $('#edit_order_type').val(orderType);
         $('#edit_role_required').val(roleRequired);
         $('#edit_sequence').val(sequence);
-        
+        $('#edit_approver_user_ids').val(approverUserIds);
+
         $('#editNodeForm').attr('action', '/admin/workflow_nodes/edit/' + nodeId);
         $('#editNodeModal').modal('show');
     });

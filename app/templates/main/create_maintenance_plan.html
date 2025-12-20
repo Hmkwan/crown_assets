@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-plus"></i> 创建保养计划</h2>
+        <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="equipment_id">设备 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="equipment_id" name="equipment_id" required>
+                                <option value="">请选择设备</option>
+                                {% for eq in equipments %}
+                                <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number or '无编号' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="plan_name">计划名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="plan_name" name="plan_name" required placeholder="例如:定期清洁保养">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maintenance_type">保养类型 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="maintenance_type" name="maintenance_type" required onchange="updateInterval()">
+                                <option value="">请选择类型</option>
+                                <option value="daily">每日</option>
+                                <option value="weekly">每周</option>
+                                <option value="monthly">每月</option>
+                                <option value="quarterly">每季度</option>
+                                <option value="yearly">每年</option>
+                                <option value="custom">自定义</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="interval_days">间隔天数</label>
+                            <input type="number" class="form-control" id="interval_days" name="interval_days" min="1" placeholder="自动根据类型填充">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="next_maintenance_date">下次保养日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="next_maintenance_date" name="next_maintenance_date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="responsible_person">负责人 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="responsible_person" name="responsible_person" required>
+                                <option value="">请选择负责人</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.username }} ({{ user.role | translate_role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">保养内容描述</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" placeholder="详细说明保养项目和要求"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group text-right">
+                    <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 创建计划
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateInterval() {
+    var type = document.getElementById('maintenance_type').value;
+    var intervalInput = document.getElementById('interval_days');
+    var intervals = {
+        'daily': 1,
+        'weekly': 7,
+        'monthly': 30,
+        'quarterly': 90,
+        'yearly': 365
+    };
+    if (intervals[type]) {
+        intervalInput.value = intervals[type];
+    }
+}
+
+// 设置默认日期为明天
+document.addEventListener('DOMContentLoaded', function() {
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    var dateStr = tomorrow.toISOString().split('T')[0];
+    document.getElementById('next_maintenance_date').value = dateStr;
+});
+</script>
+{% endblock %}

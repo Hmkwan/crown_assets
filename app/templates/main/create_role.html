@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle"></i> 创建自定义角色</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label class="form-label">角色名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" required 
+                                   placeholder="例如: 部门主管、仓库管理员、财务审核员">
+                            <small class="text-muted">建议使用简短、易懂的名称</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">角色描述</label>
+                            <textarea class="form-control" name="description" rows="3" 
+                                      placeholder="描述该角色的职责和用途"></textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 创建后,您将进入权限配置页面为该角色分配具体权限。
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.role_permission_management') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> 创建并配置权限
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

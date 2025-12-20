@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}审批详情 - {{ instance.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('main.approval_history') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> 返回审批列表
+        </a>
+        <div>
+            <span class="badge bg-secondary">实例号: {{ instance.instance_no }}</span>
+            <span class="badge bg-light text-dark">工单: #{{ instance.order_id }}</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">审批实例 #{{ instance.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>工单类型:</strong>
+                                {% if instance.order_type == 'repair_order' %}<span class="badge bg-info">维修工单</span>
+                                {% elif instance.order_type == 'part_request_order' %}<span class="badge bg-success">配件申请</span>
+                                {% elif instance.order_type == 'equipment_application' %}<span class="badge bg-primary">设备申请</span>
+                                {% elif instance.order_type == 'equipment_loan' %}<span class="badge bg-warning">设备借用</span>
+                                {% elif instance.order_type == 'equipment_transfer' %}<span class="badge bg-secondary">设备调拨</span>
+                                {% elif instance.order_type == 'equipment_scrap' %}<span class="badge bg-danger">设备报废</span>
+                                {% else %}<span class="badge bg-secondary">{{ instance.order_type }}</span>{% endif %}
+                            </p>
+                            <p><strong>当前节点:</strong> {{ instance.current_node.name if instance.current_node else '-' }}</p>
+                            <p><strong>状态:</strong>
+                                {% if instance.status in ['pending','in_progress'] %}<span class="badge bg-warning">进行中</span>
+                                {% elif instance.status == 'approved' %}<span class="badge bg-success">已批准</span>
+                                {% elif instance.status == 'rejected' %}<span class="badge bg-danger">已拒绝</span>
+                                {% elif instance.status == 'cancelled' %}<span class="badge bg-secondary">已取消</span>
+                                {% elif instance.status == 'terminated' %}<span class="badge bg-dark">已终止</span>
+                                {% else %}<span class="badge bg-secondary">{{ instance.status }}</span>{% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>发起人:</strong> {{ instance.requester.username if instance.requester else '-' }}</p>
+                            <p><strong>开始时间:</strong> {{ instance.started_date.strftime('%Y-%m-%d %H:%M:%S') if instance.started_date else '-' }}</p>
+                            <p><strong>完成时间:</strong> {{ instance.completed_date.strftime('%Y-%m-%d %H:%M:%S') if instance.completed_date else '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% set my_pending_step = None %}
+            {% for s in steps %}
+                {% if s.status == 'pending' and s.approver_id == current_user.id %}
+                    {% set my_pending_step = s %}
+                    {% break %}
+                {% endif %}
+            {% endfor %}
+
+            {% if my_pending_step %}
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">待我审批 · {{ my_pending_step.node.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">审批意见</label>
+                        <textarea id="commentInput" class="form-control" rows="3" placeholder="请输入审批意见"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" onclick="actStep({{ my_pending_step.id }}, 'approve')">
+                            <i class="fas fa-check"></i> 同意
+                        </button>
+                        <button class="btn btn-danger" onclick="actStep({{ my_pending_step.id }}, 'reject')">
+                            <i class="fas fa-times"></i> 拒绝
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> 工单详细信息</h5>
+                </div>
+                <div class="card-body">
+                    {% if order %}
+                        {% if instance.order_type == 'repair_order' %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>设备名称:</strong> {{ order.equipment.name if order.equipment else 'N/A' }}</p>
+                                <p><strong>申请人:</strong> {{ order.requester.username if order.requester else 'N/A' }}</p>
+                                <p><strong>申请部门:</strong> {{ order.requester.department if order.requester else 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>工单状态:</strong>
+                                    <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'in_progress' else 'secondary' }}">
+                                        {% if order.status == 'approved' %}已批准
+                                        {% elif order.status == 'pending' %}待处理
+                                        {% elif order.status == 'submitted' %}已提交
+                                        {% elif order.status == 'in_progress' %}处理中
+                                        {% elif order.status == 'completed' %}已完成
+                                        {% elif order.status == 'rejected' %}已拒绝
+                                        {% elif order.status == 'cancelled' %}已取消
+                                        {% else %}{{ order.status }}{% endif %}
+                                    </span>
+                                </p>
+                                <p><strong>创建时间:</strong> {{ order.created_date.strftime('%Y-%m-%d %H:%M:%S') if order.created_date else 'N/A' }}</p>
+                                {% if order.repair_cost %}
+                                <p><strong>维修金额:</strong> <span class="text-primary fw-bold">¥{{ "%.2f"|format(order.repair_cost) }}</span></p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <p><strong>故障描述:</strong></p>
+                                <div class="alert alert-light">{{ order.description }}</div>
+                            </div>
+                        </div>
+                        {% elif instance.order_type == 'equipment_application' %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>设备名称:</strong> {{ order.equipment_name }}</p>
+                                <p><strong>规格型号:</strong> {{ order.specifications or 'N/A' }}</p>
+                                <p><strong>申请人:</strong> {{ order.applicant.username if order.applicant else 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>数量:</strong> {{ order.quantity }}</p>
+                                <p><strong>预估价格:</strong> <span class="text-primary fw-bold">¥{{ "%.2f"|format(order.estimated_price) if order.estimated_price else '0.00' }}</span></p>
+                                <p><strong>工单状态:</strong>
+                                    <span class="badge bg-{{ 'success' if order.status == 'approved' else 'warning' if order.status == 'pending' else 'danger' if order.status == 'rejected' else 'secondary' }}">
+                                        {% if order.status == 'approved' %}已批准
+                                        {% elif order.status == 'pending' %}待审批
+                                        {% elif order.status == 'rejected' %}已拒绝
+                                        {% else %}{{ order.status }}{% endif %}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <p><strong>申请用途:</strong></p>
+                                <div class="alert alert-light">{{ order.purpose }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">该工单类型暂不支持详细显示</p>
+                        <p><strong>工单类型:</strong> {{ instance.order_type }}</p>
+                        <p><strong>工单ID:</strong> #{{ instance.order_id }}</p>
+                        {% endif %}
+                    {% else %}
+                    <p class="text-muted">无法加载工单详情(工单可能已被删除)</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top:20px;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-project-diagram"></i> 审批流程时间线</h5>
+                </div>
+                <div class="card-body" style="max-height: 640px; overflow-y: auto;">
+                    {% if steps %}
+                    <div class="timeline">
+                        {% for s in steps %}
+                        <div class="timeline-item mb-3 {% if s.status in ['pending','in_progress'] %}border border-primary rounded p-2{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ s.node.name if s.node else '节点' }}</strong>
+                                    {% if s.status in ['pending','in_progress'] %}<span class="badge bg-primary">当前</span>{% endif %}
+                                </div>
+                                <div>
+                                    {% if s.status in ['pending','in_progress'] %}<i class="fas fa-clock text-warning"></i>
+                                    {% elif s.status == 'approved' %}<i class="fas fa-check-circle text-success"></i>
+                                    {% elif s.status == 'rejected' %}<i class="fas fa-times-circle text-danger"></i>
+                                    {% elif s.status == 'transferred' %}<i class="fas fa-random text-info"></i>
+                                    {% elif s.status == 'timeout' %}<i class="fas fa-hourglass-end text-danger"></i>
+                                    {% else %}<i class="fas fa-circle text-secondary"></i>{% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-1 small text-muted">
+                                <div>审批人: {{ s.approver.username if s.approver else '系统' }}</div>
+                                <div>状态: {{ s.status }}</div>
+                                {% if s.comment %}<div>意见: {{ s.comment }}</div>{% endif %}
+                                {% if s.assigned_date %}<div>分配: {{ s.assigned_date.strftime('%Y-%m-%d %H:%M:%S') }}</div>{% endif %}
+                                {% if s.approved_date %}<div>处理: {{ s.approved_date.strftime('%Y-%m-%d %H:%M:%S') }}</div>{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">暂无审批记录</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline-item { position: relative; padding-left: 20px; }
+.timeline-item:before { content: ''; position: absolute; left: 0; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #6c757d; }
+.timeline-item:after { content: ''; position: absolute; left: 4px; top: 15px; width: 2px; height: calc(100% + 12px); background: #dee2e6; }
+.timeline-item:last-child:after { display: none; }
+</style>
+
+<script>
+function actStep(stepId, action) {
+    const comments = document.getElementById('commentInput') ? document.getElementById('commentInput').value.trim() : '';
+    const url = action === 'approve' ? `/api/approval/approve/${stepId}` : `/api/approval/reject/${stepId}`;
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '操作失败');
+        }
+    }).catch(err => {
+        console.error(err);
+        alert('操作失败，请重试');
+    });
+}
+</script>
+{% endblock %}

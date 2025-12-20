@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-check-circle"></i> 完成保养</h2>
+        <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-info-circle"></i> 保养计划信息
+                </div>
+                <div class="card-body">
+                    <p><strong>设备:</strong> {{ plan.equipment.name }}</p>
+                    <p><strong>编号:</strong> {{ plan.equipment.serial_number or '无' }}</p>
+                    <p><strong>计划名称:</strong> {{ plan.plan_name }}</p>
+                    <p><strong>保养类型:</strong> 
+                        <span class="badge badge-primary">{{ plan.maintenance_type | translate_maintenance_type }}</span>
+                    </p>
+                    <p><strong>间隔天数:</strong> {{ plan.interval_days }}天</p>
+                    <p><strong>上次保养:</strong> {{ plan.last_maintenance_date.strftime('%Y-%m-%d') if plan.last_maintenance_date else '无' }}</p>
+                    <p><strong>负责人:</strong> {{ plan.responsible.username }}</p>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>提示:</strong> 完成后系统将自动计算下次保养日期
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="maintenance_date">保养日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="maintenance_date" name="maintenance_date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">保养内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required placeholder="详细说明本次保养执行的具体项目"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">备注说明</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="其他需要说明的事项"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cost">保养成本(元)</label>
+                            <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0" value="0" placeholder="本次保养产生的费用">
+                        </div>
+
+                        <div class="form-group text-right">
+                            <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> 完成保养
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 设置默认日期为今天
+document.addEventListener('DOMContentLoaded', function() {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('maintenance_date').value = today;
+});
+</script>
+{% endblock %}

@@ -6,15 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{% block title %}{% endblock %}  皇冠新材IT资产管理系统</title>
     <!--[if lt IE 9]>
-    <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/polyfills/html5shiv.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/polyfills/respond.min.js') }}"></script>
     <![endif]-->
     {# 使用 Bootstrap 4.6.2 以支持 IE10+ 和旧版浏览器 #}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    {# Font Awesome 图标库 #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}?v=20251201-6">
     {# CSRF token meta，供前端 JS（fetch/ajax）使用 #}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
+        /* 导航栏Logo样式 - 铺满左侧区域 */
+        .navbar-logo {
+            height: 48px;
+            width: auto;
+            margin-right: 12px;
+            object-fit: contain;
+        }
+        
         /* 仪表板网格样式：等高卡片、占位样式 - 兼容旧浏览器 */
         .dashboard-grid .card { 
             min-height: 180px; 
@@ -39,18 +49,21 @@
         .dashboard-grid .card .mt-auto { margin-top: auto; }
         .dashboard-grid .placeholder { visibility: hidden; }
         
-        /* 页面标题样式 - 兼容旧浏览器 */
+        /* 页面标题样式 - 提升对比度与可读性 */
         .page-header {
-            background: #667eea;
-            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background: -o-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            /* 使用 CSS 变量以便统一主题色 */
+            background: var(--header-grad-start);
+            background: -webkit-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -o-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -moz-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            color: var(--header-text);
             padding: 2rem;
             border-radius: 0.5rem;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+            /* 微妙的文字阴影让白色文字在浅色区域更清晰 */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.18);
         }
         
         .page-header h1 {
@@ -63,100 +76,206 @@
             opacity: 0.9;
         }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">皇冠新材IT资产管理系统</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-modern sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <img src="{{ url_for('static', filename='images/CROWN_Logo.jpg') }}" alt="Crown Logo" class="navbar-logo">
+                <span class="brand-text">皇冠新材IT资产管理系统</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-label="切换导航">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mr-auto">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}">首页</a></li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">资产</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_list') }}">设备列表</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.spare_parts') }}">配件列表</a></li>
-                            {% if current_user.role == 'admin' %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_types') }}">设备类型管理</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">工单</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('main.repair_orders') }}">维修工单</a></li>
-                            {% if current_user.role in ['user','admin'] %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.create_repair_order') }}">提交维修工单</a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.part_request_orders') }}">配件申请</a></li>
-                            {% if current_user.role == 'admin' or current_user.can_manage_part_requests %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.create_part_request_order') }}">提交配件申请</a></li>
-                            {% endif %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.create_loan_request') }}">设备借用申请</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.create_equipment_application') }}">设备申请</a></li>
-                        </ul>
-                    </li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">流转/审批</a>
-                        <ul class="dropdown-menu">
-                            {% if current_user.role in ['admin','department_head'] %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.approvals') }}">我的审批</a></li>
-                            {% endif %}
-                            {% if current_user.role == 'admin' %}
-                            <li><a class="dropdown-item" href="{{ url_for('main.admin_transfers') }}">调拨管理</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.admin_scraps') }}">报废管理</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main.admin_workflow_nodes') }}">审批流程管理</a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#workflowQueryModal">流程状态查询</a></li>
-                        </ul>
-                    </li>
-                    
+                {% if current_user.is_authenticated %}
+                <ul class="navbar-nav me-auto">
+                    <!-- 首页 -->
                     <li class="nav-item">
-                        <a class="nav-link position-relative" href="{{ url_for('main.notifications') }}">
-                            通知
-                            {% set unread_count = current_user.notifications|selectattr('is_read', 'equalto', False)|list|length %}
-                            {% if unread_count > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="unread-notification-count">
-                                {{ unread_count }}
-                            </span>
-                            {% endif %}
+                        <a class="nav-link" href="{{ url_for('main.index') }}">
+                            <i class="fas fa-home"></i> 首页
                         </a>
+                    </li>
+                    
+                    {% if current_user.role == 'admin' %}
+                    <!-- 管理面板 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> 管理面板
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- 资产管理 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-box"></i> 资产管理
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_list') }}"><i class="fas fa-laptop"></i> 设备列表</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.spare_parts') }}"><i class="fas fa-cogs"></i> 配件列表</a></li>
+                            {% if current_user.role == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.equipment_types') }}"><i class="fas fa-tags"></i> 设备类型管理</a></li>
+                            {% endif %}
+                            {% if current_user.role in ['admin', 'technician'] %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.spare_part_types') }}"><i class="fas fa-list"></i> 配件类型管理</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
+                    <!-- 工单管理 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-clipboard-list"></i> 工单管理
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">维修工单</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.repair_orders') }}"><i class="fas fa-wrench"></i> 维修工单列表</a></li>
+                            {% if current_user.role in ['user','admin'] %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_repair_order') }}"><i class="fas fa-plus-circle"></i> 提交维修申请</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">配件申请</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.part_request_orders') }}"><i class="fas fa-toolbox"></i> 配件申请列表</a></li>
+                            {% if current_user.role == 'admin' or current_user.can_manage_part_requests %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_part_request_order') }}"><i class="fas fa-plus-circle"></i> 提交配件申请</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">其他申请</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_loan_request') }}"><i class="fas fa-hand-holding"></i> 设备借用申请</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_equipment_application') }}"><i class="fas fa-file-alt"></i> 设备采购申请</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.create_scrap') }}"><i class="fas fa-trash-alt"></i> 设备报废申请</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- 审批流程 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-check-circle"></i> 审批流程
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item bg-gradient text-white" href="{{ url_for('main.simple_approvals') }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><i class="fas fa-bolt"></i> <strong>快速审批</strong></a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li><h6 class="dropdown-header">审批工作台</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.approvals') }}"><i class="fas fa-tasks"></i> 待我审批</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.approval_history') }}"><i class="fas fa-history"></i> 审批历史</a></li>
+                            <li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#workflowQueryModal"><i class="fas fa-search"></i> 流程查询</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.my_loans') }}"><i class="fas fa-exchange-alt"></i> 我的借用</a></li>
+                            {% if current_user.role == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">配置与治理</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.approval_flows') }}"><i class="fas fa-stream"></i> 审批流程管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.approval_roles') }}"><i class="fas fa-user-shield"></i> 审批角色</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">运营工具</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_transfers') }}"><i class="fas fa-dolly"></i> 调拨管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_scraps') }}"><i class="fas fa-trash-alt"></i> 报废管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.assign_roles_page') }}"><i class="fas fa-users-cog"></i> 角色分配</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
+                    <!-- 报表分析 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-chart-bar"></i> 报表分析
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if current_user.role == 'admin' or current_user.can_view_reports %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_dashboard') }}"><i class="fas fa-chart-pie"></i> 统计报表中心</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_equipment') }}"><i class="fas fa-desktop"></i> 设备统计</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_spare_parts') }}"><i class="fas fa-boxes"></i> 配件统计</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_repair_orders') }}"><i class="fas fa-wrench"></i> 维修工单统计</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_cost_analysis') }}"><i class="fas fa-dollar-sign"></i> 成本分析</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.statistics_asset_lifecycle') }}"><i class="fas fa-history"></i> 资产生命周期</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.cost_analysis') }}"><i class="fas fa-calculator"></i> 维修成本分析</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('approval_report.approval_statistics') }}"><i class="fas fa-chart-line"></i> 审批流程统计</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.reports') }}"><i class="fas fa-file-alt"></i> 旧版报表</a></li>
+                            {% else %}
+                            <li><a class="dropdown-item" href="{{ url_for('main.reports') }}"><i class="fas fa-chart-pie"></i> 报表查看</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    
+                    <!-- 协作沟通 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.chat') }}">
+                            <i class="fas fa-comments"></i> 聊天
+                            <span id="chatUnreadBadge" class="badge badge-danger" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    
+                    {% if current_user.role == 'admin' %}
+                    <!-- 系统设置 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-cog"></i> 系统设置
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.user_management') }}"><i class="fas fa-users"></i> 用户管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.department_management') }}"><i class="fas fa-building"></i> 部门管理</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.chat_admin') }}"><i class="fas fa-comments-dollar"></i> 聊天管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.scheduler_status') }}"><i class="fas fa-clock"></i> 定时任务管理</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.user_manual') }}"><i class="fas fa-book"></i> 操作手册</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                 </ul>
                 
-                <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
-                            {{ current_user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-right">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a></li>
-                        </ul>
-                    </li>
-                    {% else %}
+                <!-- 右侧菜单 -->
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.role != 'admin' %}
+                    <!-- 非管理员的帮助菜单 -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
+                        <a class="nav-link" href="{{ url_for('main.user_manual') }}">
+                            <i class="fas fa-question-circle"></i> 帮助
+                        </a>
                     </li>
                     {% endif %}
+                    
+                    <!-- 通知 -->
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{{ url_for('main.notifications') }}">
+                            <i class="fas fa-bell"></i> 通知
+                            {% if unread_notifications_count|default(0) > 0 %}
+                            <span class="badge badge-danger notification-badge">{{ unread_notifications_count|default(0) }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    
+                    <!-- 用户菜单 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle user-menu" href="#" data-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-header"><i class="fas fa-id-badge"></i> {{ current_user.role | translate_role }}</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+                        </ul>
+                    </li>
                 </ul>
+                {% else %}
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                    </li>
+                </ul>
+                {% endif %}
             </div>
         </div>
     </nav>
 
     <!-- 流程状态查询模态框 -->
     <div class="modal fade" id="workflowQueryModal" tabindex="-1" aria-labelledby="workflowQueryLabel" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="workflowQueryLabel">流程状态查询</h5>
@@ -168,6 +287,7 @@
             <div class="mb-3">
               <label class="form-label">流程类型</label>
               <select class="form-control" id="wfType">
+                <option value="">请选择流程类型</option>
                 <option value="repair_order">维修工单</option>
                 <option value="part_request_order">配件申请</option>
                 <option value="equipment_transfer">设备调拨</option>
@@ -176,14 +296,28 @@
                 <option value="equipment_application">设备申请</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label class="form-label">单据编号</label>
-              <input type="number" class="form-control" id="wfId" placeholder="例如 1001">
+            <div class="mb-3" id="wfOrderSelectGroup" style="display: none;">
+              <label class="form-label">选择工单</label>
+              <select class="form-control" id="wfOrderSelect" size="10">
+                <option value="">请先选择流程类型</option>
+              </select>
+              <small class="form-text text-muted">
+                显示您创建的工单和待您审批的工单(最近50条)
+              </small>
+            </div>
+            <div class="text-center" id="wfLoadingIndicator" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">加载中...</span>
+              </div>
+              <p class="mt-2">正在加载工单列表...</p>
+            </div>
+            <div class="alert alert-info" id="wfEmptyMessage" style="display: none;">
+              暂无相关工单
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" id="wfGo">查看</button>
+            <button type="button" class="btn btn-primary" id="wfGo" disabled>查看</button>
           </div>
         </div>
       </div>
@@ -213,22 +347,20 @@
     </footer>
 
     {# 使用兼容旧浏览器的 jQuery 1.12.4 和 Bootstrap 4.6.2 #}
-    <!--[if lt IE 9]>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
-    <![endif]-->
-    <!--[if gte IE 9]><!-->
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-    <!--<![endif]-->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment-timezone@0.5.43/builds/moment-timezone-with-data.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/moment-timezone/moment-timezone-with-data.min.js') }}"></script>
     
+    
+
     {# 添加 polyfills 以支持旧浏览器 #}
-    <script src="https://cdn.jsdelivr.net/npm/es6-promise@4.2.8/dist/es6-promise.auto.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/polyfills/es6-promise.auto.min.js') }}"></script>
     <script>
         // fetch polyfill for IE11
         if (!window.fetch) {
-            document.write('<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.js"><\/script>');
+            // 使用双引号包裹 Jinja 表达式，避免与外层单引号冲突
+            document.write('<script src="{{ url_for("static", filename="vendor/polyfills/fetch.min.js") }}"><\/script>');
         }
     </script>
 
@@ -238,19 +370,19 @@
             // fallback for jQuery
             if (typeof jQuery === 'undefined') {
                 var s = document.createElement('script');
-                s.src = "{{ url_for('static', filename='js/jquery-1.12.4.min.js') }}";
+                s.src = "{{ url_for('static', filename='vendor/jquery/jquery-1.12.4.min.js') }}";
                 document.head.appendChild(s);
             }
             // fallback for bootstrap bundle
             if (typeof bootstrap === 'undefined' && typeof $.fn.modal === 'undefined') {
                 var s2 = document.createElement('script');
-                s2.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
+                s2.src = "{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}";
                 document.head.appendChild(s2);
             }
             // moment fallback
             if (typeof moment === 'undefined') {
                 var s3 = document.createElement('script');
-                s3.src = "{{ url_for('static', filename='js/moment.min.js') }}";
+                s3.src = "{{ url_for('static', filename='vendor/moment-timezone/moment-timezone-with-data.min.js') }}";
                 document.head.appendChild(s3);
             }
         })();
@@ -303,22 +435,101 @@
         })();
     </script>
     <script>
-      // 流程查询跳转
+      // 流程查询功能
       (function(){
-        const btn = document.getElementById('wfGo');
-        if(btn){
-          btn.addEventListener('click', function(){
-            const type = document.getElementById('wfType').value;
-            const id = document.getElementById('wfId').value;
-            if(!id){
-              alert('请输入单据编号');
+        const typeSelect = document.getElementById('wfType');
+        const orderSelect = document.getElementById('wfOrderSelect');
+        const orderSelectGroup = document.getElementById('wfOrderSelectGroup');
+        const loadingIndicator = document.getElementById('wfLoadingIndicator');
+        const emptyMessage = document.getElementById('wfEmptyMessage');
+        const goBtn = document.getElementById('wfGo');
+        
+        // 监听流程类型变化
+        if(typeSelect){
+          typeSelect.addEventListener('change', function(){
+            const type = this.value;
+            
+            // 重置
+            orderSelect.innerHTML = '<option value="">加载中...</option>';
+            orderSelectGroup.style.display = 'none';
+            loadingIndicator.style.display = 'none';
+            emptyMessage.style.display = 'none';
+            goBtn.disabled = true;
+            
+            if(!type){
+              orderSelect.innerHTML = '<option value="">请先选择流程类型</option>';
               return;
             }
-            window.location.href = `/workflow/status/${type}/${id}`;
+            
+            // 显示加载指示器
+            loadingIndicator.style.display = 'block';
+            
+            // 获取工单列表
+            fetch('/api/my-workflow-orders?type=' + type)
+              .then(function(response){ return response.json(); })
+              .then(function(data){
+                loadingIndicator.style.display = 'none';
+                
+                if(data.success && data.data && data.data.length > 0){
+                  orderSelect.innerHTML = '';
+                  data.data.forEach(function(order){
+                    const option = document.createElement('option');
+                    option.value = order.id;
+                    option.textContent = order.label;
+                    if(order.is_my_approval){
+                      option.style.fontWeight = 'bold';
+                      option.style.color = '#dc3545';
+                    }
+                    orderSelect.appendChild(option);
+                  });
+                  orderSelectGroup.style.display = 'block';
+                } else {
+                  orderSelect.innerHTML = '<option value="">暂无相关工单</option>';
+                  emptyMessage.style.display = 'block';
+                }
+              })
+              .catch(function(error){
+                loadingIndicator.style.display = 'none';
+                orderSelect.innerHTML = '<option value="">加载失败,请重试</option>';
+                console.error('加载工单列表失败:', error);
+              });
+          });
+        }
+        
+        // 监听工单选择变化
+        if(orderSelect){
+          orderSelect.addEventListener('change', function(){
+            goBtn.disabled = !this.value;
+          });
+        }
+        
+        // 查看按钮点击
+        if(goBtn){
+          goBtn.addEventListener('click', function(){
+            const type = typeSelect.value;
+            const id = orderSelect.value;
+            
+            if(!type){
+              alert('请选择流程类型');
+              return;
+            }
+            if(!id){
+              alert('请选择工单');
+              return;
+            }
+            
+            window.location.href = '/workflow/status/' + type + '/' + id;
           });
         }
       })();
     </script>
+    
+    <!-- Socket.IO 实时通知：仅在已登录用户页面加载，避免未认证客户端频繁尝试连接造成噪音 -->
+    {% if current_user.is_authenticated %}
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/realtime-notifications.js') }}?v=20251206-3"></script>
+    {% endif %}
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

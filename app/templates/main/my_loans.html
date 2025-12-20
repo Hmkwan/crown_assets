@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fas fa-history"></i> 我的借用记录</h2>
+                <a href="{{ url_for('main.create_loan_request') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 新建借用申请
+                </a>
+            </div>
+
+            {% if loans %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>借用ID</th>
+                                    <th>设备名称</th>
+                                    <th>设备编号</th>
+                                    <th>借用时间</th>
+                                    <th>计划归还</th>
+                                    <th>实际归还</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for loan in loans %}
+                                <tr>
+                                    <td>#{{ loan.id }}</td>
+                                    <td>
+                                        {% if loan.equipment %}
+                                            <strong>{{ loan.equipment.name }}</strong>
+                                        {% else %}
+                                            <span class="text-muted">未知设备</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.equipment and loan.equipment.serial_number %}
+                                            <code>{{ loan.equipment.serial_number }}</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.start_date %}
+                                            {{ loan.start_date.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.end_date %}
+                                            {{ loan.end_date.strftime('%Y-%m-%d') }}
+                                            {% if loan.status in ['approved', 'borrowed'] %}
+                                                {% set days_left = (loan.end_date - now()).days %}
+                                                {% if days_left < 0 %}
+                                                    <span class="badge badge-danger ml-1">已逾期</span>
+                                                {% elif days_left <= 3 %}
+                                                    <span class="badge badge-warning ml-1">即将到期</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.actual_return_date %}
+                                            {{ loan.actual_return_date.strftime('%Y-%m-%d %H:%M') }}
+                                        {% elif loan.returned_date %}
+                                            {{ loan.returned_date.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">未归还</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.status == 'submitted' %}
+                                            <span class="badge badge-secondary"><i class="fas fa-clock"></i> 待审批</span>
+                                        {% elif loan.status == 'approved' %}
+                                            <span class="badge badge-success"><i class="fas fa-check"></i> 已批准</span>
+                                        {% elif loan.status == 'borrowed' %}
+                                            <span class="badge badge-info"><i class="fas fa-hand-holding"></i> 借用中</span>
+                                        {% elif loan.status == 'return_pending' %}
+                                            <span class="badge badge-warning"><i class="fas fa-clipboard-check"></i> 待验收</span>
+                                        {% elif loan.status == 'returned' %}
+                                            <span class="badge badge-dark"><i class="fas fa-undo"></i> 已归还</span>
+                                            {% if loan.inspection_result %}
+                                                {% if loan.inspection_result == 'passed' %}
+                                                    <small class="text-success d-block"><i class="fas fa-check-circle"></i> 验收通过</small>
+                                                {% elif loan.inspection_result == 'requires_repair' %}
+                                                    <small class="text-warning d-block"><i class="fas fa-wrench"></i> 需维修</small>
+                                                {% elif loan.inspection_result == 'failed' %}
+                                                    <small class="text-danger d-block"><i class="fas fa-exclamation-triangle"></i> 有损坏</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% elif loan.status == 'rejected' %}
+                                            <span class="badge badge-danger"><i class="fas fa-times"></i> 已拒绝</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ loan.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.status in ['approved', 'borrowed'] %}
+                                            <a href="{{ url_for('main.request_loan_return', id=loan.id) }}" class="btn btn-sm btn-primary" title="申请归还设备">
+                                                <i class="fas fa-undo"></i> 申请归还
+                                            </a>
+                                        {% elif loan.status == 'return_pending' %}
+                                            <span class="text-warning small"><i class="fas fa-hourglass-half"></i> 等待验收</span>
+                                        {% elif loan.status == 'returned' %}
+                                            {% if loan.inspection_result and loan.damage_compensation and loan.damage_compensation > 0 %}
+                                                <span class="text-danger small"><i class="fas fa-dollar-sign"></i> 赔偿: ¥{{ loan.damage_compensation }}</span>
+                                            {% else %}
+                                                <span class="text-muted small">已完成</span>
+                                            {% endif %}
+                                        {% elif loan.status == 'submitted' %}
+                                            <span class="text-muted small">待审批</span>
+                                        {% else %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 借用统计 -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="text-muted">总借用次数</h5>
+                            <h2>{{ loans|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5>借用中</h5>
+                            <h2>{{ loans|selectattr('status', 'equalto', 'borrowed')|list|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5>已批准待取</h5>
+                            <h2>{{ loans|selectattr('status', 'equalto', 'approved')|list|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body text-center">
+                            <h5>已归还</h5>
+                            <h2>{{ loans|selectattr('status', 'equalto', 'returned')|list|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 您还没有借用记录。
+                <a href="{{ url_for('main.create_loan_request') }}" class="alert-link">点击这里创建借用申请</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

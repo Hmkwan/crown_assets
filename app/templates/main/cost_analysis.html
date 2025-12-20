@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">📊 资产成本分析</h1>
+        <p class="lead text-muted">全面了解 IT 资产的购置成本、折旧和维护成本</p>
+    </div>
+
+    <!-- 成本概览卡片 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">总采购成本</h6>
+                    <p class="h3"><span class="badge bg-primary text-white px-3 py-2 fs-4">¥{{ "%.2f"|format(total_purchase) }}</span></p>
+                    <small class="text-muted">所有资产购置</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">当前总价值</h6>
+                    <p class="h3"><span class="badge bg-success text-white px-3 py-2 fs-4">¥{{ "%.2f"|format(total_current_value) }}</span></p>
+                    <small class="text-muted">折旧后价值</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">累计折旧</h6>
+                    <p class="h3"><span class="badge bg-danger text-white px-3 py-2 fs-4">¥{{ "%.2f"|format(total_depreciation) }}</span></p>
+                    <small class="text-muted">价值损耗</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-body">
+                <h6 class="card-title text-muted">折旧率</h6>
+                <p class="h3"><span class="badge bg-warning text-dark px-3 py-2 fs-4">{{ "%.1f"|format((total_depreciation/total_purchase*100) if total_purchase > 0 else 0) }}%</span></p>
+                <small class="text-muted">资产贬值</small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>设备类型</th>
+                            <th class="text-end">数量</th>
+                            <th class="text-end">总采购成本</th>
+                            <th class="text-end">平均成本</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cost_by_type %}
+                        <tr>
+                            <td>{{ item.type or '未分类' }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.2f"|format(item.total_purchase or 0) }}</span></td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.2f"|format((item.total_purchase or 0) / item.count if item.count > 0 else 0) }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 维修成本分析 -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">🔧 维修成本分析（近 1 年）</h5>
+            <div>
+                <button id="exportMaintenanceTablePng" class="btn btn-sm btn-outline-dark">📊 导出图表 (PNG)</button>
+                <button id="exportMaintenanceTableCsv" class="btn btn-sm btn-outline-dark ms-2">📄 导出数据 (CSV)</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="maintenanceTable" class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>设备名称</th>
+                            <th>设备类型</th>
+                            <th>所属部门</th>
+                            <th>当前状态</th>
+                            <th class="text-end">维修次数</th>
+                            <th class="text-end">总维修成本</th>
+                            <th class="text-end">平均维修成本</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in maintenance_costs %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('main.edit_equipment', id=item[0]) }}" class="text-decoration-none">
+                                    <i class="bi bi-pc-display"></i> {{ item[1] }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-secondary">{{ item[2] or '未分类' }}</span></td>
+                            <td>{{ item[5] if item|length > 5 else '未知' }}</td>
+                            <td>{{ item[6] if item|length > 6 else '未知' }}</td>
+                            <td class="text-end"><span class="badge bg-info">{{ item[3] or 0 }}</span></td>
+                            <td class="text-end fw-bold text-danger">¥{{ "%.2f"|format(item[4] or 0) }}</td>
+                            <td class="text-end">¥{{ "%.2f"|format((item[4] or 0) / (item[3] or 1)) }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.asset_cost_detail', equipment_id=item[0]) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 年度汇总图表 -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📈 年度成本汇总</h5>
+            <div>
+                <button id="exportChartPng" class="btn btn-sm btn-outline-light">📊 导出图表 (PNG)</button>
+                <button id="exportChartCsv" class="btn btn-sm btn-outline-light ms-2">📄 导出数据 (CSV)</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <canvas id="annualChart" style="max-height: 400px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterByDepartment() {
+    const deptId = document.getElementById('department_filter').value;
+    const year = document.getElementById('year_filter') ? document.getElementById('year_filter').value : '';
+    const params = new URLSearchParams();
+    if (deptId) params.append('department', deptId);
+    if (year) params.append('year', year);
+    const query = params.toString();
+    const base = "{{ url_for('main.cost_analysis_report') }}";
+    window.location.href = query ? `${base}?${query}` : base;
+}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// 导出功能 - 不依赖 Chart.js，立即初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing export functions...');
+    
+    // 维修成本表格 PNG 导出
+    const exportMaintenancePng = document.getElementById('exportMaintenanceTablePng');
+    if (exportMaintenancePng) {
+        console.log('Found PNG export button');
+        exportMaintenancePng.addEventListener('click', function() {
+            console.log('Export PNG clicked');
+            const table = document.getElementById('maintenanceTable');
+            if (!table) {
+                alert('未找到表格元素');
+                return;
+            }
+            
+            if (typeof html2canvas === 'undefined') {
+                alert('html2canvas 库未加载，无法导出图片。请使用 CSV 导出功能。');
+                console.error('html2canvas is not loaded');
+                return;
+            }
+            
+            html2canvas(table).then(canvas => {
+                const url = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `maintenance_cost_analysis_${new Date().toISOString().split('T')[0]}.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }).catch(err => {
+                alert('导出失败: ' + err.message);
+                console.error('html2canvas error:', err);
+            });
+        });
+    } else {
+        console.error('PNG export button not found');
+    }
+    
+    // 维修成本表格 CSV 导出
+    const exportMaintenanceCsv = document.getElementById('exportMaintenanceTableCsv');
+    if (exportMaintenanceCsv) {
+        console.log('Found CSV export button');
+        exportMaintenanceCsv.addEventListener('click', function() {
+            console.log('Export CSV clicked');
+            const table = document.getElementById('maintenanceTable');
+            if (!table) {
+                alert('未找到表格');
+                return;
+            }
+            
+            let csv = '\uFEFF设备名称,设备类型,所属部门,当前状态,维修次数,总维修成本,平均维修成本\n';
+            
+            const rows = table.querySelectorAll('tbody tr');
+            console.log('Found rows:', rows.length);
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 7) {
+                    // 提取纯文本，移除图标和多余空格
+                    const name = cells[0].textContent.replace(/\s+/g, ' ').trim();
+                    const type = cells[1].textContent.trim();
+                    const dept = cells[2].textContent.trim();
+                    const status = cells[3].textContent.trim();
+                    const count = cells[4].textContent.trim();
+                    const total = cells[5].textContent.replace('¥', '').trim();
+                    const avg = cells[6].textContent.replace('¥', '').trim();
+                    csv += `"${name}","${type}","${dept}","${status}",${count},${total},${avg}\n`;
+                }
+            });
+            
+            console.log('CSV content length:', csv.length);
+            
+            const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `maintenance_cost_analysis_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            
+            console.log('CSV export completed');
+        });
+    } else {
+        console.error('Export CSV button not found');
+    }
+});
+
+// 加载 Chart.js 并初始化图表
+function loadScriptWithFallback(localSrc, cdnSrc, cb){
+    const s = document.createElement('script');
+    s.src = localSrc;
+    s.onload = cb;
+    s.onerror = function(){
+        const s2 = document.createElement('script');
+        s2.src = cdnSrc;
+        s2.onload = cb;
+        document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+}
+
+loadScriptWithFallback(
+    '{{ url_for('static', filename='js/chart.umd.min.js') }}',
+    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+    function(){
+        try {
+            console.log('Chart.js loaded, initializing chart...');
+            const summary = {{ annual_summary|tojson }};
+            const labels = summary.map(s => s.year);
+            const purchases = summary.map(s => Number((s.total_purchase || 0).toFixed(2)));
+            const currents = summary.map(s => Number((s.total_current_value || 0).toFixed(2)));
+            const depreciations = summary.map(s => Number((s.total_depreciation || 0).toFixed(2)));
+
+            const canvas = document.getElementById('annualChart');
+            if (!canvas) {
+                console.error('Chart canvas not found');
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '总采购成本', data: purchases, borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.08)', tension: 0.2 },
+                        { label: '当前总价值', data: currents, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.08)', tension: 0.2 },
+                        { label: '累计折旧', data: depreciations, borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.08)', tension: 0.2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return '¥' + v; } } } },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+            
+            console.log('Chart initialized successfully');
+
+            // 年度汇总图表 PNG 导出
+            const btnPng = document.getElementById('exportChartPng');
+            if (btnPng){
+                btnPng.addEventListener('click', function(){
+                    console.log('Export chart PNG clicked');
+                    const url = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `annual_summary_${new Date().getFullYear()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    console.log('Chart PNG export completed');
+                });
+            } else {
+                console.error('Chart PNG button not found');
+            }
+
+            // 年度汇总图表 CSV 导出
+            const btnCsv = document.getElementById('exportChartCsv');
+            if (btnCsv){
+                btnCsv.addEventListener('click', function(){
+                    console.log('Export chart CSV clicked');
+                    let csv = '\uFEFF年份,资产数量,总采购成本,当前总价值,累计折旧\n';
+                    summary.forEach(s => {
+                        csv += `${s.year},${s.asset_count},${(s.total_purchase||0).toFixed(2)},${(s.total_current_value||0).toFixed(2)},${(s.total_depreciation||0).toFixed(2)}\n`;
+                    });
+                    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `annual_summary_${new Date().getFullYear()}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    console.log('Chart CSV export completed');
+                });
+            } else {
+                console.error('Chart CSV button not found');
+            }
+
+        } catch (e){ 
+            console.error('Annual chart init failed:', e); 
+        }
+    }
+);
+{% endblock %}

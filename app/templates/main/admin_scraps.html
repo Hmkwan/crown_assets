@@ -14,21 +14,46 @@
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>流程图</th>
+                <th>管理员干预</th>
             </tr>
         </thead>
         <tbody>
             {% for s in scraps %}
+            {% set pending_approval = s.approvals|selectattr('status', 'equalto', 'pending')|first %}
             <tr>
                 <td>{{ s.id }}</td>
                 <td>{{ s.equipment.name if s.equipment else '—' }}</td>
                 <td>{{ s.requester.username if s.requester else '—' }}</td>
-                <td>{{ s.status }}</td>
+                <td>
+                  {% if s.status == 'submitted' or s.status == 'pending' %}
+                  <span class="badge bg-warning text-dark">已提交</span>
+                  {% elif s.status == 'approved' %}
+                  <span class="badge bg-success">已批准</span>
+                  {% elif s.status == 'completed' %}
+                  <span class="badge bg-primary">已完成</span>
+                  {% elif s.status == 'cancelled' %}
+                  <span class="badge bg-secondary">已取消</span>
+                  {% elif s.status == 'rejected' %}
+                  <span class="badge bg-danger">已驳回</span>
+                  {% else %}
+                  {{ s.status }}
+                  {% endif %}
+                </td>
                 <td>{{ moment(s.created_date).format('YYYY-MM-DD HH:mm:ss') }}</td>
                 <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.workflow_status', order_type='equipment_scrap', order_id=s.id) }}">查看</a></td>
+                <td>
+                  {% if pending_approval %}
+                  <a class="btn btn-sm btn-warning" href="{{ url_for('admin.approval_flow_detail', approval_id=pending_approval.id) }}">
+                    <i class="fas fa-tools"></i> 干预
+                  </a>
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="5">暂无报废申请</td>
+                <td colspan="7">暂无报废申请</td>
             </tr>
             {% endfor %}
         </tbody>

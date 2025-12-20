@@ -1,27 +1,175 @@
 from flask import render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_required, current_user, login_user, logout_user
-from app import db
+from app import db, get_beijing_now
 from app.models import (
     User, Equipment, RepairOrder, SparePart, Department,
     PartReplacement, PartRequestOrder, UserActivityLog,
-    ApprovalWorkflow, WorkflowNode, EquipmentType, Notification,
+    ApprovalWorkflow, EquipmentType, Notification,
     EquipmentTransfer, EquipmentScrap, EquipmentLoan, EquipmentApplication,
-    AccountRequest
+    AccountRequest, AssetCost, AssetLifecycle, InventoryWarning, SparePartType,
+    RoleDefinition, Permission
 )
+from app.approval_roles import ApprovalRole
 from sqlalchemy import func, or_
 from datetime import datetime, timedelta, timezone
 import json
+import os
 
 from app.main import bp
 from app.utils.import_export import content_disposition
 from app.utils.db_management import (
     backup_database, restore_database, reset_database,
-    list_backups, delete_backup, get_database_info
+    list_backups, delete_backup, get_database_info,
+    export_database_to_mysql, export_database_to_mssql, export_database_to_postgresql,
+    validate_database_file, get_database_tables_info, get_table_data, get_table_chinese_name,
+    get_backup_dir
 )
 from app.utils.qrcode_generator import (
     generate_qrcode, generate_asset_label,
     image_to_base64, image_to_bytes
 )
+from werkzeug.utils import secure_filename
+import pathlib
+try:
+    import markdown2
+except Exception:
+    # Optional dependency for markdown rendering in a few routes.
+    # Provide a minimal passthrough fallback for tests/environments without markdown2.
+    class _FakeMarkdown:
+        @staticmethod
+        def markdown(s):
+            return s
+
+    markdown2 = _FakeMarkdown()
+
+# 测试路由
+@bp.route('/test_buttons')
+def test_buttons():
+    """测试按钮功能的诊断页面"""
+    return render_template('test_buttons.html')
+
+
+# 聊天功能路由
+@bp.route('/chat')
+@login_required
+def chat():
+    """WebSocket实时聊天页面"""
+    import time
+    return render_template('chat_realtime.html', cache_version=int(time.time()))
+
+
+# 旧版聊天页面(备用)
+@bp.route('/chat/modern')
+@login_required
+def chat_modern():
+    """现代化聊天页面(轮询方式)"""
+    import time
+    return render_template('chat_modern.html', cache_version=int(time.time()))
+
+
+@bp.route('/chat/simple')
+@login_required
+def chat_simple():
+    """简化版聊天页面(轮询方式)"""
+    import time
+    return render_template('chat_simple.html', cache_version=int(time.time()))
+
+
+# API测试页面
+@bp.route('/chat/test')
+@login_required
+def chat_test():
+    """聊天API测试页面"""
+    return render_template('chat_test.html')
+
+
+# 手册查看路由
+@bp.route('/manual')
+@login_required
+def user_manual():
+    """根据用户角色显示相应的操作手册"""
+    # 根据角色确定手册文件
+    role_manual_map = {
+        'user': '用户手册-普通员工.md',
+        'department_head': '用户手册-部门主管.md',
+        'technician': '用户手册-技术员.md',
+        'admin': '用户手册-系统管理员.md'
+    }
+    
+    manual_file = role_manual_map.get(current_user.role, '用户手册-普通员工.md')
+    manual_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'docs', manual_file)
+    
+    try:
+        with open(manual_path, 'r', encoding='utf-8') as f:
+            md_content = f.read()
+        
+        # 将Markdown转换为HTML
+        html_content = markdown2.markdown(md_content, extras=['tables', 'fenced-code-blocks', 'header-ids'])
+        
+        # 获取角色名称
+        role_names = {
+            'user': '普通员工',
+            'department_head': '部门主管',
+            'technician': '技术员',
+            'admin': '系统管理员'
+        }
+        role_name = role_names.get(current_user.role, '用户')
+        
+        return render_template('main/user_manual.html', 
+                             content=html_content, 
+                             role_name=role_name,
+                             all_manuals=role_manual_map)
+    except FileNotFoundError:
+        flash('操作手册文件未找到', 'warning')
+        return redirect(url_for('main.index'))
+    except Exception as e:
+        flash(f'读取手册时出错: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
+
+@bp.route('/manual/<role_type>')
+@login_required
+def view_manual(role_type):
+    """查看指定角色的手册（仅管理员可查看所有）"""
+    # 非管理员只能查看自己的手册
+    if current_user.role != 'admin' and role_type != current_user.role:
+        flash('您没有权限查看其他角色的手册', 'warning')
+        return redirect(url_for('main.user_manual'))
+    
+    role_manual_map = {
+        'user': '用户手册-普通员工.md',
+        'department_head': '用户手册-部门主管.md',
+        'technician': '用户手册-技术员.md',
+        'admin': '用户手册-系统管理员.md'
+    }
+    
+    manual_file = role_manual_map.get(role_type, '用户手册-普通员工.md')
+    manual_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'docs', manual_file)
+    
+    try:
+        with open(manual_path, 'r', encoding='utf-8') as f:
+            md_content = f.read()
+        
+        html_content = markdown2.markdown(md_content, extras=['tables', 'fenced-code-blocks', 'header-ids'])
+        
+        role_names = {
+            'user': '普通员工',
+            'department_head': '部门主管',
+            'technician': '技术员',
+            'admin': '系统管理员'
+        }
+        role_name = role_names.get(role_type, '用户')
+        
+        return render_template('main/user_manual.html', 
+                             content=html_content, 
+                             role_name=role_name,
+                             all_manuals=role_manual_map,
+                             current_manual=role_type)
+    except FileNotFoundError:
+        flash('操作手册文件未找到', 'warning')
+        return redirect(url_for('main.index'))
+    except Exception as e:
+        flash(f'读取手册时出错: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
 
 # ------------------------- 通用辅助 -------------------------
 STATUS_LABELS = {
@@ -31,24 +179,32 @@ STATUS_LABELS = {
         'repair': '维修中',
         'loaned': '已借出',
         'retired': '已报废',
+        'in_use': '使用中',
+        'maintenance': '维护中',
+        'scrapped': '已报废',
     },
     'repair_order': {
         'submitted': '已提交',
+        'pending': '待处理',
         'department_head_approved': '部门已批',
         'admin_approved': '管理员已批',
         'in_progress': '处理中',
         'completed': '已完成',
         'cancelled': '已取消',
+        'rejected': '已驳回',
     },
     'part_request': {
         'submitted': '已提交',
+        'pending': '待处理',
         'department_head_approved': '部门已批',
         'admin_approved': '管理员已批',
         'completed': '已完成',
         'cancelled': '已取消',
+        'rejected': '已驳回',
     },
     'transfer': {
         'submitted': '已提交',
+        'pending': '待审批',
         'approved': '已批准',
         'rejected': '已驳回',
         'completed': '已完成',
@@ -56,6 +212,7 @@ STATUS_LABELS = {
     },
     'scrap': {
         'submitted': '已提交',
+        'pending': '待审批',
         'approved': '已批准',
         'rejected': '已驳回',
         'completed': '已完成',
@@ -63,11 +220,17 @@ STATUS_LABELS = {
     },
     'loan': {
         'submitted': '待审批',
+        'pending': '待审批',
         'approved': '已批准',
         'borrowed': '已借出',
         'returned': '已归还',
         'cancelled': '已取消',
         'rejected': '已驳回',
+    },
+    'approval': {
+        'pending': '待审批',
+        'approved': '已通过',
+        'rejected': '已拒绝',
     },
 }
 
@@ -127,6 +290,10 @@ def _parse_flexible_date(value):
 @bp.route('/index')
 @login_required
 def index():
+    # 获取有效公告(最新3条)
+    from app.models import Announcement
+    announcements = Announcement.get_active_announcements(limit=3)
+    
     # 获取当前用户的待处理事项数量
     pending_repairs = RepairOrder.query.filter_by(status='submitted').count()
     # 只统计真正需要当前用户审批的待审批事项
@@ -135,30 +302,45 @@ def index():
         status='pending'
     ).count()
     
-    # 构建仪表盘卡片列表（后端构造更稳定，便于测试与调整顺序）
+    # 构建仪表盘卡片列表(后端构造更稳定,便于测试与调整顺序)
     tiles = []
     if current_user.role == 'admin':
-        # 业务管理（靠前）
+        # 统一排序：按功能分类排列
         tiles.extend([
-            {'title':'资产/配件管理中心','text':'统一管理资产和配件，整合所有功能','url': url_for('main.asset_center')},
+            # 第一组：账号和权限管理
+            {'title':'账号申请','text':'查看待审批的账号申请','url': url_for('main.account_request_list')},
             {'title':'用户管理','text':'管理系统中的所有用户','url': url_for('main.user_management')},
+            {'title':'权限管理','text':'管理自定义角色和权限','url': url_for('main.role_permission_management')},
             {'title':'部门管理','text':'管理系统中的所有部门','url': url_for('main.department_management')},
+            {'title':'公开仓库','text':'查看和管理所有部门公开的设备和配件','url': url_for('main.public_pool'), 'class': 'border-success'},
+            {'title':'审批流配置','text':'按工单类型配置审批流程','url': url_for('main.admin_workflow_nodes'), 'class': 'border-info'},
+            
+            # 第二组：资产和配件管理
+            {'title':'资产/配件管理中心','text':'统一管理资产和配件，整合所有功能','url': url_for('main.asset_center')},
             {'title':'设备管理','text':'查看和管理 IT 设备','url': url_for('main.equipment_list')},
             {'title':'配件管理','text':'查看和管理配件库存','url': url_for('main.spare_parts')},
+            {'title':'设备类型管理','text':'管理设备类型字典','url': url_for('main.equipment_types')},
+            {'title':'配件类型管理','text':'管理配件类型字典','url': url_for('main.spare_part_types')},
+            
+            # 第三组：工单和申请管理
             {'title':'维修工单','text':'查看和管理维修工单','url': url_for('main.repair_orders')},
             {'title':'配件申请管理','text':'查看和管理配件申请','url': url_for('main.part_request_orders')},
-            {'title':'审批管理','text':'处理待审批的流程','url': url_for('main.approvals')},
-            {'title':'工作流程','text':'管理系统审批流程','url': url_for('main.workflow_nodes')},
             {'title':'发起设备调拨','text':'发起或管理设备调拨申请','url': url_for('main.create_transfer')},
             {'title':'发起设备报废','text':'发起或管理设备报废申请','url': url_for('main.create_scrap')},
-            {'title':'设备类型管理','text':'管理设备类型字典','url': url_for('main.equipment_types')},
-            {'title':'数据库管理','text':'备份、恢复、重置数据库','url': url_for('main.database_management')}
-        ])
-        # 信息类（置于末行）
-        tiles.extend([
+            
+            # 第四组：分析和报表
+            {'title':'成本分析','text':'查看资产成本分析和成本预算','url': url_for('main.cost_analysis')},
+            {'title':'库存预警','text':'查看库存不足预警和采购建议','url': url_for('main.inventory_warning')},
+            {'title':'生命周期','text':'查看资产生命周期和报废分析','url': url_for('main.lifecycle_dashboard')},
+            {'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')},
+            
+            # 第五组：系统管理
+            {'title':'系统公告','text':'发布和管理系统公告','url': url_for('main.admin_announcements'), 'class': 'border-primary'},
+            {'title':'企业微信集成','text':'企业微信同步和配置','url': url_for('main.admin_wework'), 'class': 'border-success'},
             {'title':'操作日志','text':'查看用户操作日志','url': url_for('main.user_activity_logs')},
+            {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')},
             {'title':'通知中心','text':'查看系统通知与消息','url': url_for('main.notifications')},
-            {'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')}
+            {'title':'数据库管理','text':'备份、恢复、重置数据库','url': url_for('main.database_management')},
         ])
     elif current_user.role == 'technician':
         # 业务类（靠前）
@@ -170,16 +352,18 @@ def index():
             {'title':'配件管理','text':'查看和管理配件库存','url': url_for('main.spare_parts')},
             {'title':'设备申请','text':'申请可用设备','url': url_for('main.create_equipment_application')},
             {'title':'设备借用申请','text':'申请或管理设备借用','url': url_for('main.create_loan_request')},
+            {'title':'我的借用','text':'查看我的借用记录','url': url_for('main.my_loans')},
             {'title':'发起设备调拨','text':'发起或管理设备调拨申请','url': url_for('main.create_transfer')},
             {'title':'发起设备报废','text':'发起或管理设备报废申请','url': url_for('main.create_scrap')},
-            {'title':'公开设备仓库','text':'查看信息部公开设备','url': url_for('main.public_equipment')},
+            {'title':'公开仓库','text':'查看所有部门公开的设备和配件','url': url_for('main.public_pool'), 'class': 'border-success'},
         ])
         # 信息类（末行）
         tiles.extend([
             # 受授权的只读入口
-            *([{'title':'工作流程','text':'查看审批流程配置','url': url_for('main.workflow_nodes')}] if current_user.has_module_access('workflow') else []),
             *([{'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')}] if current_user.has_module_access('reports') else []),
             *([{'title':'操作日志','text':'查看用户操作日志','url': url_for('main.user_activity_logs')}] if current_user.has_module_access('logs') else []),
+            {'title':'系统公告','text':'查看系统公告和通知','url': url_for('main.announcements'), 'class': 'border-primary'},
+            {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')},
             {'title':'通知中心','text':'系统通知与提醒','url': url_for('main.notifications')}
         ])
     elif current_user.role == 'department_head':
@@ -191,15 +375,17 @@ def index():
             {'title':'配件管理','text':'查看和管理配件库存','url': url_for('main.spare_parts')},
             {'title':'设备申请','text':'申请可用设备','url': url_for('main.create_equipment_application')},
             {'title':'设备借用申请','text':'申请或管理设备借用','url': url_for('main.create_loan_request')},
+            {'title':'我的借用','text':'查看我的借用记录','url': url_for('main.my_loans')},
             {'title':'发起设备调拨','text':'发起或管理设备调拨申请','url': url_for('main.create_transfer')},
             {'title':'发起设备报废','text':'发起或管理设备报废申请','url': url_for('main.create_scrap')},
-            {'title':'公开设备仓库','text':'查看信息部公开设备','url': url_for('main.public_equipment')},
+            {'title':'公开仓库','text':'查看所有部门公开的设备和配件','url': url_for('main.public_pool'), 'class': 'border-success'},
         ])
         # 信息类（末行）
         tiles.extend([
-            *([{'title':'工作流程','text':'查看审批流程配置','url': url_for('main.workflow_nodes')}] if current_user.has_module_access('workflow') else []),
             *([{'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')}] if current_user.has_module_access('reports') else []),
             *([{'title':'操作日志','text':'查看用户操作日志','url': url_for('main.user_activity_logs')}] if current_user.has_module_access('logs') else []),
+            {'title':'系统公告','text':'查看系统公告和通知','url': url_for('main.announcements'), 'class': 'border-primary'},
+            {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')},
             {'title':'通知中心','text':'系统通知与提醒','url': url_for('main.notifications')}
         ])
     else:  # 普通用户
@@ -210,9 +396,10 @@ def index():
             {'title':'提交配件申请','text':'提交配件申请','url': url_for('main.create_part_request_order')},
             {'title':'设备申请','text':'申请可用设备','url': url_for('main.create_equipment_application')},
             {'title':'设备借用申请','text':'申请或管理设备借用','url': url_for('main.create_loan_request')},
+            {'title':'我的借用','text':'查看我的借用记录','url': url_for('main.my_loans')},
             {'title':'发起设备调拨','text':'发起或管理设备调拨申请','url': url_for('main.create_transfer')},
             {'title':'发起设备报废','text':'发起或管理设备报废申请','url': url_for('main.create_scrap')},
-            {'title':'公开设备仓库','text':'查看信息部公开设备','url': url_for('main.public_equipment')},
+            {'title':'公开仓库','text':'查看所有部门公开的设备和配件','url': url_for('main.public_pool'), 'class': 'border-success'},
         ])
         # 可选模块访问
         if current_user.has_module_access('equipment'):
@@ -221,17 +408,60 @@ def index():
             tiles.append({'title':'配件管理','text':'查看和管理配件库存','url': url_for('main.spare_parts')})
         # 信息类（末行）
         tiles.extend([
-            *([{'title':'工作流程','text':'查看审批流程配置','url': url_for('main.workflow_nodes')}] if current_user.has_module_access('workflow') else []),
             *([{'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')}] if current_user.has_module_access('reports') else []),
             *([{'title':'操作日志','text':'查看用户操作日志','url': url_for('main.user_activity_logs')}] if current_user.has_module_access('logs') else []),
+            {'title':'系统公告','text':'查看系统公告和通知','url': url_for('main.announcements'), 'class': 'border-primary'},
+            {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')},
             {'title':'通知中心','text':'系统通知与提醒','url': url_for('main.notifications')}
         ])
+    
+    # 智能添加审批历史:如果用户有任何审批记录但tiles中没有审批历史入口,自动添加
+    has_approval_history_tile = any(tile.get('title') == '审批历史' for tile in tiles)
+    if not has_approval_history_tile:
+        # 检查用户是否有审批记录
+        try:
+            user_has_approvals = ApprovalWorkflow.query.filter_by(approver_id=current_user.id).first() is not None
+            if user_has_approvals:
+                # 在通知中心之前插入审批历史
+                notification_index = next((i for i, tile in enumerate(tiles) if tile.get('title') == '通知中心'), None)
+                if notification_index is not None:
+                    tiles.insert(notification_index, {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')})
+                else:
+                    tiles.append({'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')})
+        except Exception:
+            pass  # 数据库查询失败时忽略
+
+    # 补充首页需要的设备统计数据（避免模板中缺少变量导致显示为0）
+    try:
+        total_equipment = Equipment.query.count()
+        equipment_available = Equipment.query.filter_by(status='available').count()
+        equipment_maintenance = Equipment.query.filter_by(status='repair').count()
+        equipment_retired = Equipment.query.filter_by(status='retired').count()
+    except Exception:
+        # 在数据库为空或异常时回退为0，保持首页能正常渲染
+        total_equipment = 0
+        equipment_available = 0
+        equipment_maintenance = 0
+        equipment_retired = 0
+
+    # 最近活动（取最新5条），非致命：若UserActivityLog不存在则回退为空列表
+    try:
+        # UserActivityLog 使用字段 `timestamp` 存储时间，之前误用 `created_date` 导致查询异常
+        recent_activities = UserActivityLog.query.order_by(UserActivityLog.timestamp.desc()).limit(5).all()
+    except Exception:
+        recent_activities = []
 
     return render_template('main/index.html', 
                          title='首页',
                          pending_repairs=pending_repairs,
                          pending_approvals=pending_approvals,
-                         tiles=tiles)
+                         tiles=tiles,
+                         total_equipment=total_equipment,
+                         equipment_available=equipment_available,
+                         equipment_maintenance=equipment_maintenance,
+                         equipment_retired=equipment_retired,
+                         recent_activities=recent_activities,
+                         announcements=announcements)
 
 
 @bp.route('/admin')
@@ -242,7 +472,46 @@ def admin_dashboard():
         return redirect(url_for('main.index'))
     
     pending_account_requests = AccountRequest.query.filter_by(status='pending').count()
-    return render_template('main/admin_dashboard.html', title='管理员仪表板', pending_account_requests=pending_account_requests)
+    
+    # 优化后的管理面板卡片排序 - 按功能分类统一排列 (与首页保持一致)
+    tiles = [
+        # 第一组：账号和权限管理
+        {'title':'账号申请','text':'查看待审批的账号申请','url': url_for('main.account_request_list')},
+        {'title':'用户管理','text':'管理系统中的所有用户','url': url_for('main.user_management')},
+        {'title':'权限管理','text':'管理自定义角色和权限','url': url_for('main.role_permission_management')},
+        {'title':'部门管理','text':'管理系统中的所有部门','url': url_for('main.department_management')},
+        {'title':'公开仓库','text':'查看和管理所有部门公开的设备和配件','url': url_for('main.public_pool'), 'class': 'border-success'},
+        {'title':'审批流配置','text':'按工单类型配置审批流程','url': url_for('main.admin_workflow_nodes'), 'class': 'border-info'},
+        
+        # 第二组：资产和配件管理
+        {'title':'资产/配件管理中心','text':'统一管理资产和配件，整合所有功能','url': url_for('main.asset_center')},
+        {'title':'设备管理','text':'查看和管理 IT 设备','url': url_for('main.equipment_list')},
+        {'title':'配件管理','text':'查看和管理配件库存','url': url_for('main.spare_parts')},
+        {'title':'设备类型管理','text':'管理设备类型字典','url': url_for('main.equipment_types')},
+        {'title':'配件类型管理','text':'管理配件类型字典','url': url_for('main.spare_part_types')},
+        
+        # 第三组：工单和申请管理
+        {'title':'维修工单','text':'查看和管理维修工单','url': url_for('main.repair_orders')},
+        {'title':'配件申请管理','text':'查看和管理配件申请','url': url_for('main.part_request_orders')},
+        {'title':'发起设备调拨','text':'发起或管理设备调拨申请','url': url_for('main.create_transfer')},
+        {'title':'发起设备报废','text':'发起或管理设备报废申请','url': url_for('main.create_scrap')},
+        
+        # 第四组：分析和报表
+        {'title':'成本分析','text':'查看资产成本分析和成本预算','url': url_for('main.cost_analysis')},
+        {'title':'库存预警','text':'查看库存不足预警和采购建议','url': url_for('main.inventory_warning')},
+        {'title':'生命周期','text':'查看资产生命周期和报废分析','url': url_for('main.lifecycle_dashboard')},
+        {'title':'报表统计','text':'查看各类统计报表','url': url_for('main.reports')},
+        
+        # 第五组：系统管理
+        {'title':'系统公告','text':'发布和管理系统公告','url': url_for('main.admin_announcements'), 'class': 'border-primary'},
+        {'title':'企业微信集成','text':'企业微信同步和配置','url': url_for('main.admin_wework'), 'class': 'border-success'},
+        {'title':'操作日志','text':'查看用户操作日志','url': url_for('main.user_activity_logs')},
+        {'title':'审批历史','text':'查看我的审批记录','url': url_for('main.approval_history')},
+        {'title':'通知中心','text':'查看系统通知与消息','url': url_for('main.notifications')},
+        {'title':'数据库管理','text':'备份、恢复、重置数据库','url': url_for('main.database_management')},
+    ]
+
+    return render_template('main/admin_dashboard.html', title='管理员仪表板', pending_account_requests=pending_account_requests, tiles=tiles)
 
 
 @bp.route('/technician')
@@ -369,10 +638,9 @@ def account_request_detail(id):
         return redirect(url_for('main.index'))
     
     account_request = AccountRequest.query.get_or_404(id)
+    # 角色选择仅保留管理员和普通用户，其他权限在权限管理模块中分配
     role_choices = [
         ('user', '普通用户'),
-        ('technician', '技术员'),
-        ('department_head', '部门负责人'),
         ('admin', '管理员')
     ]
     
@@ -406,7 +674,7 @@ def account_request_detail(id):
             db.session.flush()
             
             account_request.status = 'approved'
-            account_request.processed_date = datetime.utcnow()
+            account_request.processed_date = get_beijing_now()
             account_request.approver_id = current_user.id
             account_request.approver_comments = comments
             
@@ -422,7 +690,7 @@ def account_request_detail(id):
             return redirect(url_for('main.account_request_detail', id=id))
         elif action == 'reject':
             account_request.status = 'rejected'
-            account_request.processed_date = datetime.utcnow()
+            account_request.processed_date = get_beijing_now()
             account_request.approver_id = current_user.id
             account_request.approver_comments = comments or '管理员已拒绝该申请'
             db.session.commit()
@@ -561,8 +829,25 @@ def repair_orders():
     query = RepairOrder.query
     
     # 用户角色过滤
+    # admin可以查看所有维修单
+    # 普通用户可以看：1) 自己提交的工单 2) 需要自己审批的工单
     if current_user.role == 'user':
-        query = query.filter_by(requester_id=current_user.id)
+        # 获取需要当前用户审批的工单ID列表
+        pending_approval_order_ids = db.session.query(ApprovalWorkflow.order_id).filter(
+            ApprovalWorkflow.order_type == 'repair_order',
+            ApprovalWorkflow.approver_id == current_user.id,
+            ApprovalWorkflow.status == 'pending'
+        ).distinct().all()
+        pending_ids = [oid[0] for oid in pending_approval_order_ids]
+        
+        # 查询条件：自己创建的 OR 需要自己审批的
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                RepairOrder.requester_id == current_user.id,
+                RepairOrder.id.in_(pending_ids) if pending_ids else False
+            )
+        )
     
     # 状态筛选
     if filter_type != 'all':
@@ -1071,7 +1356,8 @@ def equipment_list():
     
     query = Equipment.query
     
-    if current_user.role != 'admin':
+    # admin可以查看所有部门，其他用户只能查看本部门
+    if current_user.role != 'admin' and current_user.department:
         query = query.filter(Equipment.department == current_user.department)
     
     if type_id:
@@ -1146,7 +1432,7 @@ def equipment_list():
                     'text': '已归还',
                     'returned_date': returned_loan.returned_date
                 }
-    else:
+            else:
                 equipment_loan_status[equipment.id] = {
                     'status': 'available',
                     'text': '可借用'
@@ -1178,10 +1464,12 @@ def public_equipment():
     search_query = (request.args.get('search') or '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = current_app.config.get('EQUIPMENT_PER_PAGE', 10)
-    
-    query = Equipment.query.filter(Equipment.is_public_pool == True, Equipment.status != 'retired')
+    # 初始化查询：仅显示公开池（public pool）设备
+    query = Equipment.query.filter_by(is_public_pool=True)
+    # 筛选设备类型（可选）
     if type_id:
         query = query.filter(Equipment.type_id == type_id)
+    # 按状态筛选（仅在提供状态字符串时）
     if status_filter:
         query = query.filter(Equipment.status == status_filter)
     if search_query:
@@ -1264,6 +1552,91 @@ def public_equipment():
     )
 
 
+@bp.route('/public_pool')
+@login_required
+def public_pool():
+    """公开仓库 - 显示所有部门公开的设备和配件"""
+    # 获取筛选参数
+    resource_type = request.args.get('type', 'equipment')  # equipment 或 spare_part
+    department_id = request.args.get('department_id', type=int)
+    search_query = (request.args.get('search') or '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = current_app.config.get('PUBLIC_POOL_PER_PAGE', 15)
+    
+    if resource_type == 'spare_part':
+        # 查询公开的配件 (使用 is_public 字段)
+        query = SparePart.query.filter_by(is_public=True)
+        
+        if department_id:
+            query = query.filter(SparePart.department_id == department_id)
+        
+        if search_query:
+            like = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    SparePart.name.ilike(like),
+                    SparePart.part_number.ilike(like),
+                    SparePart.location.ilike(like)
+                )
+            )
+        
+        pagination = query.order_by(SparePart.name.asc()).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        items = pagination.items
+        item_type = 'spare_part'
+    else:
+        # 查询公开的设备 (使用 is_public_pool 字段)
+        query = Equipment.query.filter_by(is_public_pool=True)
+        
+        if department_id:
+            query = query.filter(Equipment.department_id == department_id)
+        
+        if search_query:
+            like = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    Equipment.name.ilike(like),
+                    Equipment.brand.ilike(like),
+                    Equipment.model.ilike(like),
+                    Equipment.serial_number.ilike(like)
+                )
+            )
+        
+        pagination = query.order_by(Equipment.id.desc()).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        items = pagination.items
+        item_type = 'equipment'
+    
+    departments = Department.query.order_by(Department.name).all()
+    
+    # 统计数据
+    total_public_equipment = Equipment.query.filter_by(is_public_pool=True).count()
+    total_public_spare_parts = SparePart.query.filter_by(is_public=True).count()
+    
+    _log_activity('访问页面', '公开仓库')
+    
+    return render_template(
+        'main/public_pool.html',
+        title='公开仓库',
+        items=items,
+        item_type=item_type,
+        departments=departments,
+        selected_department_id=department_id,
+        search_query=search_query,
+        pagination=pagination,
+        per_page=per_page,
+        resource_type=resource_type,
+        total_public_equipment=total_public_equipment,
+        total_public_spare_parts=total_public_spare_parts
+    )
+
+
 @bp.route('/equipment/add', methods=['GET', 'POST'])
 @login_required
 def add_equipment():
@@ -1282,7 +1655,9 @@ def add_equipment():
         model = request.form.get('model')
         serial_number = request.form.get('serial_number')
         purchase_date_raw = (request.form.get('purchase_date') or '').strip()
+        price_raw = (request.form.get('price') or '').strip()
         department_id = request.form.get('department_id')
+        location = request.form.get('location', '').strip()
         
         # 验证必填字段
         if not name or not type_id or not serial_number or not department_id:
@@ -1330,6 +1705,12 @@ def add_equipment():
                                      equipment_types=equipment_types)
         
         # 创建新设备
+        # 处理 price 字段（允许为空，默认 0.0）
+        try:
+            price_val = float(price_raw) if price_raw != '' else 0.0
+        except Exception:
+            price_val = 0.0
+
         equipment = Equipment(
             name=name,
             type_id=type_id,
@@ -1338,8 +1719,10 @@ def add_equipment():
             model=model,
             serial_number=serial_number,
             purchase_date=purchase_date,
+            price=price_val,
             department_id=department_id,
-            department=department.name
+            department=department.name,
+            location=location if location else None
         )
         
         db.session.add(equipment)
@@ -1380,6 +1763,7 @@ def edit_equipment(id):
         serial_number = request.form.get('serial_number')
         purchase_date_raw = (request.form.get('purchase_date') or '').strip()
         department_id = request.form.get('department_id')
+        location = request.form.get('location', '').strip()
         status = request.form.get('status')
         is_public_pool = request.form.get('is_public_pool') == 'on'
         
@@ -1433,6 +1817,7 @@ def edit_equipment(id):
                                      equipment=equipment,
                                      departments=departments,
                                      equipment_types=equipment_types)
+        price_raw = (request.form.get('price') or '').strip()
         
         # 更新设备信息
         equipment.name = name
@@ -1444,8 +1829,14 @@ def edit_equipment(id):
         equipment.purchase_date = purchase_date
         equipment.department_id = department_id
         equipment.department = department.name
+        equipment.location = location if location else None
         equipment.status = status
         equipment.is_public_pool = is_public_pool
+        # 处理并保存 price 字段
+        try:
+            equipment.price = float(price_raw) if price_raw != '' else 0.0
+        except Exception:
+            equipment.price = 0.0
         
         db.session.commit()
         _log_activity('更新设备', f'更新设备 {equipment.name}#{equipment.id}')
@@ -1502,65 +1893,149 @@ def import_equipment():
             if text is None:
                 raise Exception('文件编码不支持，请使用 UTF-8 或 GBK')
             stream = io.StringIO(text)
+            # 先读取第一行判断是否为表头（包含中文/英文列名）
             reader = csv.reader(stream)
-            # 跳过表头
             try:
-                next(reader)
+                first_row = next(reader)
             except StopIteration:
-                pass
+                first_row = []
+
+            # 定义可能的列名集合（中英混合）
+            name_keys = {'名称', '设备名称', 'name'}
+            type_keys = {'类型', 'type', '设备类型'}
+            brand_keys = {'品牌', 'brand'}
+            model_keys = {'型号', 'model'}
+            serial_keys = {'序列号', 'serial', 'serial_number', 'SN'}
+            dept_keys = {'所属部门', '部门', 'department'}
+            price_keys = {'价格', 'price'}
+            purchase_keys = {'购买日期', 'purchase_date', 'purchase date', 'purchaseDate'}
+            status_keys = {'状态', 'status'}
+
+            # 如果第一行包含已知列名，使用 DictReader；否则回退到位置解析（保持向后兼容）
+            use_dict = any(cell.strip() in (name_keys | type_keys | brand_keys | model_keys | serial_keys | purchase_keys | price_keys) for cell in first_row)
 
             imported_count = 0
             skipped = 0
-            for row in reader:
-                if not row or len(row) < 5:
-                    continue
-                name = row[0].strip()
-                type_name = row[1].strip()
-                brand = row[2].strip() if row[2].strip() else None
-                model = row[3].strip() if row[3].strip() else None
-                serial_number = row[4].strip()
-                department = row[5].strip() if len(row) > 5 and row[5].strip() else current_user.department
-                status_raw = ''
-                purchase_date = None
-                if len(row) > 7:
-                    status_raw = row[6].strip()
-                    if row[7].strip():
-                        purchase_date = _parse_flexible_date(row[7])
-                elif len(row) > 6:
-                    possible = row[6].strip()
-                    parsed = _parse_flexible_date(possible)
-                    if parsed:
-                        purchase_date = parsed
-                    else:
-                        status_raw = possible
 
-                # 跳过已有的序列号
-                if Equipment.query.filter_by(serial_number=serial_number).first():
-                    skipped += 1
-                    continue
+            if use_dict:
+                # 重建 StringIO 并使用 DictReader
+                stream.seek(0)
+                dict_reader = csv.DictReader(stream)
+                for row in dict_reader:
+                    if not row:
+                        continue
+                    def pick(*keys):
+                        for k in keys:
+                            if k in row and row[k] is not None:
+                                v = row[k].strip()
+                                if v != '':
+                                    return v
+                        return None
 
-                # 尝试查找设备类型
-                equipment_type = EquipmentType.query.filter_by(name=type_name).first() if type_name else None
-                type_id = equipment_type.id if equipment_type else None
-                
-                # 查找部门ID
-                department_obj = Department.query.filter_by(name=department).first() if department else None
-                department_id = department_obj.id if department_obj else None
+                    name = pick('名称', '设备名称', 'name') or ''
+                    type_name = pick('类型', 'type', '设备类型') or ''
+                    brand = pick('品牌', 'brand')
+                    model = pick('型号', 'model')
+                    serial_number = pick('序列号', 'serial', 'serial_number', 'SN') or ''
+                    department = pick('所属部门', '部门', 'department') or current_user.department
+                    status_raw = pick('状态', 'status') or ''
 
-                equipment = Equipment(
-                    name=name,
-                    type_id=type_id,
-                    type=type_name if type_name else None,
-                    brand=brand,
-                    model=model,
-                    serial_number=serial_number,
-                    purchase_date=purchase_date,
-                    department=department,
-                    department_id=department_id,
-                    status=_status_key('equipment', status_raw) or 'active'
-                )
-                db.session.add(equipment)
-                imported_count += 1
+                    price_raw = pick('价格', 'price')
+                    try:
+                        price_val = float(price_raw) if price_raw else None
+                    except Exception:
+                        price_val = None
+
+                    purchase_raw = pick('购买日期', 'purchase_date', 'purchase date', 'purchaseDate')
+                    purchase_date = _parse_flexible_date(purchase_raw) if purchase_raw else None
+
+                    if not name or not serial_number:
+                        # 名称或序列号缺失则跳过
+                        continue
+
+                    # 跳过已有的序列号
+                    if Equipment.query.filter_by(serial_number=serial_number).first():
+                        skipped += 1
+                        continue
+
+                    equipment_type = EquipmentType.query.filter_by(name=type_name).first() if type_name else None
+                    type_id = equipment_type.id if equipment_type else None
+                    department_obj = Department.query.filter_by(name=department).first() if department else None
+                    department_id = department_obj.id if department_obj else None
+
+                    equipment = Equipment(
+                        name=name,
+                        type_id=type_id,
+                        type=type_name if type_name else None,
+                        brand=brand,
+                        model=model,
+                        serial_number=serial_number,
+                        purchase_date=purchase_date,
+                        department=department,
+                        department_id=department_id,
+                        status=_status_key('equipment', status_raw) or 'active'
+                    )
+                    # 如果 price 存在且可解析则保存
+                    if price_val is not None:
+                        try:
+                            equipment.price = float(price_val)
+                        except Exception:
+                            pass
+
+                    db.session.add(equipment)
+                    imported_count += 1
+            else:
+                # 回退到原有的按列位置解析逻辑
+                # 已经读取了第一行，且它不是表头，因此把它当作数据行处理
+                all_rows = [first_row] + list(reader) if first_row else list(reader)
+                for row in all_rows:
+                    if not row or len(row) < 5:
+                        continue
+                    name = row[0].strip()
+                    type_name = row[1].strip()
+                    brand = row[2].strip() if row[2].strip() else None
+                    model = row[3].strip() if row[3].strip() else None
+                    serial_number = row[4].strip()
+                    department = row[5].strip() if len(row) > 5 and row[5].strip() else current_user.department
+                    status_raw = ''
+                    purchase_date = None
+                    # 旧逻辑未包含 price 字段，因此无法解析 price；建议升级为带表头的 CSV
+                    if len(row) > 7:
+                        status_raw = row[6].strip()
+                        if row[7].strip():
+                            purchase_date = _parse_flexible_date(row[7])
+                    elif len(row) > 6:
+                        possible = row[6].strip()
+                        parsed = _parse_flexible_date(possible)
+                        if parsed:
+                            purchase_date = parsed
+                        else:
+                            status_raw = possible
+
+                    # 跳过已有的序列号
+                    if Equipment.query.filter_by(serial_number=serial_number).first():
+                        skipped += 1
+                        continue
+
+                    equipment_type = EquipmentType.query.filter_by(name=type_name).first() if type_name else None
+                    type_id = equipment_type.id if equipment_type else None
+                    department_obj = Department.query.filter_by(name=department).first() if department else None
+                    department_id = department_obj.id if department_obj else None
+
+                    equipment = Equipment(
+                        name=name,
+                        type_id=type_id,
+                        type=type_name if type_name else None,
+                        brand=brand,
+                        model=model,
+                        serial_number=serial_number,
+                        purchase_date=purchase_date,
+                        department=department,
+                        department_id=department_id,
+                        status=_status_key('equipment', status_raw) or 'active'
+                    )
+                    db.session.add(equipment)
+                    imported_count += 1
 
             db.session.commit()
             _log_activity('导入设备', f'导入 {imported_count} 台，跳过 {skipped} 台')
@@ -1635,6 +2110,328 @@ def delete_equipment_type(id):
     db.session.commit()
     _log_activity('删除设备类型', f'删除类型 {equipment_type.name}')
     return jsonify({'success': True, 'message': '设备类型删除成功'})
+
+
+@bp.route('/equipment/types/export', methods=['GET'])
+@login_required
+def export_equipment_types():
+    """导出设备类型数据为CSV格式"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    types = EquipmentType.query.order_by(EquipmentType.created_date.desc()).all()
+    
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # CSV表头使用中文
+    writer.writerow(['类型名称', '描述', '创建时间'])
+    for t in types:
+        writer.writerow([
+            t.name,
+            t.description or '',
+            t.created_date.strftime('%Y-%m-%d %H:%M:%S') if t.created_date else ''
+        ])
+    
+    from flask import Response
+    csv_data = output.getvalue()
+    output.close()
+    
+    filename = f'设备类型_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    _log_activity('导出设备类型', f'导出设备类型数据 共 {len(types)} 条')
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': content_disposition(filename, 'equipment_types.csv')}
+    )
+
+
+@bp.route('/equipment/types/import', methods=['POST'])
+@login_required
+def import_equipment_types():
+    """从CSV文件导入设备类型数据"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '请选择文件'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '请选择文件'}), 400
+    
+    if file and file.filename.endswith('.csv'):
+        try:
+            import csv
+            import io
+            raw = file.stream.read()
+            text = None
+            for enc in ('utf-8', 'utf-8-sig', 'gbk'):
+                try:
+                    text = raw.decode(enc)
+                    break
+                except Exception:
+                    continue
+            if text is None:
+                raise Exception('文件编码不支持，请使用 UTF-8 或 GBK')
+            
+            stream = io.StringIO(text)
+            reader = csv.reader(stream)
+            
+            # 跳过表头
+            try:
+                next(reader)
+            except StopIteration:
+                pass
+            
+            imported_count = 0
+            skipped = 0
+            updated = 0
+            
+            for row in reader:
+                if not row or len(row) < 1:
+                    continue
+                
+                name = row[0].strip()
+                if not name:
+                    continue
+                
+                description = row[1].strip() if len(row) > 1 else ''
+                
+                # 检查是否已存在
+                existing = EquipmentType.query.filter_by(name=name).first()
+                if existing:
+                    # 更新描述
+                    existing.description = description
+                    updated += 1
+                else:
+                    # 创建新类型
+                    new_type = EquipmentType(
+                        name=name,
+                        description=description
+                    )
+                    db.session.add(new_type)
+                    imported_count += 1
+            
+            db.session.commit()
+            _log_activity('导入设备类型', f'导入设备类型 新增{imported_count}条 更新{updated}条')
+            
+            return jsonify({
+                'success': True,
+                'message': f'导入成功！新增 {imported_count} 条，更新 {updated} 条',
+                'imported': imported_count,
+                'updated': updated
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'导入失败：{str(e)}'}), 500
+    
+    return jsonify({'success': False, 'message': '只支持CSV文件'}), 400
+
+
+@bp.route('/spare_parts/types', methods=['GET'])
+@login_required
+def spare_part_types():
+    """配件类型管理"""
+    if current_user.role not in ['admin', 'technician']:
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    from app.models import SparePartType
+    types = SparePartType.query.order_by(SparePartType.created_date.desc()).all()
+    _log_activity('访问页面', '配件类型管理')
+    return render_template('main/spare_part_types.html', title='配件类型管理', types=types)
+
+
+@bp.route('/spare_parts/types/add', methods=['POST'])
+@login_required
+def add_spare_part_type():
+    """添加配件类型"""
+    if current_user.role not in ['admin', 'technician']:
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    from app.models import SparePartType
+    name = request.form.get('name')
+    description = request.form.get('description')
+    
+    # 验证必填字段
+    if not name:
+        return jsonify({'success': False, 'message': '类型名称为必填项'})
+    
+    # 检查是否已存在
+    if SparePartType.query.filter_by(name=name).first():
+        return jsonify({'success': False, 'message': '该类型名称已存在'})
+    
+    # 创建新类型
+    spare_part_type = SparePartType(name=name, description=description)
+    db.session.add(spare_part_type)
+    db.session.commit()
+    _log_activity('添加配件类型', f'添加类型 {spare_part_type.name}')
+    
+    return jsonify({
+        'success': True,
+        'message': '配件类型添加成功',
+        'id': spare_part_type.id,
+        'name': spare_part_type.name
+    })
+
+
+@bp.route('/spare_parts/types/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_spare_part_type(id):
+    """删除配件类型"""
+    if current_user.role not in ['admin', 'technician']:
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    from app.models import SparePartType
+    spare_part_type = SparePartType.query.get_or_404(id)
+    
+    spare_part_count = SparePart.query.filter_by(type_id=id).count()
+    force = request.args.get('force') == '1'
+    
+    if spare_part_count > 0 and not force:
+        return jsonify({
+            'success': False,
+            'message': f'该类型下还有 {spare_part_count} 个配件，无法删除。可选择强制删除以解绑配件类型引用'
+        })
+    
+    if force and spare_part_count > 0:
+        for part in SparePart.query.filter_by(type_id=id).all():
+            part.type_id = None
+        db.session.flush()
+    
+    db.session.delete(spare_part_type)
+    db.session.commit()
+    _log_activity('删除配件类型', f'删除类型 {spare_part_type.name}')
+    
+    return jsonify({'success': True, 'message': '配件类型删除成功'})
+
+
+@bp.route('/spare_parts/types/export', methods=['GET'])
+@login_required
+def export_spare_part_types():
+    """导出配件类型数据为CSV格式"""
+    if current_user.role not in ['admin', 'technician']:
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    from app.models import SparePartType
+    types = SparePartType.query.order_by(SparePartType.created_date.desc()).all()
+    
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # CSV表头使用中文
+    writer.writerow(['类型名称', '描述', '创建时间'])
+    for t in types:
+        writer.writerow([
+            t.name,
+            t.description or '',
+            t.created_date.strftime('%Y-%m-%d %H:%M:%S') if t.created_date else ''
+        ])
+    
+    from flask import Response
+    csv_data = output.getvalue()
+    output.close()
+    
+    filename = f'配件类型_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    _log_activity('导出配件类型', f'导出配件类型数据 共 {len(types)} 条')
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': content_disposition(filename, 'spare_part_types.csv')}
+    )
+
+
+@bp.route('/spare_parts/types/import', methods=['POST'])
+@login_required
+def import_spare_part_types():
+    """从CSV文件导入配件类型数据"""
+    if current_user.role not in ['admin', 'technician']:
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '请选择文件'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '请选择文件'}), 400
+    
+    if file and file.filename.endswith('.csv'):
+        try:
+            import csv
+            import io
+            from app.models import SparePartType
+            
+            raw = file.stream.read()
+            text = None
+            for enc in ('utf-8', 'utf-8-sig', 'gbk'):
+                try:
+                    text = raw.decode(enc)
+                    break
+                except Exception:
+                    continue
+            if text is None:
+                raise Exception('文件编码不支持，请使用 UTF-8 或 GBK')
+            
+            stream = io.StringIO(text)
+            reader = csv.reader(stream)
+            
+            # 跳过表头
+            try:
+                next(reader)
+            except StopIteration:
+                pass
+            
+            imported_count = 0
+            updated = 0
+            
+            for row in reader:
+                if not row or len(row) < 1:
+                    continue
+                
+                name = row[0].strip()
+                if not name:
+                    continue
+                
+                description = row[1].strip() if len(row) > 1 else ''
+                
+                # 检查是否已存在
+                existing = SparePartType.query.filter_by(name=name).first()
+                if existing:
+                    # 更新描述
+                    existing.description = description
+                    updated += 1
+                else:
+                    # 创建新类型
+                    new_type = SparePartType(
+                        name=name,
+                        description=description
+                    )
+                    db.session.add(new_type)
+                    imported_count += 1
+            
+            db.session.commit()
+            _log_activity('导入配件类型', f'导入配件类型 新增{imported_count}条 更新{updated}条')
+            
+            return jsonify({
+                'success': True,
+                'message': f'导入成功！新增 {imported_count} 条，更新 {updated} 条',
+                'imported': imported_count,
+                'updated': updated
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'导入失败：{str(e)}'}), 500
+    
+    return jsonify({'success': False, 'message': '只支持CSV文件'}), 400
 
 
 @bp.route('/equipment/bulk_public', methods=['POST'])
@@ -1744,7 +2541,8 @@ def spare_parts():
     per_page = current_app.config.get('SPARE_PARTS_PER_PAGE', 10)
     
     query = SparePart.query
-    if current_user.role != 'admin':
+    # admin不受部门限制,可以查看所有配件
+    if current_user.role != 'admin' and current_user.department:
         query = query.filter_by(department=current_user.department)
     
     if department_id:
@@ -1804,6 +2602,7 @@ def add_spare_part():
     if request.method == 'POST':
         name = request.form.get('name')
         part_number = request.form.get('part_number')
+        type_id = request.form.get('type_id')  # 配件类型
         price = request.form.get('price')
         stock_quantity = request.form.get('stock_quantity')
         purchase_date = request.form.get('purchase_date')
@@ -1818,6 +2617,7 @@ def add_spare_part():
         spare_part = SparePart(
             name=name,
             part_number=part_number,
+            type_id=int(type_id) if type_id else None,
             price=float(price) if price else 0.0,
             stock_quantity=int(stock_quantity) if stock_quantity else 0,
             department=department,
@@ -1841,8 +2641,11 @@ def add_spare_part():
     # 获取所有部门供选择
     departments = Department.query.order_by(Department.name).all()
     department_list = [dept.name for dept in departments]
+    
+    # 获取所有配件类型供选择
+    spare_part_types = SparePartType.query.order_by(SparePartType.name).all()
         
-    return render_template('main/add_spare_part.html', title='添加配件', departments=department_list)
+    return render_template('main/add_spare_part.html', title='添加配件', departments=department_list, spare_part_types=spare_part_types)
 
 
 @bp.route('/spare_parts/export')
@@ -1875,11 +2678,12 @@ def export_spare_parts():
     output = io.StringIO()
     writer = csv.writer(output)
 
-    writer.writerow(['配件名称', '配件编号', '价格', '库存数量', '最低库存', '入库日期', '所属部门', '位置'])
+    writer.writerow(['配件名称', '配件编号', '配件类型', '价格', '库存数量', '最低库存', '入库日期', '所属部门', '位置'])
     for p in parts:
         writer.writerow([
             p.name,
             p.part_number,
+            p.spare_part_type.name if p.spare_part_type else '',
             p.price,
             p.stock_quantity,
             p.min_stock_level,
@@ -1944,8 +2748,16 @@ def import_spare_parts():
                     continue
                 name = row[0].strip()
                 part_number = row[1].strip()
-                price = float(row[2]) if len(row) > 2 and row[2].strip() else 0.0
-                stock_quantity = int(row[3]) if len(row) > 3 and row[3].strip() else 0
+                type_name = row[2].strip() if len(row) > 2 and row[2].strip() else None
+                price = float(row[3]) if len(row) > 3 and row[3].strip() else 0.0
+                stock_quantity = int(row[4]) if len(row) > 4 and row[4].strip() else 0
+                
+                # 根据类型名称查找类型ID
+                type_id = None
+                if type_name:
+                    spare_type = SparePartType.query.filter_by(name=type_name).first()
+                    if spare_type:
+                        type_id = spare_type.id
 
                 min_stock_level = 0
                 purchase_date = None
@@ -1953,25 +2765,25 @@ def import_spare_parts():
                 dept_idx = None
                 loc_idx = None
 
-                if len(row) > 4:
-                    candidate = row[4].strip()
+                if len(row) > 5:
+                    candidate = row[5].strip()
                     parsed_candidate = _parse_flexible_date(candidate)
                     if parsed_candidate:
                         purchase_date = parsed_candidate
-                        dept_idx = 5 if len(row) > 5 else None
-                        loc_idx = 6 if len(row) > 6 else None
+                        dept_idx = 6 if len(row) > 6 else None
+                        loc_idx = 7 if len(row) > 7 else None
                     else:
                         if candidate:
                             try:
                                 min_stock_level = int(candidate)
                             except ValueError:
                                 min_stock_level = 0
-                        purchase_idx = 5 if len(row) > 5 else None
-                        dept_idx = 6 if len(row) > 6 else None
-                        loc_idx = 7 if len(row) > 7 else None
+                        purchase_idx = 6 if len(row) > 6 else None
+                        dept_idx = 7 if len(row) > 7 else None
+                        loc_idx = 8 if len(row) > 8 else None
                 else:
-                    dept_idx = 5 if len(row) > 5 else None
-                    loc_idx = 6 if len(row) > 6 else None
+                    dept_idx = 6 if len(row) > 6 else None
+                    loc_idx = 7 if len(row) > 7 else None
 
                 if purchase_date is None and purchase_idx is not None and len(row) > purchase_idx:
                     purchase_raw = row[purchase_idx].strip()
@@ -1989,6 +2801,7 @@ def import_spare_parts():
                 spare_part = SparePart(
                     name=name,
                     part_number=part_number,
+                    type_id=type_id,
                     price=price,
                     stock_quantity=stock_quantity,
                     min_stock_level=min_stock_level,
@@ -2031,6 +2844,56 @@ def bulk_delete_spare_parts():
     return jsonify({'success': True, 'deleted': deleted})
 
 
+@bp.route('/spare_parts/bulk_public', methods=['POST'])
+@login_required
+def bulk_public_spare_parts():
+    """批量将配件设为公开"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    ids = request.form.getlist('ids[]') or request.form.getlist('ids')
+    if not ids and request.is_json:
+        ids = (request.get_json() or {}).get('ids', [])
+    ids = [int(i) for i in ids if str(i).isdigit()]
+    if not ids:
+        return jsonify({'success': False, 'message': '请选择要公开的配件'})
+    
+    parts = SparePart.query.filter(SparePart.id.in_(ids)).all()
+    updated = 0
+    for part in parts:
+        if not part.is_public:
+            part.is_public = True
+            _log_activity('配件公开', f'将配件 {part.name}#{part.part_number} 设置为公开')
+            updated += 1
+    
+    db.session.commit()
+    return jsonify({'success': True, 'updated': updated})
+
+
+@bp.route('/spare_parts/bulk_unpublic', methods=['POST'])
+@login_required
+def bulk_unpublic_spare_parts():
+    """批量取消配件公开"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    ids = request.form.getlist('ids[]') or request.form.getlist('ids')
+    if not ids and request.is_json:
+        ids = (request.get_json() or {}).get('ids', [])
+    ids = [int(i) for i in ids if str(i).isdigit()]
+    if not ids:
+        return jsonify({'success': False, 'message': '请选择要取消公开的配件'})
+    
+    parts = SparePart.query.filter(SparePart.id.in_(ids)).all()
+    updated = 0
+    for part in parts:
+        if part.is_public:
+            part.is_public = False
+            _log_activity('配件取消公开', f'将配件 {part.name}#{part.part_number} 取消公开')
+            updated += 1
+    
+    db.session.commit()
+    return jsonify({'success': True, 'updated': updated})
+
+
 @bp.route('/spare_parts/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_spare_part(id):
@@ -2043,6 +2906,7 @@ def edit_spare_part(id):
     if request.method == 'POST':
         spare_part.name = request.form.get('name')
         spare_part.part_number = request.form.get('part_number')
+        type_id = request.form.get('type_id')  # 配件类型
         price = request.form.get('price')
         stock_quantity = request.form.get('stock_quantity')
         purchase_date = request.form.get('purchase_date')
@@ -2054,7 +2918,8 @@ def edit_spare_part(id):
         if existing and existing.id != spare_part.id:
             flash('该配件编号已存在')
             return redirect(url_for('main.edit_spare_part', id=id))
-            
+        
+        spare_part.type_id = int(type_id) if type_id else None
         spare_part.price = float(price) if price else 0.0
         spare_part.stock_quantity = int(stock_quantity) if stock_quantity else 0
         spare_part.department = department
@@ -2078,8 +2943,11 @@ def edit_spare_part(id):
     # 获取所有部门供选择
     departments = Department.query.order_by(Department.name).all()
     department_list = [dept.name for dept in departments]
+    
+    # 获取所有配件类型供选择
+    spare_part_types = SparePartType.query.order_by(SparePartType.name).all()
         
-    return render_template('main/edit_spare_part.html', title='编辑配件', spare_part=spare_part, departments=department_list)
+    return render_template('main/edit_spare_part.html', title='编辑配件', spare_part=spare_part, departments=department_list, spare_part_types=spare_part_types)
 
 
 @bp.route('/spare_parts/delete/<int:id>', methods=['POST'])
@@ -2116,10 +2984,13 @@ def repair_order_detail(id):
 @login_required
 def create_repair_order():
     # 获取当前用户所属部门的设备
+    # admin可以选择所有设备,其他用户只能选择本部门设备
     if current_user.role == 'admin':
         equipments = Equipment.query.all()
-    else:
+    elif current_user.department:
         equipments = Equipment.query.filter_by(department=current_user.department).all()
+    else:
+        equipments = []
     
     if request.method == 'POST':
         equipment_id = request.form.get('equipment_id', type=int)
@@ -2128,11 +2999,22 @@ def create_repair_order():
         # 验证数据
         if not equipment_id or not description:
             flash('请填写所有必填字段')
-            equipments = Equipment.query.filter_by(department=current_user.department).all()
+            if current_user.role == 'admin':
+                equipments = Equipment.query.all()
+            elif current_user.department:
+                equipments = Equipment.query.filter_by(department=current_user.department).all()
+            else:
+                equipments = []
             return render_template('main/create_repair_order.html', title='创建维修工单', equipments=equipments)
         
-        # 检查设备是否存在且属于用户所在部门
-        equipment = Equipment.query.filter_by(id=equipment_id, department=current_user.department).first()
+        # 检查设备是否存在
+        # admin可以为任何设备创建工单,其他用户只能为本部门设备创建
+        if current_user.role == 'admin':
+            equipment = Equipment.query.filter_by(id=equipment_id).first()
+        elif current_user.department:
+            equipment = Equipment.query.filter_by(id=equipment_id, department=current_user.department).first()
+        else:
+            equipment = None
         if not equipment:
             flash('请选择有效的设备')
             return redirect(url_for('main.create_repair_order'))
@@ -2147,10 +3029,14 @@ def create_repair_order():
         db.session.add(repair_order)
         db.session.flush()  # 获取repair_order.id
         
+        # 更新设备状态为维修中
+        equipment.status = 'repair'
+        _log_activity('设备进入维修', f'设备 {equipment.name} 状态变更为维修中 (维修工单 #{repair_order.id})')
+        
         # 获取第一个审批节点
-        first_node = WorkflowNode.query.filter_by(
-            order_type='repair_order',
-            is_active=True
+        first_node = WorkflowNode.query.join(WorkflowTemplate).filter(
+            WorkflowTemplate.order_type == 'repair_order',
+            WorkflowNode.is_active == True
         ).order_by(WorkflowNode.sequence).first()
         
         if first_node:
@@ -2178,7 +3064,11 @@ def create_repair_order():
         
         # 创建通知给管理员和部门领导
         admins = User.query.filter_by(role='admin').all()
-        department_heads = User.query.filter_by(role='department_head', department=current_user.department).all()
+        # 只有用户有部门时才查找部门负责人
+        if current_user.department:
+            department_heads = User.query.filter_by(role='department_head', department=current_user.department).all()
+        else:
+            department_heads = []
         
         # 给所有管理员发送通知
         for admin in admins:
@@ -2206,6 +3096,133 @@ def create_repair_order():
     return render_template('main/create_repair_order.html', 
                          title='创建维修工单', 
                          equipments=equipments)
+
+
+@bp.route('/repair_orders/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_repair_order(id):
+    """编辑维修工单"""
+    order = RepairOrder.query.get_or_404(id)
+    
+    # 权限检查：只有工单创建者、管理员可以编辑
+    if current_user.role != 'admin' and order.requester_id != current_user.id:
+        flash('您没有权限编辑此工单', 'danger')
+        return redirect(url_for('main.repair_orders'))
+    
+    # 获取可选设备
+    if current_user.role == 'admin':
+        equipments = Equipment.query.all()
+    elif current_user.department:
+        equipments = Equipment.query.filter_by(department=current_user.department).all()
+    else:
+        equipments = []
+    
+    if request.method == 'POST':
+        equipment_id = request.form.get('equipment_id', type=int)
+        description = request.form.get('description')
+        new_status = request.form.get('status')
+        repair_description = request.form.get('repair_description')
+        
+        if not equipment_id or not description:
+            flash('请填写所有必填字段', 'danger')
+            return render_template('main/edit_repair_order.html', 
+                                 title='编辑维修工单', 
+                                 order=order,
+                                 equipments=equipments)
+        
+        # 如果状态改为已完成，需要填写维修说明
+        if new_status == 'completed' and not repair_description:
+            flash('完成工单时必须填写维修说明', 'danger')
+            return render_template('main/edit_repair_order.html', 
+                                 title='编辑维修工单', 
+                                 order=order,
+                                 equipments=equipments)
+        
+        # 检查设备权限
+        equipment = Equipment.query.get(equipment_id)
+        if not equipment:
+            flash('设备不存在', 'danger')
+            return render_template('main/edit_repair_order.html', 
+                                 title='编辑维修工单', 
+                                 order=order,
+                                 equipments=equipments)
+        
+        if current_user.role != 'admin' and equipment.department != current_user.department:
+            flash('您只能选择本部门的设备', 'danger')
+            return render_template('main/edit_repair_order.html', 
+                                 title='编辑维修工单', 
+                                 order=order,
+                                 equipments=equipments)
+        
+        # 更新工单信息
+        old_equipment_name = order.equipment.name if order.equipment else ''
+        old_status = order.status
+        
+        order.equipment_id = equipment_id
+        order.description = description
+        order.status = new_status
+        order.updated_date = get_beijing_now()
+        
+        # 更新维修说明
+        if repair_description:
+            order.repair_description = repair_description
+        
+        # 如果状态变为已完成，记录完成时间并恢复设备状态
+        if new_status == 'completed' and old_status != 'completed':
+            order.completed_date = get_beijing_now()
+            if order.equipment:
+                order.equipment.status = 'available'
+                _log_activity('维修完成', f'设备 {order.equipment.name} 维修完成,状态恢复为可用 (维修工单 #{order.id})')
+        
+        # 如果从已完成改为其他状态，清除完成时间
+        if old_status == 'completed' and new_status != 'completed':
+            order.completed_date = None
+        
+        db.session.commit()
+        
+        status_text = {
+            'submitted': '已提交',
+            'in_progress': '处理中',
+            'completed': '已完成',
+            'cancelled': '已取消'
+        }
+        
+        _log_activity('编辑维修工单', 
+                     f'编辑维修工单 #{order.id} - {old_equipment_name} -> {equipment.name}, '
+                     f'状态: {status_text.get(old_status, old_status)} -> {status_text.get(new_status, new_status)}')
+        
+        flash('维修工单更新成功', 'success')
+        return redirect(url_for('main.repair_order_detail', id=id))
+    
+    return render_template('main/edit_repair_order.html', 
+                         title='编辑维修工单', 
+                         order=order,
+                         equipments=equipments)
+
+
+@bp.route('/repair_orders/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_repair_order(id):
+    """删除维修工单"""
+    order = RepairOrder.query.get_or_404(id)
+    
+    # 权限检查：只有工单创建者、管理员可以删除
+    if current_user.role != 'admin' and order.requester_id != current_user.id:
+        return jsonify({'success': False, 'message': '您没有权限删除此工单'})
+    
+    # 只允许删除已提交状态的工单
+    if order.status not in ['submitted', 'cancelled']:
+        return jsonify({'success': False, 'message': '只能删除已提交或已取消状态的工单'})
+    
+    equipment_name = order.equipment.name if order.equipment else ''
+    order_id = order.id
+    
+    db.session.delete(order)
+    db.session.commit()
+    
+    _log_activity('删除维修工单', f'删除维修工单 #{order_id} - {equipment_name}')
+    
+    return jsonify({'success': True, 'message': '维修工单删除成功'})
 
 
 @bp.route('/repair_orders/<int:id>/update_status', methods=['GET', 'POST'])
@@ -2242,10 +3259,14 @@ def update_repair_order_status(id):
         repair_order.technician_id = technician_id
         
     if new_status == 'completed' and not repair_order.completed_date:
-        repair_order.completed_date = datetime.now(timezone.utc)
+        repair_order.completed_date = get_beijing_now()
         
-    repair_order.updated_date = datetime.now(timezone.utc)
+        # 维修完成时恢复设备状态为可用
+        if repair_order.equipment:
+            repair_order.equipment.status = 'available'
+            _log_activity('维修完成', f'设备 {repair_order.equipment.name} 维修完成,状态恢复为可用 (维修工单 #{repair_order.id})')
     
+    repair_order.updated_date = get_beijing_now()
     db.session.commit()
     
     flash('工单状态更新成功')
@@ -2467,17 +3488,30 @@ def approvals():
     return render_template('main/approvals.html', title='待审批工单', repair_orders=repair_orders, part_orders=part_orders, transfer_orders=transfer_orders, scrap_orders=scrap_orders, application_orders=application_orders, loan_orders=loan_orders)
 
 
+# 注意: approval_history 路由已移至 approval_history_routes.py,避免重复定义
+# 该文件包含了更完整的审批历史功能,包括分页、过滤和管理员干预等
+
+
 @bp.route('/approvals/repair_order/<int:order_id>/<action>', methods=['POST'])
 @login_required
 def approve_repair_order(order_id, action):
     """审批维修工单"""
-    # 获取审批记录
-    approval = ApprovalWorkflow.query.filter_by(
-        order_type='repair_order',
-        order_id=order_id,
-        approver_id=current_user.id,
-        status='pending'
-    ).first_or_404()
+    # 获取审批记录 - 管理员可以审批任何待审批的工单
+    if current_user.role in ['admin', 'super_admin']:
+        # 管理员:找到任何待审批的记录
+        approval = ApprovalWorkflow.query.filter_by(
+            order_type='repair_order',
+            order_id=order_id,
+            status='pending'
+        ).first_or_404()
+    else:
+        # 普通用户:只能审批分配给自己的
+        approval = ApprovalWorkflow.query.filter_by(
+            order_type='repair_order',
+            order_id=order_id,
+            approver_id=current_user.id,
+            status='pending'
+        ).first_or_404()
     
     # 获取工单
     repair_order = RepairOrder.query.get_or_404(order_id)
@@ -2487,6 +3521,16 @@ def approve_repair_order(order_id, action):
         approval.status = 'approved'
         approval.approved_date = datetime.now(timezone.utc)
         approval.comments = request.form.get('comments', '')
+        
+        # 处理维修金额(管理员评估金额节点)
+        repair_cost = request.form.get('repair_cost')
+        if repair_cost:
+            try:
+                repair_order.repair_cost = float(repair_cost)
+            except (ValueError, TypeError):
+                flash('维修金额格式错误', 'danger')
+                db.session.rollback()
+                return redirect(url_for('main.approvals'))
         
         # 根据审批级别更新工单状态
         if approval.approval_level == 'department_head':
@@ -2503,51 +3547,72 @@ def approve_repair_order(order_id, action):
         next_node = get_next_approval_node('repair_order', repair_order.id)
         if next_node:
             # 创建下一个审批节点
+            next_approver_id = get_approver_id(next_node, repair_order.requester.department)
+            if not next_approver_id:
+                flash(f'错误: 无法找到 {next_node.name} 的审批人 (角色: {next_node.role_required}, 部门: {repair_order.requester.department})', 'danger')
+                db.session.rollback()
+                return redirect(url_for('main.approvals'))
+                
             next_approval = ApprovalWorkflow(
                 order_type='repair_order',
                 order_id=repair_order.id,
-                approver_id=get_approver_id(next_node, repair_order.requester.department),
+                approver_id=next_approver_id,
                 approval_level=next_node.role_required,
+                node_id=next_node.id,  # 添加 node_id
                 status='pending'
             )
             db.session.add(next_approval)
             
-            # 审批进行中，发送进度通知
-            notification = Notification(
-                user_id=repair_order.requester_id,
-                title='维修工单审批状态更新',
-                message=f'您的维修工单 #{repair_order.id} 已被 {current_user.username} 批准，进入下一审批节点',
+            # 发送通知给下一个审批人
+            next_approver = User.query.get(next_approver_id)
+            if next_approver:
+                # 使用新的通知工具(包含实时推送)
+                from app.notification_utils import notify_approval_needed
+                notify_approval_needed(
+                    approver_id=next_approver.id,
+                    order_type='repair_order',
+                    order_id=repair_order.id,
+                    order_description=f'维修工单 - {repair_order.description}',
+                    node_name=next_node.name
+                )
+            
+            # 审批进行中，发送进度通知给申请人
+            from app.notification_utils import notify_approval_progress
+            notify_approval_progress(
+                requester_id=repair_order.requester_id,
                 order_type='repair_order',
-                order_id=repair_order.id
+                order_id=repair_order.id,
+                approver_name=current_user.username,
+                next_node_name=next_node.name
             )
-            db.session.add(notification)
         else:
             # 所有审批完成，更新工单状态为已批准（归档）
             repair_order.status = 'approved'
             
             # 发送审批完成通知给申请人
-            notification = Notification(
-                user_id=repair_order.requester_id,
-                title='维修工单审批完成',
-                message=f'您的维修工单 #{repair_order.id} 已通过所有审批，可以开始维修',
+            from app.notification_utils import notify_approval_completed
+            notify_approval_completed(
+                requester_id=repair_order.requester_id,
                 order_type='repair_order',
-                order_id=repair_order.id
+                order_id=repair_order.id,
+                order_description='维修工单'
             )
-            db.session.add(notification)
             
             # 发送通知给管理员和技术员
+            from app.notification_utils import create_notification
             admins = User.query.filter_by(role='admin').all()
             technicians = User.query.filter_by(role='technician').all()
             for user in admins + technicians:
                 if user.id != current_user.id:
-                    user_notification = Notification(
+                    create_notification(
                         user_id=user.id,
                         title='维修工单已批准',
                         message=f'维修工单 #{repair_order.id} 已通过审批，等待处理',
                         order_type='repair_order',
-                        order_id=repair_order.id
+                        order_id=repair_order.id,
+                        notification_type='info',
+                        link='/repair_orders'
                     )
-                    db.session.add(user_notification)
             
             # 记录审批活动
             _log_activity('审批维修工单', f'用户 {current_user.username} 批准了维修工单 #{repair_order.id}')
@@ -2567,14 +3632,14 @@ def approve_repair_order(order_id, action):
         _log_activity('审批维修工单', f'用户 {current_user.username} 拒绝了维修工单 #{repair_order.id}')
         
         # 创建通知给申请人
-        notification = Notification(
-            user_id=repair_order.requester_id,
-            title='维修工单被拒绝',
-            message=f'您的维修工单 #{repair_order.id} 已被 {current_user.username} 拒绝',
+        from app.notification_utils import notify_approval_rejected
+        notify_approval_rejected(
+            requester_id=repair_order.requester_id,
             order_type='repair_order',
-            order_id=repair_order.id
+            order_id=repair_order.id,
+            approver_name=current_user.username,
+            reason=approval.comments
         )
-        db.session.add(notification)
         
         flash('维修工单已拒绝')
         
@@ -2584,6 +3649,9 @@ def approve_repair_order(order_id, action):
 
 def get_next_approval_node(order_type, order_id):
     """获取下一个审批节点"""
+    # 延迟导入以避免循环依赖
+    from app.approval_models import WorkflowNode, WorkflowTemplate
+
     # 获取当前已完成的审批节点
     current_approvals = ApprovalWorkflow.query.filter_by(
         order_type=order_type,
@@ -2591,9 +3659,9 @@ def get_next_approval_node(order_type, order_id):
     ).filter(ApprovalWorkflow.status.in_(['approved', 'rejected'])).all()
     
     # 获取所有审批节点
-    all_nodes = WorkflowNode.query.filter_by(
-        order_type=order_type,
-        is_active=True
+    all_nodes = WorkflowNode.query.join(WorkflowTemplate).filter(
+        WorkflowTemplate.order_type == order_type,
+        WorkflowNode.is_active == True
     ).order_by(WorkflowNode.sequence).all()
     
     # 找到下一个未处理的节点
@@ -2606,22 +3674,57 @@ def get_next_approval_node(order_type, order_id):
 
 
 def get_approver_id(node, department_name):
-    """根据节点和部门获取审批人ID"""
-    if node.role_required == 'department_head':
+    """根据节点和部门获取审批人ID
+    
+    优先使用新的审批角色系统，如果角色未分配用户则fallback到旧的role_required逻辑
+    """
+    # 1. 尝试从审批角色获取审批人
+    if node.approval_role_id:
+        from app.approval_roles import UserApprovalRole
+        
+        # 查找该角色的活跃用户
+        assignments = UserApprovalRole.query.filter_by(
+            role_id=node.approval_role_id,
+            is_active=True
+        ).all()
+        
+        # 如果有多个用户，优先选择同部门的
+        eligible_users = [a.user for a in assignments if a.user and a.user.is_active]
+        
+        if eligible_users:
+            # 如果提供了部门，尝试匹配部门
+            if department_name:
+                same_dept_users = [u for u in eligible_users if u.department == department_name]
+                if same_dept_users:
+                    return same_dept_users[0].id
+            
+            # 返回第一个可用用户
+            return eligible_users[0].id
+    
+    # 2. Fallback到旧的role_required逻辑（兼容性）
+    if node.role_required == 'department_head' or node.role_required == '部门负责人':
         user = User.query.filter_by(
             role='department_head',
             department=department_name
         ).first()
+        if user:
+            return user.id
+        # 如果没有找到部门负责人，尝试查找该部门的任何管理员
+        user = User.query.filter_by(
+            role='admin',
+            department=department_name
+        ).first()
         return user.id if user else None
-    elif node.role_required == 'admin':
+    elif node.role_required == 'admin' or node.role_required == '系统管理员':
         user = User.query.filter_by(role='admin').first()
         return user.id if user else None
-    elif node.role_required == 'technician':
+    elif node.role_required == 'technician' or node.role_required == '技术员':
         user = User.query.filter_by(
             role='technician',
             department=department_name
         ).first()
         return user.id if user else None
+    
     return None
 
 
@@ -2629,116 +3732,260 @@ def get_approver_id(node, department_name):
 @login_required
 def approve_part_order(order_id, action):
     """审批配件申请工单"""
-    # 获取审批记录
-    approval = ApprovalWorkflow.query.filter_by(
-        order_type='part_request_order',
-        order_id=order_id,
-        approver_id=current_user.id,
-        status='pending'
-    ).first_or_404()
-    
-    # 获取工单
-    part_order = PartRequestOrder.query.get_or_404(order_id)
-    
-    if action == 'approve':
-        # 更新审批状态
-        approval.status = 'approved'
-        approval.approved_date = datetime.now(timezone.utc)
-        approval.comments = request.form.get('comments', '')
-        
-        # 根据审批级别更新工单状态
-        if approval.approval_level == 'department_head':
-            part_order.department_head_approved = True
-            part_order.department_head_id = current_user.id
-            part_order.status = 'department_head_approved'
-                
-        elif approval.approval_level == 'admin':
-            part_order.admin_approved = True
-            part_order.admin_id = current_user.id
-            part_order.status = 'admin_approved'
-        
-        # 检查是否还有后续审批节点
-        next_node = get_next_approval_node('part_request_order', part_order.id)
-        if next_node:
-            next_approval = ApprovalWorkflow(
+    try:
+        # 获取审批记录 - 管理员可以审批任何待审批的工单
+        if current_user.role in ['admin', 'super_admin']:
+            approval = ApprovalWorkflow.query.filter_by(
                 order_type='part_request_order',
-                order_id=part_order.id,
-                approver_id=get_approver_id(next_node, part_order.requester.department if part_order.requester else None),
-                approval_level=next_node.role_required,
-                node_id=next_node.id,
+                order_id=order_id,
                 status='pending'
-            )
-            db.session.add(next_approval)
+            ).first_or_404()
         else:
-            # 所有审批完成
-            part_order.status = 'approved'
-            part_order.completed_date = datetime.now(timezone.utc)
+            approval = ApprovalWorkflow.query.filter_by(
+                order_type='part_request_order',
+                order_id=order_id,
+                approver_id=current_user.id,
+                status='pending'
+            ).first_or_404()
+        
+        # 获取工单
+        part_order = PartRequestOrder.query.get_or_404(order_id)
+        
+        if action == 'approve':
+            # 更新审批状态
+            approval.status = 'approved'
+            approval.approved_date = datetime.now(timezone.utc)
+            approval.comments = request.form.get('comments', '')
             
-            # 减少配件库存
-            spare_part = None
-            if part_order.part_number:
-                spare_part = SparePart.query.filter_by(part_number=part_order.part_number).first()
-            if not spare_part and part_order.part_name:
-                spare_part = SparePart.query.filter_by(name=part_order.part_name).first()
+            # 根据审批级别更新工单状态
+            if approval.approval_level == 'department_head':
+                part_order.department_head_approved = True
+                part_order.department_head_id = current_user.id
+                part_order.status = 'department_head_approved'
+                    
+            elif approval.approval_level == 'admin':
+                part_order.admin_approved = True
+                part_order.admin_id = current_user.id
+                part_order.status = 'admin_approved'
             
-            if spare_part:
-                if spare_part.stock_quantity >= part_order.quantity:
+            # 检查是否还有后续审批节点
+            next_node = get_next_approval_node('part_request_order', part_order.id)
+            if next_node:
+                next_approval = ApprovalWorkflow(
+                    order_type='part_request_order',
+                    order_id=part_order.id,
+                    approver_id=get_approver_id(next_node, part_order.requester.department if part_order.requester else None),
+                    approval_level=next_node.role_required,
+                    node_id=next_node.id,
+                    status='pending'
+                )
+                db.session.add(next_approval)
+            else:
+                # 所有审批完成 - 使用悲观锁扣减库存
+                part_order.status = 'approved'
+                part_order.completed_date = get_beijing_now()
+                
+                # 查找配件并使用 SELECT FOR UPDATE 锁定
+                spare_part = None
+                if part_order.part_number:
+                    spare_part = db.session.query(SparePart).with_for_update().filter_by(
+                        part_number=part_order.part_number
+                    ).first()
+                if not spare_part and part_order.part_name:
+                    spare_part = db.session.query(SparePart).with_for_update().filter_by(
+                        name=part_order.part_name
+                    ).first()
+                
+                if spare_part:
+                    # 检查库存是否充足
+                    if spare_part.stock_quantity < part_order.quantity:
+                        raise ValueError(f'库存不足! 配件 {spare_part.name} 当前库存: {spare_part.stock_quantity}, 需求: {part_order.quantity}')
+                    
+                    # 扣减库存
                     spare_part.stock_quantity -= part_order.quantity
                     _log_activity('减少配件库存', f'配件申请 #{part_order.id} 审批完成，减少 {spare_part.name} 库存 {part_order.quantity} 个')
-                else:
-                    flash(f'警告：配件 {spare_part.name} 库存不足（当前库存：{spare_part.stock_quantity}，申请数量：{part_order.quantity}）', 'warning')
+                    
+                    # 检查低库存预警
+                    if hasattr(spare_part, 'low_stock_threshold') and spare_part.low_stock_threshold:
+                        if spare_part.stock_quantity <= spare_part.low_stock_threshold:
+                            admins = User.query.filter_by(role='admin').all()
+                            for admin in admins:
+                                warning_notification = Notification(
+                                    user_id=admin.id,
+                                    title='配件库存预警',
+                                    message=f'配件 {spare_part.name} 库存不足,当前库存: {spare_part.stock_quantity}'
+                                )
+                                db.session.add(warning_notification)
+                
+            _log_activity('审批配件申请', f'用户 {current_user.username} 批准了配件申请 #{part_order.id} (配件: {part_order.part_name}, 数量: {part_order.quantity})')
+                
+            # 创建通知给申请人
+            notification = Notification(
+                user_id=part_order.requester_id,
+                title='配件申请审批完成' if part_order.status == 'approved' else '配件申请审批状态更新',
+                message=f'您的配件申请 #{part_order.id} 已被 {current_user.username} 批准' + ('，库存已减少' if part_order.status == 'approved' else ''),
+                order_type='part_request_order',
+                order_id=part_order.id
+            )
+            db.session.add(notification)
+                
+            db.session.commit()
+            flash('配件申请审批成功', 'success')
             
-        _log_activity('审批配件申请', f'用户 {current_user.username} 批准了配件申请 #{part_order.id} (配件: {part_order.part_name}, 数量: {part_order.quantity})')
+        elif action == 'reject':
+            # 拒绝工单
+            approval.status = 'rejected'
+            approval.approved_date = datetime.now(timezone.utc)
+            approval.comments = request.form.get('comments', '')
             
-        # 创建通知给申请人
-        notification = Notification(
-            user_id=part_order.requester_id,
-            title='配件申请审批完成' if part_order.status == 'approved' else '配件申请审批状态更新',
-            message=f'您的配件申请 #{part_order.id} 已被 {current_user.username} 批准' + ('，库存已减少' if part_order.status == 'approved' else ''),
-            order_type='part_request_order',
-            order_id=part_order.id
-        )
-        db.session.add(notification)
+            # 更新工单状态
+            part_order.status = 'cancelled'
             
-        flash('配件申请审批成功')
+            _log_activity('审批配件申请', f'用户 {current_user.username} 拒绝了配件申请 #{part_order.id} (配件: {part_order.part_name}, 数量: {part_order.quantity})')
+            
+            # 创建通知给申请人
+            notification = Notification(
+                user_id=part_order.requester_id,
+                title='配件申请被拒绝',
+                message=f'您的配件申请 #{part_order.id} 已被 {current_user.username} 拒绝',
+                order_type='part_request_order',
+                order_id=part_order.id
+            )
+            db.session.add(notification)
+            
+            db.session.commit()
+            flash('配件申请已拒绝', 'info')
+    
+    except ValueError as e:
+        # 业务逻辑错误 (如库存不足)
+        db.session.rollback()
+        flash(str(e), 'danger')
+        return redirect(url_for('main.approvals'))
+    
+    except Exception as e:
+        # 其他未知错误
+        db.session.rollback()
+        current_app.logger.error(f'配件申请审批失败: {e}', exc_info=True)
+        flash('操作失败,请联系管理员', 'danger')
+        return redirect(url_for('main.approvals'))
         
-    elif action == 'reject':
-        # 拒绝工单
-        approval.status = 'rejected'
-        approval.approved_date = datetime.now(timezone.utc)
-        approval.comments = request.form.get('comments', '')
-        
-        # 更新工单状态
-        part_order.status = 'cancelled'
-        
-        _log_activity('审批配件申请', f'用户 {current_user.username} 拒绝了配件申请 #{part_order.id} (配件: {part_order.part_name}, 数量: {part_order.quantity})')
-        
-        # 创建通知给申请人
-        notification = Notification(
-            user_id=part_order.requester_id,
-            title='配件申请被拒绝',
-            message=f'您的配件申请 #{part_order.id} 已被 {current_user.username} 拒绝',
-            order_type='part_request_order',
-            order_id=part_order.id
-        )
-        db.session.add(notification)
-        
-        flash('配件申请已拒绝')
-        
-    db.session.commit()
     return redirect(url_for('main.approvals'))
 
 
 @bp.route('/admin/workflow_nodes')
 @login_required
 def admin_workflow_nodes():
-    """审批流程节点管理"""
+    """审批流程节点管理 - 重定向到按类型配置"""
+    return redirect(url_for('main.workflow_config_by_type'))
+
+
+@bp.route('/admin/workflow_config', defaults={'order_type': None})
+@bp.route('/admin/workflow_config/<order_type>')
+@login_required
+def workflow_config_by_type(order_type=None):
+    """按工单类型配置审批流程"""
     if current_user.role != 'admin':
         flash('您没有权限访问此页面')
         return redirect(url_for('main.index'))
     
-    nodes = WorkflowNode.query.order_by(WorkflowNode.order_type, WorkflowNode.sequence).all()
-    return render_template('main/workflow_nodes.html', title='审批流程管理', nodes=nodes)
+    # 工单类型定义
+    order_types = {
+        'repair_order': {
+            'name': '维修工单',
+            'icon': 'fa-wrench',
+            'description': '设备故障维修申请'
+        },
+        'part_request_order': {
+            'name': '配件申请',
+            'icon': 'fa-box',
+            'description': '配件领用申请'
+        },
+        'equipment_application': {
+            'name': '设备申请',
+            'icon': 'fa-laptop',
+            'description': '新设备申请'
+        },
+        'equipment_loan': {
+            'name': '设备借用',
+            'icon': 'fa-handshake',
+            'description': '设备临时借用'
+        },
+        'equipment_transfer': {
+            'name': '设备调拨',
+            'icon': 'fa-truck',
+            'description': '设备部门间调拨'
+        },
+        'equipment_scrap': {
+            'name': '设备报废',
+            'icon': 'fa-trash-alt',
+            'description': '设备报废处理'
+        }
+    }
+    
+    # 统计每个工单类型的审批节点数量
+    workflow_stats = {}
+    for type_key in order_types.keys():
+        count = WorkflowNode.query.join(WorkflowTemplate).filter(
+            WorkflowTemplate.order_type == type_key,
+            WorkflowNode.is_active == True
+        ).count()
+        workflow_stats[type_key] = count
+    
+    # 如果指定了工单类型，获取该类型的审批节点
+    nodes = []
+    next_sequence = 1
+    if order_type and order_type in order_types:
+        nodes = WorkflowNode.query.join(WorkflowTemplate).filter(
+            WorkflowTemplate.order_type == order_type,
+            WorkflowNode.is_active == True
+        ).order_by(WorkflowNode.sequence).all()
+        
+        # 计算下一个序号
+        if nodes:
+            next_sequence = max([n.sequence for n in nodes]) + 1
+    
+    # 获取所有用户（用于指定审批人）
+    users = User.query.order_by(User.username).all()
+    
+    # 角色名称映射
+    def get_role_name(role):
+        role_map = {
+            'user': '普通用户',
+            'employee': '普通员工',
+            'department_head': '部门负责人',
+            'admin': '管理员',
+            'technician': '技术员',
+            'procurement': '采购专员',
+            'warehouse': '仓库管理员',
+            'security': '信息安全员',
+            'finance': '财务审批人',
+            'executive': '高层管理者',
+            'auditor': '审计员'
+        }
+        return role_map.get(role, role)
+    
+    return render_template('main/workflow_config_by_type.html',
+                         title='审批流程配置',
+                         order_types=order_types,
+                         workflow_stats=workflow_stats,
+                         selected_type=order_type,
+                         nodes=nodes,
+                         users=users,
+                         next_sequence=next_sequence,
+                         get_role_name=get_role_name)
+
+
+@bp.route('/admin/workflow_help')
+@login_required
+def admin_workflow_help():
+    """工作流配置帮助页面"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    return render_template('main/admin_workflow_help.html', title='工作流配置帮助')
+
+
 @bp.route('/part_request_orders')
 @login_required
 def part_request_orders():
@@ -2772,6 +4019,101 @@ def part_request_orders():
         return render_template('main/part_request_orders_table.html', orders=orders_data)
     
     return render_template('main/part_request_orders.html', title='配件申请工单', orders=orders_data)
+
+
+@bp.route('/part_request_orders/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_part_request_order(id):
+    """编辑配件申请工单"""
+    order = PartRequestOrder.query.get_or_404(id)
+    
+    # 权限检查：只有申请人或管理员可以编辑
+    if current_user.role != 'admin' and order.requester_id != current_user.id:
+        flash('您没有权限编辑此申请', 'danger')
+        return redirect(url_for('main.part_request_orders'))
+    
+    if request.method == 'POST':
+        part_name = request.form.get('part_name')
+        part_number = request.form.get('part_number')
+        quantity = request.form.get('quantity', type=int)
+        reason = request.form.get('reason')
+        new_status = request.form.get('status')
+        
+        if not all([part_name, part_number, quantity, reason]):
+            flash('请填写所有必填字段', 'danger')
+            return render_template('main/edit_part_request_order.html', 
+                                 title='编辑配件申请', 
+                                 order=order)
+        
+        if quantity <= 0:
+            flash('数量必须大于0', 'danger')
+            return render_template('main/edit_part_request_order.html', 
+                                 title='编辑配件申请', 
+                                 order=order)
+        
+        # 更新申请信息
+        old_status = order.status
+        order.part_name = part_name
+        order.part_number = part_number
+        order.quantity = quantity
+        order.reason = reason
+        order.status = new_status
+        order.updated_date = get_beijing_now()
+        
+        # 如果状态变为已完成，记录完成时间
+        if new_status in ['completed', 'approved'] and old_status not in ['completed', 'approved']:
+            order.completed_date = get_beijing_now()
+        
+        # 如果从已完成改为其他状态，清除完成时间
+        if old_status in ['completed', 'approved'] and new_status not in ['completed', 'approved']:
+            order.completed_date = None
+        
+        db.session.commit()
+        
+        status_text = {
+            'submitted': '待审批',
+            'department_head_approved': '部门领导已批准',
+            'admin_approved': '管理员已批准',
+            'completed': '已完成',
+            'approved': '已完成',
+            'cancelled': '已取消'
+        }
+        
+        _log_activity('编辑配件申请', 
+                     f'编辑配件申请 #{order.id} - {part_name}, '
+                     f'状态: {status_text.get(old_status, old_status)} -> {status_text.get(new_status, new_status)}')
+        
+        flash('配件申请更新成功', 'success')
+        return redirect(url_for('main.part_request_order_detail', id=id))
+    
+    return render_template('main/edit_part_request_order.html', 
+                         title='编辑配件申请', 
+                         order=order)
+
+
+@bp.route('/part_request_orders/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_part_request_order(id):
+    """删除配件申请工单"""
+    order = PartRequestOrder.query.get_or_404(id)
+    
+    # 权限检查：只有申请人或管理员可以删除
+    if current_user.role != 'admin' and order.requester_id != current_user.id:
+        return jsonify({'success': False, 'message': '您没有权限删除此申请'})
+    
+    # 只允许删除已提交或已取消状态的申请
+    if order.status not in ['submitted', 'cancelled']:
+        return jsonify({'success': False, 'message': '只能删除待审批或已取消状态的申请'})
+    
+    part_name = order.part_name
+    order_id = order.id
+    
+    db.session.delete(order)
+    db.session.commit()
+    
+    _log_activity('删除配件申请', f'删除配件申请 #{order_id} - {part_name}')
+    
+    return jsonify({'success': True, 'message': '配件申请删除成功'})
 
 
 @bp.route('/admin/transfers')
@@ -2810,6 +4152,14 @@ def admin_scraps():
         return redirect(url_for('main.index'))
 
     scraps = EquipmentScrap.query.order_by(EquipmentScrap.created_date.desc()).all()
+    
+    # 为每个报废申请加载审批流程
+    for scrap in scraps:
+        scrap.approvals = ApprovalWorkflow.query.filter_by(
+            order_type='equipment_scrap',
+            order_id=scrap.id
+        ).order_by(ApprovalWorkflow.created_date).all()
+    
     return render_template('main/admin_scraps.html', title='设备报废管理', scraps=scraps)
 
 
@@ -2842,9 +4192,23 @@ def add_workflow_node():
         except ValueError:
             return jsonify({'success': False, 'message': '顺序必须是数字'})
         
+        # 处理可选的指定审批人（多选）
+        approver_ids = request.form.getlist('approver_user_ids') or []
+        # 过滤空值并转换为 int
+        approver_ids = [int(i) for i in approver_ids if i]
+
         # 创建节点
         node = WorkflowNode(name=name, order_type=order_type, role_required=role_required, sequence=sequence)
-        
+
+        if approver_ids:
+            import json
+            node.approver_user_ids = json.dumps(approver_ids)
+            node.is_parallel = True if len(approver_ids) > 1 else False
+            node.required_approvals = len(approver_ids)
+            # 若只指定了一个审批人，也设置 approver_user_id 以兼容旧逻辑
+            if len(approver_ids) == 1:
+                node.approver_user_id = approver_ids[0]
+
         db.session.add(node)
         db.session.commit()
         
@@ -2877,12 +4241,29 @@ def edit_workflow_node(id):
         except ValueError:
             return jsonify({'success': False, 'message': '顺序必须是数字'})
         
+        # 处理可选的指定审批人（多选）
+        approver_ids = request.form.getlist('approver_user_ids') or []
+        approver_ids = [int(i) for i in approver_ids if i]
+
         # 更新节点
         node.name = name
-        node.order_type = order_type
+        # order_type 通过 template 管理，不能直接修改
+        # node.order_type = order_type
         node.role_required = role_required
         node.sequence = sequence
-        
+
+        if approver_ids:
+            import json
+            node.approver_user_ids = json.dumps(approver_ids)
+            node.is_parallel = True if len(approver_ids) > 1 else False
+            node.required_approvals = len(approver_ids)
+            node.approver_user_id = approver_ids[0] if len(approver_ids) >= 1 else None
+        else:
+            node.approver_user_ids = None
+            node.is_parallel = False
+            node.required_approvals = 1
+            node.approver_user_id = None
+
         db.session.commit()
         
         return jsonify({'success': True, 'message': '审批节点更新成功'})
@@ -3051,8 +4432,29 @@ def workflow_nodes():
         flash('您没有权限访问此页面')
         return redirect(url_for('main.index'))
     
-    nodes = WorkflowNode.query.order_by(WorkflowNode.order_type, WorkflowNode.sequence).all()
-    return render_template('main/workflow_nodes.html', title='审批流程管理', nodes=nodes)
+    # 按序号排序，不再按order_type排序（WorkflowNode没有此字段）
+    nodes = WorkflowNode.query.join(WorkflowTemplate).order_by(
+        WorkflowTemplate.order_type, 
+        WorkflowNode.sequence
+    ).all()
+    # 为了让非管理员入口也能在编辑/添加时选择指定审批人，传入 users 列表
+    users = []
+    try:
+        users = User.query.order_by(User.username).all()
+    except Exception:
+        users = []
+
+    # 计算同步对（与 WorkflowTemplate 中的步骤对比），和管理员入口保持一致
+    synced_pairs = set()
+    try:
+        templates = WorkflowTemplate.query.filter_by(is_active=True).all()
+        for tpl in templates:
+            for step in tpl.steps:
+                synced_pairs.add((tpl.order_type, step.step_name))
+    except Exception:
+        synced_pairs = set()
+
+    return render_template('main/workflow_nodes.html', title='审批流程管理', nodes=nodes, users=users, synced_pairs=synced_pairs)
 
 
 @bp.route('/user_history')
@@ -3116,7 +4518,19 @@ def create_part_request_order():
         # 验证数据
         if not part_name or not reason:
             flash('请填写所有必填字段')
-            spare_parts = SparePart.query.all()
+            # 根据用户权限获取可申请的配件列表
+            if current_user.role == 'admin':
+                spare_parts = SparePart.query.order_by(SparePart.name).all()
+            elif current_user.department_id:
+                spare_parts = SparePart.query.filter(
+                    or_(
+                        SparePart.department_id == current_user.department_id,
+                        SparePart.is_public == True
+                    )
+                ).order_by(SparePart.name).all()
+            else:
+                spare_parts = SparePart.query.filter_by(is_public=True).order_by(SparePart.name).all()
+            
             return render_template('main/create_part_request_order.html', 
                                  title='创建配件申请', 
                                  spare_parts=spare_parts)
@@ -3134,19 +4548,27 @@ def create_part_request_order():
             db.session.add(part_request_order)
             db.session.flush()
 
-            # 创建审批链：优先使用配置的 WorkflowNode；如果未配置，则使用回退流程（部门负责人 -> 管理员）
-            nodes = WorkflowNode.query.filter_by(order_type='part_request_order', is_active=True).order_by(WorkflowNode.sequence).all()
+            # 创建审批链:优先使用配置的 WorkflowNode;如果未配置,则使用回退流程(部门负责人 -> 管理员)
+            nodes = WorkflowNode.query.join(WorkflowTemplate).filter(
+                WorkflowTemplate.order_type == 'part_request_order',
+                WorkflowNode.is_active == True
+            ).order_by(WorkflowNode.sequence).all()
             if nodes:
                 steps = []
                 for node in nodes:
                     dept_specific = getattr(node, 'department_specific', False)
-                    dept_name = current_user.department if dept_specific else None
+                    dept_name = current_user.department if (dept_specific and current_user.department) else None
                     steps.append((node.role_required, dept_name))
             else:
-                steps = [
-                    ('department_head', current_user.department),
-                    ('admin', None)
-                ]
+                # 回退流程,如果用户有部门则需要部门负责人审批
+                if current_user.department:
+                    steps = [
+                        ('department_head', current_user.department),
+                        ('admin', None)
+                    ]
+                else:
+                    # 无部门用户直接由admin审批
+                    steps = [('admin', None)]
 
             _create_sequenced_approvals('part_request_order', part_request_order.id, steps)
 
@@ -3162,7 +4584,11 @@ def create_part_request_order():
 
             # 创建通知给管理员和部门领导
             admins = User.query.filter_by(role='admin').all()
-            department_heads = User.query.filter_by(role='department_head', department=current_user.department).all()
+            # 只有用户有部门时才查找部门负责人
+            if current_user.department:
+                department_heads = User.query.filter_by(role='department_head', department=current_user.department).all()
+            else:
+                department_heads = []
 
             # 给所有管理员发送通知
             for admin in admins:
@@ -3191,7 +4617,25 @@ def create_part_request_order():
             flash('提交申请失败：' + str(e))
 
     # GET请求或失败后显示配件选择
-    spare_parts = SparePart.query.all()
+    # 根据用户权限显示不同的配件:
+    # - admin: 所有配件
+    # - 本部门用户: 本部门配件 + 公开配件
+    # - 其他用户: 仅公开配件
+    if current_user.role == 'admin':
+        # 管理员可以看到所有配件
+        spare_parts = SparePart.query.order_by(SparePart.name).all()
+    elif current_user.department_id:
+        # 本部门用户可以看到本部门的配件和公开配件
+        spare_parts = SparePart.query.filter(
+            or_(
+                SparePart.department_id == current_user.department_id,
+                SparePart.is_public == True
+            )
+        ).order_by(SparePart.name).all()
+    else:
+        # 其他用户只能看到公开配件
+        spare_parts = SparePart.query.filter_by(is_public=True).order_by(SparePart.name).all()
+    
     return render_template('main/create_part_request_order.html', 
               title='提交配件申请', 
               spare_parts=spare_parts)
@@ -3349,7 +4793,7 @@ def export_report():
             query = query.filter_by(status=status)
         
         # 导出设备报表
-        writer.writerow(['设备名称', '类型', '品牌', '型号', '序列号', '所属部门', '状态', '购买日期'])
+        writer.writerow(['设备名称', '类型', '品牌', '型号', '序列号', '所属部门', '状态', '价格', '购买日期'])
         equipments = query.all()
         for eq in equipments:
             writer.writerow([
@@ -3360,6 +4804,8 @@ def export_report():
                 eq.serial_number, 
                 eq.department or '', 
                 _status_label('equipment', eq.status or 'active'),
+                # include price and purchase_date
+                (float(eq.price) if getattr(eq, 'price', None) is not None else 0.0),
                 eq.purchase_date.strftime('%Y-%m-%d') if eq.purchase_date else ''
             ])
         filename = f'设备报表_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
@@ -3369,7 +4815,7 @@ def export_report():
         users = User.query.all()
         for user in users:
             writer.writerow([user.username, user.email, user.role, user.department])
-        filename = 'user_report.csv'
+        filename = f'用户报表_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     elif report_type == 'repair_orders':
         # 获取筛选参数
         filter_type = request.args.get('filter', '').strip()
@@ -3472,7 +4918,7 @@ def export_report():
         writer.writerow(['设备报废总数', EquipmentScrap.query.count()])
         writer.writerow(['设备借用总数', EquipmentLoan.query.count()])
         writer.writerow(['配件申请总数', PartRequestOrder.query.count()])
-        filename = 'summary_report.csv'
+        filename = f'汇总报表_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
     # 返回CSV文件
     from flask import Response
@@ -3505,7 +4951,7 @@ def _create_sequenced_approvals(order_type, order_id, steps):
     """Create ApprovalWorkflow entries in order. steps is list of (approval_level, department_name_or_None).
     We set created_date offsets to preserve ordering.
     """
-    now = datetime.now(timezone.utc)
+    now = get_beijing_now()
     approvals = []
     for i, (level, dept) in enumerate(steps):
         approver = _get_user_for_role(level, dept)
@@ -3523,7 +4969,19 @@ def _create_sequenced_approvals(order_type, order_id, steps):
                 auto_assigned = True
 
         # 尝试找到匹配的流程节点以写入 node_id，便于顺序推进
-        node = WorkflowNode.query.filter_by(order_type=order_type, role_required=level, is_active=True).order_by(WorkflowNode.sequence).first()
+        # 延迟导入以避免模块导入时的循环依赖
+        from app.approval_models import WorkflowNode, WorkflowTemplate
+        from app.approval_roles import ApprovalRole
+
+        node = WorkflowNode.query.join(
+            WorkflowTemplate
+        ).join(
+            ApprovalRole, WorkflowNode.approval_role_id == ApprovalRole.id
+        ).filter(
+            WorkflowTemplate.order_type == order_type,
+            ApprovalRole.name == level,
+            WorkflowNode.is_active == True
+        ).order_by(WorkflowNode.sequence).first()
         a = ApprovalWorkflow(
             order_type=order_type,
             order_id=order_id,
@@ -3583,11 +5041,14 @@ def create_loan_request():
     # - 非管理员：本部门未报废 + 信息部公开仓库（可申请）
     if current_user.role == 'admin':
         equipments = Equipment.query.filter(Equipment.status != 'retired').all()
-    else:
+    elif current_user.department:
         own = Equipment.query.filter(Equipment.department == current_user.department, Equipment.status != 'retired').all()
         pool = Equipment.query.filter(Equipment.is_public_pool == True, Equipment.status == 'available').all()
         eq_map = {e.id: e for e in own + pool}
         equipments = list(eq_map.values())
+    else:
+        # 用户无部门时,只能申请公开仓库的设备
+        equipments = Equipment.query.filter(Equipment.is_public_pool == True, Equipment.status == 'available').all()
 
     if request.method == 'POST':
         equipment_id = request.form.get('equipment_id', type=int)
@@ -3692,14 +5153,21 @@ def create_equipment_application():
 @bp.route('/approvals/equipment_application/<int:order_id>/<action>', methods=['POST'])
 @login_required
 def approve_equipment_application(order_id, action):
-    approval = ApprovalWorkflow.query.filter_by(
-        order_type='equipment_application', order_id=order_id,
-        approver_id=current_user.id, status='pending'
-    ).first_or_404()
+    # 管理员可以审批任何待审批的工单
+    if current_user.role in ['admin', 'super_admin']:
+        approval = ApprovalWorkflow.query.filter_by(
+            order_type='equipment_application', order_id=order_id,
+            status='pending'
+        ).first_or_404()
+    else:
+        approval = ApprovalWorkflow.query.filter_by(
+            order_type='equipment_application', order_id=order_id,
+            approver_id=current_user.id, status='pending'
+        ).first_or_404()
     app_order = EquipmentApplication.query.get_or_404(order_id)
     if action == 'approve':
         approval.status = 'approved'
-        approval.approved_date = datetime.now(timezone.utc)
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         next_node = get_next_approval_node('equipment_application', app_order.id)
         if next_node:
@@ -3719,7 +5187,7 @@ def approve_equipment_application(order_id, action):
             db.session.add(notification)
         else:
             app_order.status = 'approved'
-            app_order.approved_date = datetime.now(timezone.utc)
+            app_order.approved_date = get_beijing_now()
             # 创建调拨记录：从当前设备部门调往申请人部门
             eq = app_order.equipment
             # 更新设备状态为已分配（不再可用）
@@ -3764,7 +5232,7 @@ def approve_equipment_application(order_id, action):
         flash('设备申请审批成功')
     elif action == 'reject':
         approval.status = 'rejected'
-        approval.approved_date = datetime.now(timezone.utc)
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         app_order.status = 'cancelled'
         notification = Notification(
@@ -3798,7 +5266,13 @@ def loan_requests():
 
     pagination = query.order_by(EquipmentLoan.created_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
     loans = pagination.items
-    return render_template('main/loan_requests.html', title='借用申请', loans=loans, pagination=pagination, q=q)
+    
+    # 计算待验收归还数量(仅管理员可见)
+    pending_count = 0
+    if current_user.role == 'admin':
+        pending_count = EquipmentLoan.query.filter_by(status='return_pending').count()
+    
+    return render_template('main/loan_requests.html', title='借用申请', loans=loans, pagination=pagination, q=q, pending_count=pending_count)
 
 
 @bp.route('/loans/export')
@@ -3841,8 +5315,12 @@ def export_loans():
 @bp.route('/approvals/loan/<int:order_id>/<action>', methods=['POST'])
 @login_required
 def approve_loan(order_id, action):
-    # 尝试找到当前用户对应的待审批记录；若未按用户匹配，尝试找到最早的 pending 节点并校验权限
-    approval = ApprovalWorkflow.query.filter_by(order_type='equipment_loan', order_id=order_id, approver_id=current_user.id, status='pending').first()
+    # 管理员可以审批任何待审批的工单
+    if current_user.role in ['admin', 'super_admin']:
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_loan', order_id=order_id, status='pending').first()
+    else:
+        # 尝试找到当前用户对应的待审批记录;若未按用户匹配,尝试找到最早的 pending 节点并校验权限
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_loan', order_id=order_id, approver_id=current_user.id, status='pending').first()
     if not approval:
         # 没有直接分配给当前用户的节点，尝试取最早的 pending 节点
         approval = _get_next_pending_approval('equipment_loan', order_id)
@@ -3863,13 +5341,19 @@ def approve_loan(order_id, action):
 
     if action == 'approve':
         approval.status = 'approved'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
 
         next_ = _get_next_pending_approval('equipment_loan', order_id)
         if not next_:
             # 流程结束，标记借用申请为已通过
             loan.status = 'approved'
+            
+            # 更新设备状态为已借出
+            if loan.equipment:
+                loan.equipment.status = 'loaned'
+                _log_activity('设备借出', f'设备 {loan.equipment.name} 已借出给 {loan.requester.username if loan.requester else "用户"} (借用申请 #{loan.id})')
+            
             note = Notification(user_id=loan.requester_id, title='借用申请通过', message=f'您的借用申请 #{loan.id} 已审批通过')
             db.session.add(note)
         db.session.add(approval)
@@ -3878,7 +5362,7 @@ def approve_loan(order_id, action):
 
     elif action == 'reject':
         approval.status = 'rejected'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         loan.status = 'rejected'
         note = Notification(user_id=loan.requester_id, title='借用申请被拒绝', message=f'您的借用申请 #{loan.id} 已被拒绝')
@@ -3906,7 +5390,7 @@ def mark_loan_borrowed(loan_id):
         return redirect(url_for('main.loan_requests'))
 
     loan.status = 'borrowed'
-    loan.borrowed_date = datetime.utcnow()
+    loan.borrowed_date = get_beijing_now()
     if loan.equipment:
         loan.equipment.status = 'loaned'
 
@@ -3930,7 +5414,7 @@ def mark_loan_returned(loan_id):
         return redirect(url_for('main.loan_requests'))
 
     loan.status = 'returned'
-    loan.returned_date = datetime.utcnow()
+    loan.returned_date = get_beijing_now()
     if loan.equipment:
         loan.equipment.status = 'active'
 
@@ -3939,6 +5423,82 @@ def mark_loan_returned(loan_id):
     db.session.commit()
     flash('已标记为归还')
     return redirect(url_for('main.loan_requests'))
+
+
+@bp.route('/equipment/loan/<int:id>/return', methods=['POST'])
+@login_required
+def return_equipment(id):
+    """
+    归还借用设备
+    
+    借用人或管理员可以归还设备
+    """
+    try:
+        loan = EquipmentLoan.query.get_or_404(id)
+        
+        # 权限检查: 只有借用人或管理员可以归还
+        if current_user.role not in ['admin', 'super_admin']:
+            if loan.requester_id != current_user.id:
+                flash('您没有权限归还此设备', 'danger')
+                return redirect(url_for('main.index'))
+        
+        # 检查是否已归还
+        if loan.status == 'returned':
+            flash('该设备已归还', 'warning')
+            return redirect(url_for('main.my_loans'))
+        
+        # 检查是否已批准或已借出
+        if loan.status not in ['approved', 'borrowed']:
+            flash('只能归还已批准或已借出的设备', 'warning')
+            return redirect(url_for('main.my_loans'))
+        
+        # 更新借用记录
+        loan.actual_return_date = get_beijing_now()
+        loan.returned_date = get_beijing_now()
+        loan.status = 'returned'
+        
+        # 更新设备状态为可用
+        equipment = loan.equipment
+        if equipment:
+            equipment.status = 'available'
+            _log_activity('归还设备', f'用户 {current_user.username} 归还了设备 {equipment.name} (借用申请 #{loan.id})')
+        
+        # 通知管理员
+        admins = User.query.filter_by(role='admin').all()
+        for admin in admins:
+            notification = Notification(
+                user_id=admin.id,
+                title='设备已归还',
+                message=f'用户 {current_user.username} 已归还设备: {equipment.name if equipment else "未知设备"}'
+            )
+            db.session.add(notification)
+        
+        db.session.commit()
+        flash('设备归还成功', 'success')
+    
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'归还设备失败: {e}', exc_info=True)
+        flash('归还失败,请联系管理员', 'danger')
+    
+    return redirect(url_for('main.my_loans'))
+
+
+@bp.route('/my_loans')
+@login_required
+def my_loans():
+    """
+    查看我的借用记录
+    """
+    # 我申请的借用
+    my_loan_list = EquipmentLoan.query.filter_by(
+        requester_id=current_user.id
+    ).order_by(EquipmentLoan.created_date.desc()).all()
+    
+    return render_template('main/my_loans.html', 
+                         title='我的借用记录',
+                         loans=my_loan_list,
+                         now=datetime.now)
 
 
 @bp.route('/admin/users/<int:user_id>/permissions', methods=['POST'])
@@ -4036,6 +5596,203 @@ def backup_database_route():
     return jsonify(result)
 
 
+@bp.route('/admin/database/export_mysql', methods=['POST'])
+@login_required
+def export_mysql_route():
+    """导出为 MySQL 兼容的 SQL 文件并返回下载信息"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+
+    db_info = get_database_info().get('info', {})
+    if not db_info:
+        return jsonify({'success': False, 'message': '无法获取数据库信息'})
+
+    # 仅支持当前 SQLite 源导出
+    db_uri = db_info.get('uri')
+    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
+    if not sqlite_path:
+        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+
+    # 获取自定义路径
+    custom_path = None
+    if request.is_json:
+        data = request.get_json()
+        custom_path = data.get('custom_path', '').strip() if data else None
+    
+    # 验证和处理自定义路径
+    out_dir = None
+    if custom_path:
+        # 如果是相对路径,转换为绝对路径
+        if not os.path.isabs(custom_path):
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            out_dir = os.path.join(project_root, custom_path)
+        else:
+            # 支持绝对路径: C:\, D:\, \\server\share\ 等
+            out_dir = custom_path
+        
+        # 规范化路径,处理反斜杠
+        out_dir = os.path.normpath(out_dir)
+        
+        # 检查目录是否存在,不存在则尝试创建
+        try:
+            os.makedirs(out_dir, exist_ok=True)
+            # 验证是否可写
+            if not os.access(out_dir, os.W_OK):
+                return jsonify({'success': False, 'message': f'目录不可写: {out_dir}\n请检查权限设置'})
+        except PermissionError:
+            return jsonify({'success': False, 'message': f'权限不足,无法创建目录: {out_dir}\n请以管理员身份运行或选择其他目录'})
+        except OSError as e:
+            return jsonify({'success': False, 'message': f'无法访问路径 {out_dir}: {str(e)}\n请检查:\n1. 磁盘是否存在\n2. 网络路径是否可访问\n3. 路径格式是否正确'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'创建目录失败: {str(e)}'})
+
+    result = export_database_to_mysql(sqlite_path, out_dir=out_dir)
+    if result.get('success'):
+        # 返回实际保存路径
+        actual_path = os.path.dirname(result.get('dump_path', ''))
+        if actual_path:
+            result['save_path'] = actual_path
+        _log_activity('导出数据库(MySQL)', f'用户 {current_user.username} 导出了数据库到 MySQL 转储: {result.get("dump_filename")}')
+    return jsonify(result)
+
+
+@bp.route('/admin/database/export_mssql', methods=['POST'])
+@login_required
+def export_mssql_route():
+    """导出为 SQL Server 兼容的 SQL 文件并返回下载信息"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+
+    db_info = get_database_info().get('info', {})
+    db_uri = db_info.get('uri')
+    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
+    if not sqlite_path:
+        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+
+    # 获取自定义路径
+    custom_path = None
+    if request.is_json:
+        data = request.get_json()
+        custom_path = data.get('custom_path', '').strip() if data else None
+    
+    # 验证和处理自定义路径
+    out_dir = None
+    if custom_path:
+        # 如果是相对路径,转换为绝对路径
+        if not os.path.isabs(custom_path):
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            out_dir = os.path.join(project_root, custom_path)
+        else:
+            # 支持绝对路径: C:\, D:\, \\server\share\ 等
+            out_dir = custom_path
+        
+        # 规范化路径,处理反斜杠
+        out_dir = os.path.normpath(out_dir)
+        
+        # 检查目录是否存在,不存在则尝试创建
+        try:
+            os.makedirs(out_dir, exist_ok=True)
+            # 验证是否可写
+            if not os.access(out_dir, os.W_OK):
+                return jsonify({'success': False, 'message': f'目录不可写: {out_dir}\n请检查权限设置'})
+        except PermissionError:
+            return jsonify({'success': False, 'message': f'权限不足,无法创建目录: {out_dir}\n请以管理员身份运行或选择其他目录'})
+        except OSError as e:
+            return jsonify({'success': False, 'message': f'无法访问路径 {out_dir}: {str(e)}\n请检查:\n1. 磁盘是否存在\n2. 网络路径是否可访问\n3. 路径格式是否正确'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'创建目录失败: {str(e)}'})
+
+    result = export_database_to_mssql(sqlite_path, out_dir=out_dir)
+    if result.get('success'):
+        # 返回实际保存路径
+        actual_path = os.path.dirname(result.get('dump_path', ''))
+        if actual_path:
+            result['save_path'] = actual_path
+        _log_activity('导出数据库(MSSQL)', f'用户 {current_user.username} 导出了数据库到 MSSQL 转储: {result.get("dump_filename")}')
+    return jsonify(result)
+
+
+@bp.route('/admin/database/export_postgresql', methods=['POST'])
+@login_required
+def export_postgresql_route():
+    """导出为 PostgreSQL 兼容的 SQL 文件并返回下载信息"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+
+    db_info = get_database_info().get('info', {})
+    db_uri = db_info.get('uri')
+    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
+    if not sqlite_path:
+        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+
+    # 获取自定义路径
+    custom_path = None
+    if request.is_json:
+        data = request.get_json()
+        custom_path = data.get('custom_path', '').strip() if data else None
+    
+    # 验证和处理自定义路径
+    out_dir = None
+    if custom_path:
+        # 如果是相对路径,转换为绝对路径
+        if not os.path.isabs(custom_path):
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            out_dir = os.path.join(project_root, custom_path)
+        else:
+            # 支持绝对路径: C:\, D:\, \\server\share\ 等
+            out_dir = custom_path
+        
+        # 规范化路径,处理反斜杠
+        out_dir = os.path.normpath(out_dir)
+        
+        # 检查目录是否存在,不存在则尝试创建
+        try:
+            os.makedirs(out_dir, exist_ok=True)
+            # 验证是否可写
+            if not os.access(out_dir, os.W_OK):
+                return jsonify({'success': False, 'message': f'目录不可写: {out_dir}\n请检查权限设置'})
+        except PermissionError:
+            return jsonify({'success': False, 'message': f'权限不足,无法创建目录: {out_dir}\n请以管理员身份运行或选择其他目录'})
+        except OSError as e:
+            return jsonify({'success': False, 'message': f'无法访问路径 {out_dir}: {str(e)}\n请检查:\n1. 磁盘是否存在\n2. 网络路径是否可访问\n3. 路径格式是否正确'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'创建目录失败: {str(e)}'})
+
+    result = export_database_to_postgresql(sqlite_path, out_dir=out_dir)
+    if result.get('success'):
+        # 返回实际保存路径
+        actual_path = os.path.dirname(result.get('dump_path', ''))
+        if actual_path:
+            result['save_path'] = actual_path
+        _log_activity('导出数据库(PostgreSQL)', f'用户 {current_user.username} 导出了数据库到 PostgreSQL 转储: {result.get("dump_filename")}')
+    return jsonify(result)
+
+
+@bp.route('/admin/database/download/<path:filename>')
+@login_required
+def download_database_dump(filename):
+    """提供导出/备份文件的下载入口（仅限 admin）"""
+    if current_user.role != 'admin':
+        flash('您没有权限下载该文件')
+        return redirect(url_for('main.database_management'))
+    # 限制路径到 migrations 或 backups 目录
+    base_dirs = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'migrations'),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'backups')
+    ]
+    # normalize
+    import os as _os
+    for base in base_dirs:
+        base_abs = _os.path.abspath(base)
+        candidate = _os.path.abspath(_os.path.join(base_abs, filename))
+        if candidate.startswith(base_abs) and _os.path.exists(candidate):
+            from flask import send_file
+            return send_file(candidate, as_attachment=True, download_name=_os.path.basename(candidate))
+
+    flash('文件不存在或无权限')
+    return redirect(url_for('main.database_management'))
+
+
 @bp.route('/admin/database/restore', methods=['POST'])
 @login_required
 def restore_database_route():
@@ -4053,6 +5810,102 @@ def restore_database_route():
         _log_activity('数据库恢复', f'用户 {current_user.username} 恢复了数据库: {backup_filename}')
     else:
         flash(f"恢复失败: {result.get('message')}", 'error')
+    
+    return jsonify(result)
+
+
+@bp.route('/admin/database/restore_latest', methods=['POST'])
+@login_required
+def restore_latest_route():
+    """快速恢复：使用最近一次备份进行恢复（仅 admin）。"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+
+    # 获取备份列表（按时间倒序），选择第一个
+    backups_result = list_backups()
+    if not backups_result.get('success'):
+        return jsonify({'success': False, 'message': '无法获取备份列表'})
+    backups = backups_result.get('backups', [])
+    if not backups:
+        return jsonify({'success': False, 'message': '没有找到可用的备份文件'})
+
+    latest = backups[0]['filename']
+    result = restore_database(latest)
+    if result.get('success'):
+        flash(f"数据库恢复成功: {latest}")
+        _log_activity('数据库恢复', f'用户 {current_user.username} 使用最近备份恢复数据库: {latest}')
+    else:
+        flash(f"恢复失败: {result.get('message')}", 'error')
+
+    return jsonify(result)
+
+
+@bp.route('/admin/database/import', methods=['POST'])
+@login_required
+def import_database_route():
+    """通过上传的数据库文件导入/恢复（支持 .db, .sql, .sql.gz 文件）"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+
+    if 'db_file' not in request.files:
+        return jsonify({'success': False, 'message': '未检测到上传文件 (字段名: db_file)'}), 400
+
+    file = request.files['db_file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '请选择要上传的文件'}), 400
+
+    filename = secure_filename(file.filename)
+    
+    # 支持多种文件格式
+    valid_extensions = ['.db', '.sql', '.sql.gz']
+    is_valid = any(filename.lower().endswith(ext) for ext in valid_extensions)
+    
+    if not is_valid:
+        return jsonify({
+            'success': False,
+            'message': f'仅支持上传数据库文件 ({", ".join(valid_extensions)})'
+        }), 400
+
+    # 保存到备份目录，然后调用 restore_database
+    backup_dir = get_backup_dir()
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    # 根据文件类型生成目标名称
+    if filename.lower().endswith('.db'):
+        target_name = f'imported_{timestamp}_{filename}'
+    elif filename.lower().endswith('.sql.gz'):
+        target_name = f'postgresql_backup_{timestamp}.sql.gz'
+    elif filename.lower().endswith('.sql'):
+        target_name = f'postgresql_backup_{timestamp}.sql'
+    else:
+        target_name = f'imported_{timestamp}_{filename}'
+    
+    target_path = os.path.join(backup_dir, target_name)
+    try:
+        file.save(target_path)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'保存上传文件失败: {str(e)}'})
+
+    # 验证文件
+    validation_result = validate_database_file(target_path)
+    if not validation_result.get('success'):
+        # 删除无效文件
+        try:
+            os.remove(target_path)
+        except:
+            pass
+        return jsonify({
+            'success': False,
+            'message': f'文件验证失败: {validation_result.get("message")}'
+        })
+
+    # 使用已有恢复逻辑恢复
+    result = restore_database(target_name, auto_backup=True)
+    if result.get('success'):
+        _log_activity('导入/恢复数据库', f'用户 {current_user.username} 上传并恢复了数据库: {target_name}')
+    else:
+        # 恢复失败，保留文件供后续排查
+        flash(f'恢复失败，文件已保存至: {target_name}', 'warning')
     
     return jsonify(result)
 
@@ -4077,6 +5930,118 @@ def reset_database_route():
         flash(f"重置失败: {result.get('message')}", 'error')
     
     return jsonify(result)
+
+
+@bp.route('/admin/database/initialize', methods=['POST'])
+@login_required
+def initialize_system_route():
+    """初始化系统（仅保留管理员、设备类型、配件类型、部门、地点、审批流程）"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
+    
+    # 确认操作 - 需要三步确认
+    confirm = request.form.get('confirm')
+    if confirm != 'INITIALIZE_SYSTEM':
+        return jsonify({'success': False, 'message': '请确认操作：在确认框中输入 INITIALIZE_SYSTEM'})
+    
+    try:
+        from app.utils.db_management import initialize_system
+        result = initialize_system()
+        
+        if result.get('success'):
+            flash(f"系统初始化成功！\n管理员账号: {result.get('admin_username')} / {result.get('admin_password')}\n\n初始化统计:\n- 删除用户: {result.get('users_cleared', 0)} 人\n- 删除设备: {result.get('equipment_cleared', 0)} 台\n- 创建备份: {result.get('backup_file', 'N/A')}", 'success')
+            _log_activity('系统初始化', f'用户 {current_user.username} 执行了系统初始化操作')
+        else:
+            flash(f"初始化失败: {result.get('message')}", 'error')
+            _log_activity('系统初始化失败', f'用户 {current_user.username} 系统初始化失败: {result.get("message")}')
+    except Exception as e:
+        result = {'success': False, 'message': f'系统初始化异常: {str(e)}'}
+        flash(f"初始化异常: {str(e)}", 'error')
+        _log_activity('系统初始化异常', f'用户 {current_user.username} 系统初始化异常: {str(e)}')
+    
+    return jsonify(result)
+
+
+@bp.route('/admin/database/tables', methods=['GET'])
+@login_required
+def database_tables():
+    """查看数据库表信息"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    result = get_database_tables_info()
+    if result.get('success'):
+        tables_info = result.get('tables', [])
+        total_records = result.get('total_records', 0)
+    else:
+        tables_info = []
+        total_records = 0
+        flash(f"获取表信息失败: {result.get('message')}", 'error')
+    
+    return render_template('main/database_tables.html',
+                         title='数据库表查看',
+                         tables=tables_info,
+                         total_records=total_records)
+
+
+@bp.route('/admin/database/table/<table_name>', methods=['GET'])
+@login_required
+def view_table_data(table_name):
+    """查看指定表的数据"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    
+    result = get_table_data(table_name, page, per_page)
+    
+    if not result.get('success'):
+        flash(f"获取表数据失败: {result.get('message')}", 'error')
+        return redirect(url_for('main.database_tables'))
+    
+    return render_template('main/table_data.html',
+                         title=f'数据表: {table_name}',
+                         table_name=table_name,
+                         columns=result.get('columns', []),
+                         column_info=result.get('column_info', []),
+                         data=result.get('data', []),
+                         total_count=result.get('total_count', 0),
+                         page=page,
+                         per_page=per_page,
+                         total_pages=result.get('total_pages', 1))
+
+
+@bp.route('/admin/database/migration_guide', methods=['GET'])
+@login_required
+def migration_guide():
+    """查看数据库迁移指南页面"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    return render_template('main/migration_guide.html')
+
+@bp.route('/admin/database/download_migration_guide', methods=['GET'])
+@login_required
+def download_migration_guide():
+    """下载数据库迁移指南"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    import os
+    from flask import send_file
+    
+    guide_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'DATABASE_MIGRATION_GUIDE.md')
+    
+    if os.path.exists(guide_path):
+        return send_file(guide_path, as_attachment=True, download_name='DATABASE_MIGRATION_GUIDE.md')
+    else:
+        flash('迁移指南文件不存在', 'error')
+        return redirect(url_for('main.database_management'))
 
 
 @bp.route('/admin/database/backup/delete', methods=['POST'])
@@ -4141,8 +6106,10 @@ def create_transfer():
     # 只能对当前用户部门的设备发起调拨（admin 可以发起任意）
     if current_user.role == 'admin':
         equipments = Equipment.query.all()
-    else:
+    elif current_user.department:
         equipments = Equipment.query.filter_by(department=current_user.department).all()
+    else:
+        equipments = []
 
     departments = Department.query.all()
 
@@ -4206,8 +6173,10 @@ def create_scrap():
     # admin 可操作所有，普通用户仅限所属部门设备
     if current_user.role == 'admin':
         equipments = Equipment.query.all()
-    else:
+    elif current_user.department:
         equipments = Equipment.query.filter_by(department=current_user.department).all()
+    else:
+        equipments = []
 
     if request.method == 'POST':
         equipment_id = request.form.get('equipment_id', type=int)
@@ -4259,7 +6228,11 @@ def create_scrap():
 @bp.route('/approvals/transfer/<int:order_id>/<action>', methods=['POST'])
 @login_required
 def approve_transfer(order_id, action):
-    approval = ApprovalWorkflow.query.filter_by(order_type='equipment_transfer', order_id=order_id, approver_id=current_user.id, status='pending').first_or_404()
+    # 管理员可以审批任何待审批的工单
+    if current_user.role in ['admin', 'super_admin']:
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_transfer', order_id=order_id, status='pending').first_or_404()
+    else:
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_transfer', order_id=order_id, approver_id=current_user.id, status='pending').first_or_404()
     # ensure it's the earliest pending
     if not _is_earliest_pending(approval):
         flash('请按流程顺序审批')
@@ -4269,7 +6242,7 @@ def approve_transfer(order_id, action):
 
     if action == 'approve':
         approval.status = 'approved'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
 
         # check for next pending approval
@@ -4289,7 +6262,7 @@ def approve_transfer(order_id, action):
 
     elif action == 'reject':
         approval.status = 'rejected'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         transfer.status = 'cancelled'
         note = Notification(user_id=transfer.requester_id, title='设备调拨被拒绝', message=f'您的设备调拨申请 #{transfer.id} 已被拒绝')
@@ -4305,7 +6278,11 @@ def approve_transfer(order_id, action):
 @bp.route('/approvals/scrap/<int:order_id>/<action>', methods=['POST'])
 @login_required
 def approve_scrap(order_id, action):
-    approval = ApprovalWorkflow.query.filter_by(order_type='equipment_scrap', order_id=order_id, approver_id=current_user.id, status='pending').first_or_404()
+    # 管理员可以审批任何待审批的工单
+    if current_user.role in ['admin', 'super_admin']:
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_scrap', order_id=order_id, status='pending').first_or_404()
+    else:
+        approval = ApprovalWorkflow.query.filter_by(order_type='equipment_scrap', order_id=order_id, approver_id=current_user.id, status='pending').first_or_404()
     if not _is_earliest_pending(approval):
         flash('请按流程顺序审批')
         return redirect(url_for('main.approvals'))
@@ -4314,15 +6291,34 @@ def approve_scrap(order_id, action):
 
     if action == 'approve':
         approval.status = 'approved'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         next_ = _get_next_pending_approval('equipment_scrap', order_id)
         if not next_:
-            # 流程结束：将设备状态设为 retired（报废）
+            # 流程结束：将设备状态设为 scrapped（报废）
             eq = scrap.equipment
-            eq.status = 'retired'
+            old_status = eq.status
+            eq.status = 'scrapped'
             scrap.status = 'approved'
-            note = Notification(user_id=scrap.requester_id, title='设备报废完成', message=f'您的设备报废申请 #{scrap.id} 已完成')
+            
+            # 🆕 记录到资产生命周期
+            lifecycle_event = AssetLifecycle(
+                equipment_id=eq.id,
+                event_type='scrap',
+                event_date=get_beijing_now(),
+                old_status=old_status,
+                new_status='scrapped',
+                description=f'设备报废审批通过: {scrap.description or "无说明"}',
+                cost_involved=0,
+                responsible_user_id=current_user.id
+            )
+            db.session.add(lifecycle_event)
+            
+            # 🆕 记录状态变更日志
+            _log_activity('设备报废', f'设备 {eq.name} (ID:{eq.id}) 状态从 {old_status} 变更为 scrapped,报废申请 #{scrap.id}')
+            
+            # 通知申请人
+            note = Notification(user_id=scrap.requester_id, title='设备报废完成', message=f'您的设备报废申请 #{scrap.id} 已完成,设备 {eq.name} 已报废')
             db.session.add(note)
         db.session.add(approval)
         db.session.commit()
@@ -4331,7 +6327,7 @@ def approve_scrap(order_id, action):
 
     elif action == 'reject':
         approval.status = 'rejected'
-        approval.approved_date = datetime.utcnow()
+        approval.approved_date = get_beijing_now()
         approval.comments = request.form.get('comments', '')
         scrap.status = 'cancelled'
         note = Notification(user_id=scrap.requester_id, title='设备报废被拒绝', message=f'您的设备报废申请 #{scrap.id} 已被拒绝')
@@ -4357,7 +6353,10 @@ def _log_activity(action, description):
 @login_required
 def workflow_status(order_type, order_id):
     # 获取流程配置与审批记录
-    nodes = WorkflowNode.query.filter_by(order_type=order_type, is_active=True).order_by(WorkflowNode.sequence).all()
+    nodes = WorkflowNode.query.join(WorkflowTemplate).filter(
+        WorkflowTemplate.order_type == order_type,
+        WorkflowNode.is_active == True
+    ).order_by(WorkflowNode.sequence).all()
     approvals = ApprovalWorkflow.query.filter_by(order_type=order_type, order_id=order_id).order_by(ApprovalWorkflow.created_date).all()
 
     # 辅助：获取订单的部门信息用于候选审批人
@@ -4446,4 +6445,804 @@ def workflow_status(order_type, order_id):
     except Exception:
         pass
 
-    return render_template('main/workflow_status.html', title='流程状态', order_type=order_type, order_id=order_id, order_title=order_title, steps=steps)
+    return render_template('main/workflow_status.html', 
+                         title='流程状态', 
+                         order_type=order_type, 
+                         order_id=order_id, 
+                         order_title=order_title, 
+                         steps=steps,
+                         current_pending=current_pending)
+
+
+# ============ 权限管理路由 ============
+
+@bp.route('/admin/role_permission_management')
+@login_required
+def role_permission_management():
+    """权限管理首页 - 角色列表"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    roles = RoleDefinition.query.order_by(RoleDefinition.created_date.desc()).all()
+    return render_template('main/role_permission_management.html', title='权限管理', roles=roles)
+
+
+@bp.route('/admin/role/create', methods=['GET', 'POST'])
+@login_required
+def create_role():
+    """创建自定义角色"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        try:
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            
+            if not name:
+                flash('角色名称不能为空', 'error')
+                return redirect(url_for('main.create_role'))
+            
+            # 检查角色名是否已存在
+            existing = RoleDefinition.query.filter_by(name=name).first()
+            if existing:
+                flash(f'角色"{name}"已存在', 'error')
+                return redirect(url_for('main.create_role'))
+            
+            role = RoleDefinition(
+                name=name,
+                description=description,
+                is_custom=True,
+                created_by_id=current_user.id
+            )
+            db.session.add(role)
+            db.session.commit()
+            
+            _log_activity('创建角色', f'创建自定义角色: {name}')
+            flash(f'角色"{name}"创建成功')
+            return redirect(url_for('main.edit_role_permissions', role_id=role.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'创建角色失败: {str(e)}', 'error')
+            return redirect(url_for('main.create_role'))
+    
+    return render_template('main/create_role.html', title='创建角色')
+
+
+@bp.route('/admin/role/<int:role_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_role(role_id):
+    """编辑角色信息"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    role = RoleDefinition.query.get_or_404(role_id)
+    
+    if request.method == 'POST':
+        try:
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            is_active = request.form.get('is_active') == 'on'
+            
+            if not name:
+                flash('角色名称不能为空', 'error')
+                return redirect(url_for('main.edit_role', role_id=role_id))
+            
+            # 检查角色名是否与其他角色重复
+            existing = RoleDefinition.query.filter(
+                RoleDefinition.name == name,
+                RoleDefinition.id != role_id
+            ).first()
+            if existing:
+                flash(f'角色名"{name}"已被使用', 'error')
+                return redirect(url_for('main.edit_role', role_id=role_id))
+            
+            role.name = name
+            role.description = description
+            role.is_active = is_active
+            db.session.commit()
+            
+            _log_activity('编辑角色', f'编辑角色: {name}')
+            flash('角色信息更新成功')
+            return redirect(url_for('main.role_permission_management'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'更新角色失败: {str(e)}', 'error')
+    
+    return render_template('main/edit_role.html', title='编辑角色', role=role)
+
+
+@bp.route('/admin/role/<int:role_id>/permissions', methods=['GET', 'POST'])
+@login_required
+def edit_role_permissions(role_id):
+    """编辑角色权限"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    role = RoleDefinition.query.get_or_404(role_id)
+    
+    # 定义所有可用的模块和操作
+    available_modules = {
+        'equipment': {'name': '设备管理', 'actions': ['view', 'create', 'edit', 'delete', 'export']},
+        'spare_part': {'name': '配件管理', 'actions': ['view', 'create', 'edit', 'delete', 'export']},
+        'repair': {'name': '维修工单', 'actions': ['view', 'create', 'edit', 'delete', 'approve', 'complete']},
+        'part_request': {'name': '配件申请', 'actions': ['view', 'create', 'edit', 'delete', 'approve']},
+        'loan': {'name': '设备借用', 'actions': ['view', 'create', 'approve', 'return']},
+        'transfer': {'name': '设备调拨', 'actions': ['view', 'create', 'approve']},
+        'scrap': {'name': '设备报废', 'actions': ['view', 'create', 'approve']},
+        'application': {'name': '设备申领', 'actions': ['view', 'create', 'approve']},
+        'report': {'name': '报表统计', 'actions': ['view', 'export']},
+        'user': {'name': '用户管理', 'actions': ['view', 'create', 'edit', 'delete']},
+        'department': {'name': '部门管理', 'actions': ['view', 'create', 'edit', 'delete']},
+        'workflow': {'name': '审批流程', 'actions': ['view', 'edit']},
+        'logs': {'name': '操作日志', 'actions': ['view', 'export']},
+        'announcement': {'name': '系统公告', 'actions': ['view', 'create', 'edit', 'delete', 'publish']},
+        'wework': {'name': '企业微信', 'actions': ['view', 'config', 'sync']},
+    }
+    
+    action_names = {
+        'view': '查看',
+        'create': '创建',
+        'edit': '编辑',
+        'delete': '删除',
+        'approve': '审批',
+        'complete': '完成',
+        'return': '归还',
+        'export': '导出',
+        'publish': '发布',
+        'config': '配置',
+        'sync': '同步',
+    }
+    
+    if request.method == 'POST':
+        try:
+            # 删除现有权限
+            Permission.query.filter_by(role_id=role_id).delete()
+            
+            # 添加新权限
+            for module in available_modules:
+                for action in available_modules[module]['actions']:
+                    field_name = f'{module}_{action}'
+                    if request.form.get(field_name) == 'on':
+                        perm = Permission(
+                            role_id=role_id,
+                            module=module,
+                            action=action,
+                            is_granted=True
+                        )
+                        db.session.add(perm)
+            
+            db.session.commit()
+            _log_activity('配置权限', f'配置角色"{role.name}"的权限')
+            flash('权限配置成功')
+            return redirect(url_for('main.role_permission_management'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'权限配置失败: {str(e)}', 'error')
+    
+    # 获取当前角色的权限
+    current_permissions = {}
+    for perm in role.permissions:
+        key = f'{perm.module}_{perm.action}'
+        current_permissions[key] = perm.is_granted
+    
+    return render_template('main/edit_role_permissions.html', 
+                         title=f'配置权限 - {role.name}',
+                         role=role,
+                         available_modules=available_modules,
+                         action_names=action_names,
+                         current_permissions=current_permissions)
+
+
+@bp.route('/admin/role/<int:role_id>/users', methods=['GET', 'POST'])
+@login_required
+def manage_role_users(role_id):
+    """管理角色的用户分配"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面')
+        return redirect(url_for('main.index'))
+    
+    role = RoleDefinition.query.get_or_404(role_id)
+    
+    if request.method == 'POST':
+        try:
+            from app.models import UserCustomRole
+            user_ids = request.form.getlist('user_ids')
+            
+            # 清除现有关联(标记为不活跃)
+            UserCustomRole.query.filter_by(role_id=role_id).update({'is_active': False})
+            
+            # 添加新关联
+            assigned_users = []
+            for user_id in user_ids:
+                user = User.query.get(int(user_id))
+                if user:
+                    # 检查是否已存在记录
+                    existing = UserCustomRole.query.filter_by(
+                        user_id=user_id, 
+                        role_id=role_id
+                    ).first()
+                    
+                    if existing:
+                        # 重新激活现有记录
+                        existing.is_active = True
+                        existing.assigned_by_id = current_user.id
+                        existing.assigned_date = get_beijing_now()
+                    else:
+                        # 创建新记录
+                        assignment = UserCustomRole(
+                            user_id=user_id,
+                            role_id=role_id,
+                            assigned_by_id=current_user.id,
+                            assigned_date=get_beijing_now(),
+                            is_active=True
+                        )
+                        db.session.add(assignment)
+                    
+                    assigned_users.append(user.username)
+            
+            db.session.commit()
+            
+            # 记录详细的操作日志
+            if assigned_users:
+                user_list = '、'.join(assigned_users)
+                _log_activity('分配角色', f'为角色"{role.name}"分配了{len(user_ids)}个用户: {user_list}')
+            else:
+                _log_activity('分配角色', f'清空了角色"{role.name}"的所有用户分配')
+            
+            flash(f'成功为{len(user_ids)}个用户分配角色')
+            return redirect(url_for('main.role_permission_management'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'分配角色失败: {str(e)}', 'error')
+    
+    # 获取所有用户
+    all_users = User.query.filter_by(is_active=True).order_by(User.username).all()
+    # 获取已分配该角色的用户ID列表
+    assigned_user_ids = [u.id for u in role.users]
+    
+    return render_template('main/manage_role_users.html',
+                         title=f'分配用户 - {role.name}',
+                         role=role,
+                         all_users=all_users,
+                         assigned_user_ids=assigned_user_ids)
+
+
+@bp.route('/admin/role/<int:role_id>/delete', methods=['POST'])
+@login_required
+def delete_role(role_id):
+    """删除角色"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    try:
+        from app.models import UserCustomRole
+        
+        role = RoleDefinition.query.get_or_404(role_id)
+        
+        if not role.is_custom:
+            return jsonify({'success': False, 'message': '不能删除系统内置角色'}), 400
+        
+        role_name = role.name
+        
+        # 先删除所有用户角色关联记录
+        UserCustomRole.query.filter_by(role_id=role_id).delete()
+        
+        # 删除角色本身(权限会通过级联删除自动删除)
+        db.session.delete(role)
+        db.session.commit()
+        
+        _log_activity('删除角色', f'删除角色: {role_name}')
+        return jsonify({'success': True, 'message': f'角色"{role_name}"已删除'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@bp.route('/api/my-workflow-orders')
+@login_required
+def api_my_workflow_orders():
+    """获取与当前用户相关的所有工单(我创建的+待我审批的)"""
+    try:
+        workflow_type = request.args.get('type', '')
+        orders = []
+        
+        # 根据类型获取工单
+        if workflow_type == 'repair_order':
+            # 我创建的维修工单
+            my_orders = RepairOrder.query.filter_by(requester_id=current_user.id).order_by(RepairOrder.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的维修工单
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='repair_order',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = RepairOrder.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        elif workflow_type == 'part_request_order':
+            # 我创建的配件申请
+            my_orders = PartRequestOrder.query.filter_by(requester_id=current_user.id).order_by(PartRequestOrder.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.reason or '配件申请'} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的配件申请
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='part_request_order',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = PartRequestOrder.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.reason or '配件申请'} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        elif workflow_type == 'equipment_transfer':
+            # 我创建的设备调拨
+            my_orders = EquipmentTransfer.query.filter_by(requester_id=current_user.id).order_by(EquipmentTransfer.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的调拨
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='equipment_transfer',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = EquipmentTransfer.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        elif workflow_type == 'equipment_scrap':
+            # 我创建的报废申请
+            my_orders = EquipmentScrap.query.filter_by(requester_id=current_user.id).order_by(EquipmentScrap.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的报废
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='equipment_scrap',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = EquipmentScrap.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        elif workflow_type == 'equipment_loan':
+            # 我创建的借用申请
+            my_orders = EquipmentLoan.query.filter_by(borrower_id=current_user.id).order_by(EquipmentLoan.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的借用
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='equipment_loan',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = EquipmentLoan.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.equipment.name if order.equipment else '未知设备'} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        elif workflow_type == 'equipment_application':
+            # 我创建的设备申请
+            my_orders = EquipmentApplication.query.filter_by(requester_id=current_user.id).order_by(EquipmentApplication.id.desc()).limit(50).all()
+            for order in my_orders:
+                orders.append({
+                    'id': order.id,
+                    'label': f"#{order.id} - {order.equipment_name} - {order.status_display}",
+                    'status': order.status,
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_my_approval': False
+                })
+            
+            # 待我审批的设备申请
+            pending_approvals = ApprovalWorkflow.query.filter_by(
+                approver_id=current_user.id,
+                order_type='equipment_application',
+                status='pending'
+            ).all()
+            for approval in pending_approvals:
+                order = EquipmentApplication.query.get(approval.order_id)
+                if order and not any(o['id'] == order.id for o in orders):
+                    orders.append({
+                        'id': order.id,
+                        'label': f"#{order.id} - {order.equipment_name} - 待我审批",
+                        'status': order.status,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_my_approval': True
+                    })
+        
+        return jsonify({
+            'success': True,
+            'data': orders
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+# ==================== 审批中心路由 ====================
+
+@bp.route('/my_pending_approvals')
+@login_required
+def my_pending_approvals():
+    """我的待审批页面"""
+    return render_template('main/my_pending_approvals.html')
+
+
+@bp.route('/my_approvals_history')
+@login_required  
+def my_approvals_history():
+    """我的审批历史"""
+    from app.approval_models import ApprovalStep, ApprovalInstance
+    
+    # 获取我处理过的所有审批
+    processed_steps = ApprovalStep.query.filter(
+        ApprovalStep.approver_id == current_user.id,
+        ApprovalStep.status.in_(['approved', 'rejected'])
+    ).order_by(ApprovalStep.processed_at.desc()).all()
+    
+    return render_template('main/my_approvals_history.html', steps=processed_steps)
+
+
+@bp.route('/my_initiated_approvals')
+@login_required
+def my_initiated_approvals():
+    """我发起的审批"""
+    from app.approval_models import ApprovalInstance
+    
+    instances = ApprovalInstance.query.filter_by(
+        initiator_id=current_user.id
+    ).order_by(ApprovalInstance.created_at.desc()).all()
+    
+    return render_template('main/my_initiated_approvals.html', instances=instances)
+
+
+@bp.route('/approval_delegate_manage')
+@login_required
+def approval_delegate_manage():
+    """审批委托管理"""
+    from app.approval_models import ApprovalDelegate
+    
+    # 获取我的委托记录
+    my_delegates = ApprovalDelegate.query.filter_by(
+        delegator_id=current_user.id
+    ).order_by(ApprovalDelegate.created_at.desc()).all()
+    
+    # 获取委托给我的记录
+    delegated_to_me = ApprovalDelegate.query.filter_by(
+        delegate_id=current_user.id,
+        is_active=True
+    ).filter(
+        ApprovalDelegate.start_date <= get_beijing_now(),
+        ApprovalDelegate.end_date >= get_beijing_now()
+    ).all()
+    
+    return render_template('main/approval_delegate_manage.html',
+                         my_delegates=my_delegates,
+                         delegated_to_me=delegated_to_me)
+
+
+# ==================== 简化审批功能 ====================
+
+@bp.route('/simple_approvals')
+@login_required
+def simple_approvals():
+    """简化的审批页面 - 显示所有审批流程清单"""
+    if current_user.role not in ['admin', 'super_admin']:
+        flash('只有管理员可以访问此页面')
+        return redirect(url_for('main.index'))
+    
+    # 获取所有待审批的审批流程（使用 ApprovalWorkflow）
+    pending_approvals = ApprovalWorkflow.query.filter_by(status='pending').order_by(
+        ApprovalWorkflow.created_date.desc()
+    ).all()
+    
+    # 按工单类型分组
+    repair_pending = []
+    part_pending = []
+    loan_pending = []
+    transfer_pending = []
+    scrap_pending = []
+    application_pending = []
+    
+    for approval in pending_approvals:
+        if approval.order_type == 'repair_order':
+            repair_pending.append(approval)
+        elif approval.order_type == 'part_request_order':
+            part_pending.append(approval)
+        elif approval.order_type == 'equipment_loan':
+            loan_pending.append(approval)
+        elif approval.order_type == 'equipment_transfer':
+            transfer_pending.append(approval)
+        elif approval.order_type == 'equipment_scrap':
+            scrap_pending.append(approval)
+        elif approval.order_type == 'equipment_application':
+            application_pending.append(approval)
+    
+    # 统计数据
+    total_pending = len(pending_approvals)
+    
+    return render_template('main/simple_approval.html',
+                         repair_pending=repair_pending,
+                         part_pending=part_pending,
+                         loan_pending=loan_pending,
+                         transfer_pending=transfer_pending,
+                         scrap_pending=scrap_pending,
+                         application_pending=application_pending,
+                         total_pending=total_pending,
+                         title='快速审批')
+
+
+@bp.route('/simple_approve/<order_type>/<int:order_id>', methods=['POST'])
+@login_required
+def simple_approve(order_type, order_id):
+    """简化的审批处理（管理员一键审批各类型工单）"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '只有管理员可以审批'}), 403
+    
+    action = request.form.get('action')  # 'approve' or 'reject'
+    comments = request.form.get('comments', '')
+    
+    try:
+        # 兼容旧的 order_type 简写
+        normalized_type = {
+            'repair': 'repair_order',
+            'part': 'part_request_order'
+        }.get(order_type, order_type)
+
+        # 找到对应的审批记录，便于关闭待审批状态
+        pending_approval = ApprovalWorkflow.query.filter_by(
+            order_type=normalized_type,
+            order_id=order_id,
+            status='pending'
+        ).order_by(ApprovalWorkflow.created_date).first()
+
+        now = get_beijing_now()
+        success = action == 'approve'
+
+        if normalized_type == 'repair_order':
+            order = RepairOrder.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.admin_approved = success
+            order.admin_id = current_user.id
+            if success and order.equipment:
+                order.equipment.status = 'repair'
+            _log_activity('审批维修工单', f'管理员{"批准" if success else "拒绝"}了维修工单 #{order_id}')
+
+        elif normalized_type == 'part_request_order':
+            order = PartRequestOrder.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.admin_approved = success
+            order.admin_id = current_user.id
+            _log_activity('审批配件申请', f'管理员{ "批准" if success else "拒绝" }了配件申请 #{order_id}')
+
+        elif normalized_type == 'equipment_loan':
+            order = EquipmentLoan.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.approved_by = current_user.id
+            order.approved_date = now
+            _log_activity('审批借用申请', f'管理员{ "批准" if success else "拒绝" }了借用申请 #{order_id}')
+
+        elif normalized_type == 'equipment_transfer':
+            order = EquipmentTransfer.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.updated_date = now
+            _log_activity('审批调拨申请', f'管理员{ "批准" if success else "拒绝" }了调拨申请 #{order_id}')
+
+        elif normalized_type == 'equipment_scrap':
+            order = EquipmentScrap.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.updated_date = now
+            if success and order.equipment:
+                order.equipment.status = 'scrapped'
+            _log_activity('审批报废申请', f'管理员{ "批准" if success else "拒绝" }了报废申请 #{order_id}')
+
+        elif normalized_type == 'equipment_application':
+            order = EquipmentApplication.query.get_or_404(order_id)
+            order.status = 'approved' if success else 'rejected'
+            order.approved_date = now
+            _log_activity('审批设备申请', f'管理员{ "批准" if success else "拒绝" }了设备申请 #{order_id}')
+
+        else:
+            return jsonify({'success': False, 'message': '不支持的工单类型'}), 400
+
+        # 同步关闭待审批节点
+        if pending_approval:
+            pending_approval.status = 'approved' if success else 'rejected'
+            pending_approval.approved_date = now
+            pending_approval.comments = comments
+            pending_approval.admin_action = 'force_approve' if success else 'force_reject'
+            pending_approval.admin_operator_id = current_user.id
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': '操作成功'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# =========================
+# 定时任务手动触发路由(管理员)
+# =========================
+
+@bp.route('/admin/scheduler/trigger/<task_name>')
+@login_required
+def trigger_scheduled_task(task_name):
+    """手动触发定时任务(仅管理员)"""
+    if current_user.role != 'admin':
+        flash('权限不足', 'danger')
+        return redirect(url_for('main.index'))
+    
+    try:
+        from app.scheduler import check_overdue_loans, check_upcoming_return_dates, check_pending_return_inspections, check_maintenance_due, check_pending_approvals
+        
+        task_map = {
+            'maintenance_due': ('检查保养计划', check_maintenance_due),
+            'overdue_loans': ('检查逾期借用', check_overdue_loans),
+            'upcoming_returns': ('检查即将到期', check_upcoming_return_dates),
+            'pending_inspections': ('检查待验收', check_pending_return_inspections),
+            'pending_approvals': ('检查待审批事项', check_pending_approvals)
+        }
+        
+        if task_name not in task_map:
+            flash('未知的任务名称', 'danger')
+            return redirect(url_for('main.index'))
+        
+        task_display_name, task_func = task_map[task_name]
+        task_func()
+        
+        flash(f'定时任务"{task_display_name}"已手动执行完成', 'success')
+        _log_activity('手动触发定时任务', f'管理员手动触发了定时任务: {task_display_name}')
+        
+    except Exception as e:
+        flash(f'任务执行失败: {str(e)}', 'danger')
+        current_app.logger.error(f'手动触发定时任务失败: {str(e)}')
+    
+    return redirect(url_for('main.index'))
+
+
+@bp.route('/admin/scheduler/status')
+@login_required
+def scheduler_status():
+    """查看定时任务状态(仅管理员)"""
+    if current_user.role != 'admin':
+        flash('权限不足', 'danger')
+        return redirect(url_for('main.index'))
+    
+    tasks = [
+        {
+            'name': 'maintenance_due',
+            'display_name': '检查保养计划',
+            'schedule': '每天早上8:00',
+            'description': '检查7天内到期的保养计划,发送提醒给负责人'
+        },
+        {
+            'name': 'overdue_loans',
+            'display_name': '检查逾期借用',
+            'schedule': '每天早上9:00',
+            'description': '检查所有借用中且已逾期的记录,发送通知给借用人和管理员'
+        },
+        {
+            'name': 'upcoming_returns',
+            'display_name': '检查即将到期',
+            'schedule': '每天早上9:00',
+            'description': '检查3天内到期的借用,发送提醒给借用人'
+        },
+        {
+            'name': 'pending_inspections',
+            'display_name': '检查待验收',
+            'schedule': '每天早上10:00',
+            'description': '检查超过2天未处理的归还验收申请,发送通知给管理员'
+        },
+        {
+            'name': 'pending_approvals',
+            'display_name': '检查待审批事项',
+            'schedule': '每天上午10:30和下午15:00',
+            'description': '检查所有待审批的工单,按审批人汇总统计并发送提醒通知'
+        }
+    ]
+    
+    return render_template('main/scheduler_status.html', title='定时任务状态', tasks=tasks)
+
+
+# ==================== 聊天系统 ====================
+
+@bp.route('/chat_websocket')
+@login_required
+def chat_websocket():
+    """聊天页面(WebSocket版本)"""
+    return render_template('chat.html', title='聊天')
+
+
+@bp.route('/chat/admin')
+@login_required
+def chat_admin():
+    """聊天管理页面(仅管理员)"""
+    if current_user.role != 'admin':
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('main.index'))
+    return render_template('chat_admin.html', title='聊天管理')

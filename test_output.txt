@@ -1,0 +1,88 @@
+Traceback (most recent call last):
+  File "C:\Users\it03.GD\Desktop\TEST\app\__init__.py", line 293, in create_app
+    from app.scheduler import init_scheduler
+  File "C:\Users\it03.GD\Desktop\TEST\app\scheduler.py", line 6, in <module>
+    from apscheduler.schedulers.background import BackgroundScheduler
+ModuleNotFoundError: No module named 'apscheduler'
+Error initializing scheduler: No module named 'apscheduler'
+
+================================================================================
+                                    审批流程全面检查                                    
+================================================================================
+
+
+================================================================================
+                                   1. 工作流模板检查                                   
+================================================================================
+
+共有 6 个工作流模板:
+
+模板: 配件申请标准流程
+  - 工单类型: part_request_order
+  - 状态: 启用
+  - 节点数: 3
+  - 审批流程:
+      1. 部门负责人审批 (角色ID:2)
+      2. 管理员审批 (角色ID:1)
+      3. 仓库管理员发货 (角色ID:4)
+
+模板: 设备调拨标准流程
+  - 工单类型: equipment_transfer
+  - 状态: 启用
+  - 节点数: 3
+  - 审批流程:
+      1. 调出部门负责人审批 (旧角色:None)
+      2. 管理员审批 (旧角色:None)
+      3. 调入部门负责人确认 (旧角色:None)
+
+模板: 设备报废标准流程
+  - 工单类型: equipment_scrap
+  - 状态: 启用
+  - 节点数: 3
+  - 审批流程:
+      1. 部门负责人审批 (角色ID:2)
+      2. 管理员审批 (角色ID:1)
+      3. 财务审批 (角色ID:5)
+
+模板: 设备借用标准流程
+  - 工单类型: equipment_loan
+  - 状态: 启用
+  - 节点数: 2
+  - 审批流程:
+      1. 设备所属部门负责人审批 (旧角色:None)
+      2. 管理员审批 (旧角色:None)
+
+模板: 设备申请标准流程
+  - 工单类型: equipment_application
+  - 状态: 启用
+  - 节点数: 3
+  - 审批流程:
+      1. 部门负责人审批 (角色ID:2)
+      2. 管理员审批 (角色ID:1)
+      3. 资产管理员分配 (角色ID:4)
+
+模板: 维修工单标准流程
+  - 工单类型: repair_order
+  - 状态: 启用
+  - 节点数: 4
+  - 审批流程:
+      1. 部门负责人初审 (角色ID:2)
+      2. 管理员评估金额 (角色ID:1)
+      3. 部门负责人确认金额 (角色ID:2)
+      4. 系统管理员审核通过 (角色ID:1)
+
+
+================================================================================
+                                  2. 审批角色配置检查                                   
+================================================================================
+
+共有 5 个审批角色:
+
+角色: 系统管理员 (admin)
+  - 描述: 拥有所有审批权限
+  - 分配用户 (1):
+Traceback (most recent call last):
+  File "C:\Users\it03.GD\Desktop\TEST\comprehensive_workflow_test.py", line 67, in <module>
+    print(f"      \u2022 {assignment.user.username} ({assignment.user.department})")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2022' in position 6: illegal multibyte sequence

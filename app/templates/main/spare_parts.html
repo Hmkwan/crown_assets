@@ -60,9 +60,11 @@
             {% if current_user.role == 'admin' %}
             <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
                 <div>
+                    <button class="btn btn-success" id="bulkSetPublicParts">批量公开</button>
+                    <button class="btn btn-warning" id="bulkUnpublicParts">批量取消公开</button>
                     <button class="btn btn-danger" id="bulkDeleteParts">批量删除</button>
                 </div>
-                <small class="text-muted">勾选后可批量删除配件</small>
+                <small class="text-muted">勾选后可批量操作配件</small>
             </div>
             {% endif %}
             
@@ -73,13 +75,16 @@
                             {% if current_user.role == 'admin' %}
                             <th style="width:36px"><input type="checkbox" id="selectAllParts"></th>
                             {% endif %}
+                            <th>编号 (ID)</th>
                             <th>配件名称</th>
                             <th>配件编号</th>
+                            <th>配件类型</th>
                             <th>价格</th>
                             <th>库存数量</th>
                             <th>入库日期</th>
                             <th>所属部门</th>
                             <th>位置</th>
+                            <th>公开状态</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -89,25 +94,44 @@
                             {% if current_user.role == 'admin' %}
                             <td><input type="checkbox" class="select-part" value="{{ part.id }}"></td>
                             {% endif %}
+                            <td>{{ part.id }}</td>
                             <td>{{ part.name }}</td>
                             <td>{{ part.part_number }}</td>
-                            <td>¥{{ part.price }}</td>
+                            <td>{{ part.spare_part_type.name if part.spare_part_type else '-' }}</td>
+                            <td><span class="text-primary fw-bold">￥{{ part.price }}</span></td>
                             <td>{{ part.stock_quantity }}</td>
                             <td>{{ part.purchase_date.strftime('%Y-%m-%d') if part.purchase_date else '' }}</td>
                             <td>{{ part.department }}</td>
                             <td>{{ part.location or '未指定' }}</td>
                             <td>
-                                {% if current_user.role in ['admin', 'technician'] %}
-                                <a href="{{ url_for('main.edit_spare_part', id=part.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
-                                {% if current_user.role == 'admin' %}
-                                <button class="btn btn-sm btn-outline-danger delete-spare-part" data-id="{{ part.id }}">删除</button>
+                                {% if part.is_public %}
+                                <span class="badge badge-success">公开</span>
+                                {% else %}
+                                <span class="badge badge-secondary">私有</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                {% if current_user.role in ['admin', 'technician'] %}
+                                <div class="btn-group-vertical" role="group">
+                                    <a href="{{ url_for('main.edit_spare_part', id=part.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                    <a href="{{ url_for('main.print_asset_label', asset_type='spare_part', asset_id=part.id) }}" class="btn btn-sm btn-outline-info" target="_blank">
+                                        <i class="fas fa-qrcode"></i> 二维码
+                                    </a>
+                                    {% if current_user.role == 'admin' %}
+                                    {% if part.is_public %}
+                                    <button class="btn btn-sm btn-outline-warning unpublic-spare-part" data-id="{{ part.id }}">取消公开</button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-outline-success set-public-spare-part" data-id="{{ part.id }}">设为公开</button>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-danger delete-spare-part" data-id="{{ part.id }}">删除</button>
+                                    {% endif %}
+                                </div>
                                 {% endif %}
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">暂无符合条件的配件信息</td>
+                            <td colspan="12" class="text-center text-muted py-4">暂无符合条件的配件信息</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -140,6 +164,53 @@
 </div>
 {% endblock %}
 
+        <!-- 二维码预览模态框 -->
+        <div class="modal fade" id="qrcodePreviewModal" tabindex="-1" aria-labelledby="qrcodePreviewLabel" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="qrcodePreviewLabel">二维码预览</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div id="qrcodePreviewContent">正在加载...</div>
+                    </div>
+                    <div class="modal-footer">
+                        <a id="qrcodePrintLink" class="btn btn-primary" href="#" target="_blank">🖨️ 在线打印</a>
+                        <a id="qrcodeDownloadLink" class="btn btn-success" href="#" target="_blank">📥 下载PDF</a>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        $(document).on('click', '.preview-qrcode', function(e){
+                e.preventDefault();
+                var assetType = $(this).data('type');
+                var assetId = $(this).data('id');
+                $('#qrcodePreviewContent').html('正在加载...');
+                $('#qrcodeDownloadLink').attr('href', '/asset/download_label/' + assetType + '/' + assetId);
+                $('#qrcodePrintLink').attr('href', '/asset/print_label/' + assetType + '/' + assetId);
+                $('#qrcodePreviewModal').modal('show');
+                fetch('/asset/generate_qrcode/' + assetType + '/' + assetId)
+                        .then(function(resp){ return resp.json(); })
+                        .then(function(data){
+                                if(data.success){
+                                        var img = new Image();
+                                        img.src = 'data:image/png;base64,' + data.image;
+                                        img.style.maxWidth = '100%';
+                                        img.style.height = 'auto';
+                                        $('#qrcodePreviewContent').empty().append(img);
+                                } else {
+                                        $('#qrcodePreviewContent').text('生成失败: ' + (data.message || '未知错误'));
+                                }
+                        }).catch(function(err){
+                                $('#qrcodePreviewContent').text('生成失败');
+                        });
+        });
+        </script>
+
 {% block scripts %}
 {% if current_user.role == 'admin' %}
 <script>
@@ -169,24 +240,51 @@
             $('.select-part:checked').each(function(){ ids.push($(this).val()); });
             return ids;
         }
-        $('#selectAllParts').on('change', function(){
-            $('.select-part').prop('checked', this.checked);
-        });
-        $('#bulkDeleteParts').click(function(e){
-            e.preventDefault();
-            var ids = selectedPartIds();
+        
+        function postPartAction(url, ids, confirmMsg){
             if(ids.length === 0){ alert('请先选择配件'); return; }
-            if(!confirm('确定批量删除所选配件吗？此操作不可恢复。')){ return; }
+            if(confirmMsg && !confirm(confirmMsg)){ return; }
             $.ajax({
-                url: '{{ url_for("main.bulk_delete_spare_parts") }}',
+                url: url,
                 type: 'POST',
                 data: { 'ids': ids },
                 headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
                 success: function(resp){
-                    if(resp.success){ location.reload(); } else { alert(resp.message || '删除失败'); }
+                    if(resp.success){ 
+                        location.reload(); 
+                    } else { 
+                        alert(resp.message || '操作失败'); 
+                    }
                 },
-                error: function(){ alert('删除失败'); }
+                error: function(){ alert('操作失败'); }
             });
+        }
+        
+        $('#selectAllParts').on('change', function(){
+            $('.select-part').prop('checked', this.checked);
+        });
+        
+        $('#bulkDeleteParts').click(function(e){
+            e.preventDefault();
+            postPartAction('{{ url_for("main.bulk_delete_spare_parts") }}', selectedPartIds(), '确定批量删除所选配件吗？此操作不可恢复。');
+        });
+        
+        $('#bulkSetPublicParts').click(function(e){
+            e.preventDefault();
+            postPartAction('{{ url_for("main.bulk_public_spare_parts") }}', selectedPartIds(), '确定将所选配件设为公开吗？');
+        });
+        
+        $('#bulkUnpublicParts').click(function(e){
+            e.preventDefault();
+            postPartAction('{{ url_for("main.bulk_unpublic_spare_parts") }}', selectedPartIds(), '确定取消所选配件的公开状态吗？');
+        });
+        
+        $('.set-public-spare-part').click(function(){
+            postPartAction('{{ url_for("main.bulk_public_spare_parts") }}', [$(this).data('id')], null);
+        });
+        
+        $('.unpublic-spare-part').click(function(){
+            postPartAction('{{ url_for("main.bulk_unpublic_spare_parts") }}', [$(this).data('id')], null);
         });
     });
 </script>
@@ -234,8 +332,11 @@
       <div class="modal-body">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
-          <label for="spareFile" class="form-label">CSV 文件（列: name,part_number,price,stock_quantity,purchase_date,department,location）</label>
+          <label for="spareFile" class="form-label">CSV 文件</label>
           <input class="form-control" type="file" id="spareFile" name="file" accept=".csv" required>
+          <small class="form-text text-muted">
+            格式: 配件名称,配件编号,配件类型,价格,库存数量,最低库存,入库日期,所属部门,位置
+          </small>
         </div>
       </div>
       <div class="modal-footer">

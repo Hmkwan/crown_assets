@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}聊天管理 - 设备管理系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="chat-admin-container">
+        <!-- 顶部标题和统计卡片 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="fas fa-chart-line"></i> 聊天系统管理</h2>
+            </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="row mb-4" id="statisticsCards">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalConversations">-</h3>
+                        <p>总会话数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success">
+                        <i class="fas fa-comment-dots"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalMessages">-</h3>
+                        <p>总消息数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="activeUsers">-</h3>
+                        <p>活跃用户</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info">
+                        <i class="fas fa-paperclip"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalAttachments">-</h3>
+                        <p>附件总数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab导航 -->
+        <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab">
+                    <i class="fas fa-chart-bar"></i> 数据概览
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="conversations-tab" data-toggle="tab" href="#conversations" role="tab">
+                    <i class="fas fa-list"></i> 会话管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="messages-tab" data-toggle="tab" href="#messages" role="tab">
+                    <i class="fas fa-envelope"></i> 消息审计
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="users-tab" data-toggle="tab" href="#users" role="tab">
+                    <i class="fas fa-user-friends"></i> 活跃用户
+                </a>
+            </li>
+        </ul>
+        
+        <!-- Tab内容 -->
+        <div class="tab-content" id="adminTabContent">
+            <!-- 数据概览 -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-chart-line"></i> 消息趋势(最近7天)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="messageTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-pie-chart"></i> 会话类型分布</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="conversationTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 会话管理 -->
+            <div class="tab-pane fade" id="conversations" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-comments"></i> 会话列表</h5>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <select id="conversationTypeFilter" class="form-control form-control-sm d-inline-block w-auto">
+                                    <option value="">所有类型</option>
+                                    <option value="direct">一对一</option>
+                                    <option value="group">群组</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="conversationsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>类型</th>
+                                        <th>名称</th>
+                                        <th>参与者数</th>
+                                        <th>消息数</th>
+                                        <th>最后消息时间</th>
+                                        <th>创建时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="conversationsTableBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">加载中...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav>
+                            <ul class="pagination justify-content-center" id="conversationsPagination"></ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 消息审计 -->
+            <div class="tab-pane fade" id="messages" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-search"></i> 消息审计</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="messageSearchInput" class="form-control" placeholder="搜索消息内容...">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="searchMessagesBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm" id="messagesTable">
+                                <thead>
+                                    <tr>
+                                        <th width="60">ID</th>
+                                        <th width="100">发送者</th>
+                                        <th>消息内容</th>
+                                        <th width="80">类型</th>
+                                        <th width="150">发送时间</th>
+                                        <th width="80">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="messagesTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">加载中...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav>
+                            <ul class="pagination justify-content-center" id="messagesPagination"></ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活跃用户 -->
+            <div class="tab-pane fade" id="users" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-friends"></i> 活跃用户排行</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>排名</th>
+                                        <th>用户名</th>
+                                        <th>姓名</th>
+                                        <th>部门</th>
+                                        <th>消息数</th>
+                                        <th>最后消息时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">加载中...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="{{ url_for('static', filename='js/chat_admin.js') }}?v=20251206-1"></script>
+{% endblock %}

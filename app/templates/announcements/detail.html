@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}{{ announcement.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if announcement.type == 'urgent' %}
+                        <span class="badge badge-danger">紧急公告</span>
+                        {% elif announcement.type == 'system' %}
+                        <span class="badge badge-warning">系统维护</span>
+                        {% elif announcement.type == 'update' %}
+                        <span class="badge badge-info">功能更新</span>
+                        {% else %}
+                        <span class="badge badge-secondary">通知</span>
+                        {% endif %}
+                        {{ announcement.title }}
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('main.announcements') }}" class="btn btn-sm btn-default">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('main.edit_announcement', id=announcement.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> 编辑
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="announcement-meta mb-3">
+                        <p class="text-muted">
+                            <i class="far fa-clock"></i> 
+                            发布时间: {{ announcement.publish_time|format_dt('%Y年%m月%d日 %H:%M') if announcement.publish_time else announcement.created_at|format_dt('%Y年%m月%d日 %H:%M') }}
+                            
+                            {% if announcement.expire_time %}
+                                <span class="ml-3">
+                                <i class="far fa-calendar-times"></i>
+                                过期时间: {{ announcement.expire_time|format_dt('%Y年%m月%d日 %H:%M') }}
+                            </span>
+                            {% endif %}
+                            
+                            <span class="ml-3">
+                                <i class="far fa-user"></i>
+                                发布者: {{ announcement.creator.name if announcement.creator else '系统管理员' }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="announcement-content">
+                        {{ announcement.content|safe }}
+                    </div>
+                    
+                    <!-- 附件列表 -->
+                    <div id="attachments-section" class="mt-4">
+                        <h5><i class="fas fa-paperclip"></i> 附件</h5>
+                        <div id="attachment-list" class="list-group">
+                            <!-- 动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.announcement-content {
+    font-size: 1.1em;
+    line-height: 1.8;
+    padding: 20px;
+}
+
+.announcement-content p {
+    margin-bottom: 1em;
+}
+
+.announcement-meta {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.attachment-item {
+    padding: 12px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    transition: all 0.2s;
+}
+
+.attachment-item:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.file-icon-large {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.attachment-preview-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // 加载附件列表
+    loadAttachments();
+    
+    function loadAttachments() {
+        $.ajax({
+            url: "{{ url_for('main.get_announcement_attachments', announcement_id=announcement.id) }}",
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    renderAttachments(response.data);
+                }
+            }
+        });
+    }
+    
+    function renderAttachments(attachments) {
+        if (attachments.length === 0) {
+            $('#attachments-section').hide();
+            return;
+        }
+        
+        $('#attachments-section').show();
+        var html = '';
+        
+        attachments.forEach(function(att) {
+            var iconHtml = '';
+            
+            if (att.is_image) {
+                iconHtml = '<img src="{{ url_for("main.preview_attachment", attachment_id=0) }}'.replace('0', att.id) + 
+                           '" class="attachment-preview-thumb" alt="' + att.filename + '">';
+            } else {
+                var iconClass = 'fa-file text-secondary';
+                if (att.is_pdf) iconClass = 'fa-file-pdf text-danger';
+                else if (att.file_type && att.file_type.includes('word')) iconClass = 'fa-file-word text-primary';
+                else if (att.file_type && att.file_type.includes('excel')) iconClass = 'fa-file-excel text-success';
+                else if (att.file_type && att.file_type.includes('powerpoint')) iconClass = 'fa-file-powerpoint text-warning';
+                else if (att.is_video) iconClass = 'fa-file-video text-info';
+                
+                iconHtml = '<div class="file-icon-large"><i class="fas ' + iconClass + '"></i></div>';
+            }
+            
+            html += '<div class="attachment-item d-flex align-items-center">' +
+                    '<div class="mr-3">' + iconHtml + '</div>' +
+                    '<div class="flex-grow-1">' +
+                    '<div class="font-weight-bold">' + att.filename + '</div>' +
+                    '<small class="text-muted">' + att.file_size_formatted + ' | 上传于 ' + att.created_date + '</small>' +
+                    '</div>' +
+                    '<div class="btn-group">';
+            
+            if (att.can_preview) {
+                html += '<button class="btn btn-sm btn-info" onclick="previewFile(' + att.id + ', \'' + 
+                        att.filename.replace(/'/g, "\\'") + '\', \'' + att.file_type + '\')">' +
+                        '<i class="fas fa-eye"></i> 预览</button>';
+            }
+            
+            html += '<a href="{{ url_for("main.download_attachment", attachment_id=0) }}'.replace('0', att.id) + 
+                    '" class="btn btn-sm btn-primary"><i class="fas fa-download"></i> 下载</a>' +
+                    '</div></div>';
+        });
+        
+        $('#attachment-list').html(html);
+    }
+    
+    // 预览文件
+    window.previewFile = function(attachmentId, filename, fileType) {
+        var previewUrl = "{{ url_for('main.preview_attachment', attachment_id=0) }}".replace('0', attachmentId);
+        
+        var modalHtml = '<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">' +
+                        '<div class="modal-dialog modal-xl" role="document">' +
+                        '<div class="modal-content">' +
+                        '<div class="modal-header">' +
+                        '<h5 class="modal-title"><i class="fas fa-eye"></i> ' + filename + '</h5>' +
+                        '<button type="button" class="close" data-dismiss="modal">' +
+                        '<span>&times;</span></button></div>' +
+                        '<div class="modal-body text-center" style="min-height: 500px;">';
+        
+        if (fileType.startsWith('image/')) {
+            modalHtml += '<img src="' + previewUrl + '" class="img-fluid" alt="' + filename + '" style="max-height: 80vh;">';
+        } else if (fileType === 'application/pdf') {
+            modalHtml += '<iframe src="' + previewUrl + '" width="100%" height="700px" style="border:none;"></iframe>';
+        } else if (fileType.startsWith('video/')) {
+            modalHtml += '<video controls style="width: 100%; max-height: 70vh;"><source src="' + previewUrl + '" type="' + fileType + '"></video>';
+        } else if (fileType.startsWith('audio/')) {
+            modalHtml += '<audio controls style="width: 100%;"><source src="' + previewUrl + '" type="' + fileType + '"></audio>';
+        }
+        
+        modalHtml += '</div>' +
+                    '<div class="modal-footer">' +
+                    '<a href="{{ url_for("main.download_attachment", attachment_id=0) }}'.replace('0', attachmentId) + 
+                    '" class="btn btn-primary"><i class="fas fa-download"></i> 下载</a>' +
+                    '<button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>' +
+                    '</div></div></div></div>';
+        
+        $('#previewModal').remove();
+        $('body').append(modalHtml);
+        $('#previewModal').modal('show');
+    };
+});
+</script>
+{% endblock %}
+

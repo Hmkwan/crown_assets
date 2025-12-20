@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}编辑流程模板 - {{ template.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-edit"></i> 编辑流程模板</h2>
+                    <p class="text-muted">{{ template.name }} - {{ template.code }}</p>
+                </div>
+                <a href="{{ url_for('admin.approval_flows') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回列表
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 模板基本信息 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">模板信息</h5>
+                </div>
+                <div class="card-body">
+                    <form id="templateForm">
+                        <div class="mb-3">
+                            <label class="form-label">模板名称</label>
+                            <input type="text" class="form-control" id="template_name" value="{{ template.name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">工单类型</label>
+                            <input type="text" class="form-control" value="{{ template.order_type }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述</label>
+                            <textarea class="form-control" id="template_description" rows="3">{{ template.description or '' }}</textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="template_is_active" 
+                                   {% if template.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="template_is_active">启用此模板</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="template_is_default"
+                                   {% if template.is_default %}checked{% endif %}>
+                            <label class="form-check-label" for="template_is_default">设为默认模板</label>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="updateTemplate()">
+                            <i class="fas fa-save"></i> 保存修改
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流程节点 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">流程节点 ({{ nodes|length }})</h5>
+                    <button class="btn btn-light btn-sm" data-toggle="modal" data-target="#createNodeModal">
+                        <i class="fas fa-plus"></i> 添加节点
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if nodes %}
+                    <div class="list-group">
+                        {% for node in nodes %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-primary">{{ node.sequence }}</span>
+                                        {{ node.name }}
+                                        {% if not node.is_active %}
+                                        <span class="badge bg-secondary">已禁用</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="mb-1 text-muted">
+                                        <small>
+                                            <strong>代码:</strong> {{ node.code or '无' }}<br>
+                                            <strong>类型:</strong> 
+                                            {% if node.node_type == 'approval' %}审批节点
+                                            {% elif node.node_type == 'condition' %}条件节点
+                                            {% elif node.node_type == 'parallel' %}并行节点
+                                            {% elif node.node_type == 'auto' %}自动节点
+                                            {% else %}{{ node.node_type }}{% endif %}<br>
+                                            {% if node.approval_role %}
+                                            <strong>审批角色:</strong> {{ node.approval_role.display_name or node.approval_role.name }}
+                                            {% else %}
+                                            <strong>审批角色:</strong> 未设置
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick='editNode({{ node.id }}, {{ node.name|tojson }}, {{ node.sequence }}, {{ node.is_active|lower }}, {{ node.approval_role_id or "null" }})'>
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" 
+                                            onclick='deleteNode({{ node.id }}, {{ node.name|tojson }})'>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i> 暂无流程节点，请添加
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建节点模态框 -->
+<div class="modal fade" id="createNodeModal" tabindex="-1" aria-labelledby="createNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="createNodeModalLabel"><i class="fas fa-plus"></i> 添加流程节点</h5>
+                <button type="button" class="close text-white" onclick="closeCreateModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createNodeForm">
+                    <div class="mb-3">
+                        <label class="form-label">节点名称 *</label>
+                        <input type="text" class="form-control" id="node_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">节点代码</label>
+                        <input type="text" class="form-control" id="node_code">
+                        <small class="text-muted">例如: dept_approve</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">执行顺序 *</label>
+                        <input type="number" class="form-control" id="node_sequence" value="{{ nodes|length + 1 }}" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">审批角色</label>
+                        <select class="form-select" id="node_role_id">
+                            <option value="">无</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.display_name or role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="node_is_active" checked>
+                        <label class="form-check-label" for="node_is_active">启用此节点</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
+                <button type="button" class="btn btn-success" onclick="createNode()">
+                    <i class="fas fa-save"></i> 创建
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1" aria-labelledby="editNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editNodeModalLabel"><i class="fas fa-edit"></i> 编辑流程节点</h5>
+                <button type="button" class="close text-white" onclick="closeEditModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editNodeForm">
+                    <input type="hidden" id="edit_node_id">
+                    <div class="mb-3">
+                        <label class="form-label">节点名称 *</label>
+                        <input type="text" class="form-control" id="edit_node_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">执行顺序 *</label>
+                        <input type="number" class="form-control" id="edit_node_sequence" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">审批角色</label>
+                        <select class="form-select" id="edit_node_role_id">
+                            <option value="">无</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.display_name or role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="edit_node_is_active">
+                        <label class="form-check-label" for="edit_node_is_active">启用此节点</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateNode()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTemplate() {
+    const data = {
+        name: document.getElementById('template_name').value,
+        description: document.getElementById('template_description').value,
+        is_active: document.getElementById('template_is_active').checked,
+        is_default: document.getElementById('template_is_default').checked
+    };
+    
+    fetch('{{ url_for("admin.edit_approval_workflow_template", template_id=template.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function createNode() {
+    const data = {
+        template_id: {{ template.id }},
+        name: document.getElementById('node_name').value,
+        code: document.getElementById('node_code').value,
+        sequence: parseInt(document.getElementById('node_sequence').value),
+        role_id: document.getElementById('node_role_id').value || null,
+        is_active: document.getElementById('node_is_active').checked
+    };
+    
+    if (!data.name) {
+        alert('请填写节点名称');
+        return;
+    }
+    
+    fetch('{{ url_for("admin.create_approval_workflow_node") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeCreateModal();
+            location.reload();
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function editNode(id, name, sequence, isActive, roleId) {
+    document.getElementById('edit_node_id').value = id;
+    document.getElementById('edit_node_name').value = name;
+    document.getElementById('edit_node_sequence').value = sequence;
+    document.getElementById('edit_node_is_active').checked = isActive;
+    
+    // 重置角色选择
+    document.getElementById('edit_node_role_id').value = '';
+    if (roleId && roleId !== 'null') {
+        document.getElementById('edit_node_role_id').value = roleId;
+    }
+    
+    if (window.jQuery) {
+        $('#editNodeModal').modal('show');
+    }
+}
+
+function updateNode() {
+    const nodeId = document.getElementById('edit_node_id').value;
+    const data = {
+        name: document.getElementById('edit_node_name').value,
+        sequence: parseInt(document.getElementById('edit_node_sequence').value),
+        role_id: document.getElementById('edit_node_role_id').value || null,
+        is_active: document.getElementById('edit_node_is_active').checked
+    };
+    
+    if (!data.name) {
+        alert('请填写节点名称');
+        return;
+    }
+    
+    fetch(`/admin/workflow_node/${nodeId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeEditModal();
+            location.reload();
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function deleteNode(nodeId, nodeName) {
+    if (confirm(`确定要删除节点"${nodeName}"吗？`)) {
+        fetch(`/admin/workflow_node/${nodeId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('错误: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('请求失败: ' + error);
+        });
+    }
+}
+
+// 模态框关闭时重置表单
+document.addEventListener('DOMContentLoaded', function() {
+    const createModal = document.getElementById('createNodeModal');
+    const editModal = document.getElementById('editNodeModal');
+    
+    if (createModal) {
+        createModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('createNodeForm').reset();
+            document.getElementById('node_sequence').value = {{ nodes|length + 1 }};
+        });
+    }
+    
+    if (editModal) {
+        editModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('editNodeForm').reset();
+        });
+    }
+});
+
+// 手动关闭创建模态框
+function closeCreateModal() {
+    if (window.jQuery) {
+        $('#createNodeModal').modal('hide');
+    }
+}
+
+// 手动关闭编辑模态框
+function closeEditModal() {
+    if (window.jQuery) {
+        $('#editNodeModal').modal('hide');
+    }
+}
+</script>
+
+<style>
+.list-group-item {
+    border-left: 4px solid #0d6efd;
+    margin-bottom: 10px;
+}
+</style>
+{% endblock %}

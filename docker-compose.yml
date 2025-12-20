@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Redis服务 - 用于实时通知和会话管理
+  redis:
+    image: redis:7-alpine
+    container_name: equipment-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      app-network: {}
+      docker_default:
+        aliases:
+          - equipment-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL数据库服务
+  postgres:
+    image: postgres:14
+    container_name: equipment-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=difyai123456
+      - POSTGRES_DB=it_asset
+      - TZ=Asia/Shanghai
+    ports:
+      - "15432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - docker_default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Flask应用服务
+  web:
+    build: .
+    container_name: equipment-management-system
+    ports:
+      - "5020:5020"
+    volumes:
+      # 实时同步开发代码 - 所有修改立即生效
+      - ./app:/app/app
+      - ./config.py:/app/config.py
+      - ./requirements.txt:/app/requirements.txt
+      # 挂载文档目录
+      - ./docs:/app/docs
+      # 挂载数据库文件（持久化数据）
+      # - ./app.db:/app/app.db  # 已弃用，全部使用Postgres数据库
+      # 挂载静态文件
+      - ./app/static:/app/app/static
+      - ./app/templates:/app/app/templates
+      # 挂载测试和初始化脚本
+      - ./init_db.py:/app/init_db.py
+      - ./init_default_workflow.py:/app/init_default_workflow.py
+      - ./init_default_approval_workflows.py:/app/init_default_approval_workflows.py
+      - ./init_announcement_system.py:/app/init_announcement_system.py
+      - ./test_docker_sync.py:/app/test_docker_sync.py
+      - ./test_workflow_amount_config.py:/app/test_workflow_amount_config.py
+      - ./create_admin.py:/app/create_admin.py  # 挂载以便能在容器中快速运行并调试
+    environment:
+      - FLASK_DEBUG=True
+      - FLASK_ENV=development
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - TZ=Asia/Shanghai
+      # Docker容器内连接PostgreSQL数据库容器(使用服务名)
+      - DATABASE_URL=postgresql://postgres:difyai123456@postgres:15432/it_asset
+      # Redis配置 - 使用服务名以在 Docker 网络内解析
+      - REDIS_HOST=equipment-redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy  # 等待Redis健康检查通过
+      postgres:
+        condition: service_healthy  # 等待Postgres健康检查通过
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5020/auth/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+      - docker_default  # 加入PostgreSQL所在的网络
+
+volumes:
+  redis-data:
+    driver: local
+
+  pg-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
+  docker_default:
+    external: true

@@ -1,0 +1,189 @@
+<!-- 
+维修工单审批表单 - 带金额输入和确认功能
+将此代码添加到审批详情页面或审批列表的审批表单中
+-->
+
+{% if approval.approval_level == 'admin' %}
+<!-- 管理员评估维修金额 -->
+<div class="card mb-3">
+    <div class="card-header bg-warning">
+        <h6 class="mb-0">💰 维修金额评估</h6>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            作为管理员,请评估此维修工单的预计维修金额。部门负责人将根据您的评估进行确认。
+        </div>
+        
+        <div class="mb-3">
+            <label for="repair_cost" class="form-label">
+                预计维修金额 <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-text">¥</span>
+                <input type="number" 
+                       class="form-control" 
+                       id="repair_cost" 
+                       name="repair_cost" 
+                       step="0.01" 
+                       min="0"
+                       placeholder="请输入预计维修金额"
+                       required>
+                <span class="input-group-text">.00</span>
+            </div>
+            <small class="form-text text-muted">
+                请根据设备故障情况和维修难度,评估合理的维修预算
+            </small>
+        </div>
+        
+        {% if repair_order.repair_cost %}
+        <div class="alert alert-secondary">
+            <strong>当前维修金额:</strong> ¥{{ "%.2f"|format(repair_order.repair_cost) }}
+            <br>
+            <small class="text-muted">
+                {% if approval.transferred_from_id %}
+                (由部门负责人退回重新评估)
+                {% else %}
+                (历史评估)
+                {% endif %}
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% elif approval.approval_level == 'department_head' and repair_order.repair_cost %}
+<!-- 部门负责人确认金额 -->
+<div class="card mb-3">
+    <div class="card-header bg-success text-white">
+        <h6 class="mb-0">✅ 维修金额确认</h6>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> 
+            管理员已评估维修金额,请确认是否合理
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">管理员评估金额</h6>
+                        <h3 class="text-primary mb-0">
+                            ¥{{ "%.2f"|format(repair_order.repair_cost) }}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-3">评估详情</h6>
+                        <p class="mb-1">
+                            <small class="text-muted">设备:</small>
+                            <strong>{{ repair_order.equipment.name }}</strong>
+                        </p>
+                        <p class="mb-1">
+                            <small class="text-muted">故障描述:</small>
+                            {{ repair_order.description[:50] }}...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">金额确认</label>
+            <div class="form-check">
+                <input class="form-check-input" 
+                       type="radio" 
+                       name="confirm_cost" 
+                       id="confirm_yes" 
+                       value="yes" 
+                       checked>
+                <label class="form-check-label" for="confirm_yes">
+                    <i class="fas fa-check-circle text-success"></i> 
+                    <strong>确认金额合理</strong> - 同意管理员的评估,继续审批流程
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" 
+                       type="radio" 
+                       name="confirm_cost" 
+                       id="confirm_no" 
+                       value="no">
+                <label class="form-check-label" for="confirm_no">
+                    <i class="fas fa-times-circle text-danger"></i> 
+                    <strong>金额不符,退回重评</strong> - 要求管理员重新评估维修金额
+                </label>
+            </div>
+        </div>
+        
+        <div id="reject_reason_div" style="display:none;">
+            <div class="alert alert-danger">
+                <strong>请说明退回原因:</strong>
+                <textarea class="form-control mt-2" 
+                          name="reject_reason" 
+                          rows="2" 
+                          placeholder="例如: 金额偏高,需重新核实配件成本..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmNo = document.getElementById('confirm_no');
+    const confirmYes = document.getElementById('confirm_yes');
+    const rejectReasonDiv = document.getElementById('reject_reason_div');
+    
+    if (confirmNo && confirmYes && rejectReasonDiv) {
+        confirmNo.addEventListener('change', function() {
+            if (this.checked) {
+                rejectReasonDiv.style.display = 'block';
+            }
+        });
+        
+        confirmYes.addEventListener('change', function() {
+            if (this.checked) {
+                rejectReasonDiv.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+
+{% elif approval.approval_level == 'department_head' and not repair_order.repair_cost %}
+<!-- 部门负责人审批,但管理员还未评估金额 -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> 
+    此工单将进入管理员金额评估环节,评估后将返回您确认
+</div>
+
+{% elif approval.approval_level == 'technician' %}
+<!-- 技术员执行维修 -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">🔧 维修执行</h6>
+    </div>
+    <div class="card-body">
+        {% if repair_order.repair_cost %}
+        <div class="alert alert-success">
+            <strong>批准的维修预算:</strong> ¥{{ "%.2f"|format(repair_order.repair_cost) }}
+        </div>
+        {% endif %}
+        
+        <p>请按照审批通过的维修方案执行维修工作</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- 审批意见(所有角色通用) -->
+<div class="mb-3">
+    <label for="comments" class="form-label">审批意见</label>
+    <textarea class="form-control" 
+              id="comments" 
+              name="comments" 
+              rows="3"
+              placeholder="请填写审批意见..."></textarea>
+</div>

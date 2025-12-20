@@ -1,6 +1,67 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    /* 设备列表页面优化样式 */
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    .table th {
+        font-weight: 600;
+        color: #495057;
+        background-color: #f8f9fa !important;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+        padding: 12px 8px;
+    }
+    
+    .table td {
+        padding: 12px 8px;
+        vertical-align: middle;
+    }
+    
+    .badge {
+        padding: 0.35em 0.65em;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    .gap-1 {
+        gap: 0.25rem !important;
+    }
+    
+    code.text-primary {
+        background-color: #e7f3ff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.9em;
+    }
+    
+    .btn-group-vertical .btn {
+        margin-bottom: 2px;
+    }
+    
+    .card {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: none;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 1.25rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+</style>
+
 <div class="container">
     <div class="row">
         <div class="col-md-12">
@@ -95,22 +156,24 @@
                     {% endif %}
                     
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
                                 <tr>
                                     {% if current_user.role == 'admin' and not public_only %}
-                                    <th style="width:36px"><input type="checkbox" id="selectAll"></th>
+                                    <th style="width:40px"><input type="checkbox" id="selectAll"></th>
                                     {% endif %}
-                                    <th>设备名称</th>
-                                    <th>类型</th>
-                                    <th>品牌</th>
-                                    <th>型号</th>
-                                    <th>序列号</th>
-                                    <th>所属部门</th>
-                                    <th>购买日期</th>
-                                    <th>状态</th>
+                                    <th style="min-width:120px">设备名称</th>
+                                    <th style="min-width:100px">类型</th>
+                                    <th style="min-width:80px">品牌</th>
+                                    <th style="min-width:80px">型号</th>
+                                    <th style="min-width:100px">序列号</th>
+                                    <th style="min-width:100px">所属部门</th>
+                                    <th style="min-width:100px">存放位置</th>
+                                    <th style="min-width:100px">购买日期</th>
+                                    <th style="min-width:80px">价格</th>
+                                    <th style="min-width:120px">状态</th>
                                     {% if current_user.role in ['admin', 'technician'] and not public_only %}
-                                    <th>操作</th>
+                                    <th style="min-width:140px">操作</th>
                                     {% endif %}
                                 </tr>
                             </thead>
@@ -120,85 +183,104 @@
                                     {% if current_user.role == 'admin' and not public_only %}
                                     <td><input type="checkbox" class="select-equipment" value="{{ equipment.id }}"></td>
                                     {% endif %}
-                                    <td>{{ equipment.name }}</td>
+                                    <td><strong>{{ equipment.name }}</strong></td>
                                     <td>
                                         {% if equipment.equipment_type %}
-                                            {{ equipment.equipment_type.name }}
+                                            <span class="badge bg-secondary">{{ equipment.equipment_type.name }}</span>
                                         {% else %}
-                                            {{ equipment.type or '未分类' }}
+                                            <span class="text-muted">{{ equipment.type or '未分类' }}</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ equipment.brand or '-' }}</td>
                                     <td>{{ equipment.model or '-' }}</td>
-                                    <td>{{ equipment.serial_number }}</td>
+                                    <td><code class="text-primary">{{ equipment.serial_number }}</code></td>
                                     <td>{{ equipment.department }}</td>
+                                    <td>
+                                        {% if equipment.location %}
+                                            <i class="fas fa-map-marker-alt text-danger"></i> {{ equipment.location }}
+                                        {% else %}
+                                            <span class="text-muted">未指定</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if equipment.purchase_date %}
                                             {{ equipment.purchase_date.strftime('%Y-%m-%d') }}
                                         {% else %}
-                                            -
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-column gap-1">
-                                            <!-- 设备状态 -->
-                                            <div>
-                                        {% if equipment.status == 'active' %}
-                                        <span class="badge bg-success">正常</span>
-                                        {% elif equipment.status == 'repair' %}
-                                        <span class="badge bg-warning">维修中</span>
-                                        {% elif equipment.status == 'retired' %}
-                                        <span class="badge bg-secondary">已报废</span>
-                                        {% elif equipment.status == 'available' %}
-                                        <span class="badge bg-info">可申请</span>
-                                        {% elif equipment.status == 'loaned' %}
-                                        <span class="badge bg-primary">已借出</span>
+                                        {% if equipment.price is not none %}
+                                            <span class="text-success">￥{{ ('%.2f' % (equipment.price or 0)) }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
                                         {% endif %}
-                                                
-                                                <!-- 公开仓库标识 -->
-                                                {% if equipment.is_public_pool %}
-                                                <span class="badge bg-purple" style="background-color: #6f42c1;" title="已加入信息部公开仓库">
-                                                    <i class="bi bi-box-arrow-in-up"></i> 公开仓库
-                                                </span>
-                                                {% else %}
-                                                <span class="badge bg-secondary" title="未加入公开仓库">未公开</span>
-                                                {% endif %}
-                                            </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <!-- 设备状态 -->
+                                            {% if equipment.status == 'active' %}
+                                            <span class="badge bg-success">正常</span>
+                                            {% elif equipment.status == 'repair' %}
+                                            <span class="badge bg-warning text-dark">维修中</span>
+                                            {% elif equipment.status == 'retired' %}
+                                            <span class="badge bg-secondary">已报废</span>
+                                            {% elif equipment.status == 'available' %}
+                                            <span class="badge bg-info text-dark">可申请</span>
+                                            {% elif equipment.status == 'loaned' %}
+                                            <span class="badge bg-primary">已借出</span>
+                                            {% elif equipment.status == 'in_use' %}
+                                            <span class="badge bg-primary">使用中</span>
+                                            {% elif equipment.status == 'maintenance' %}
+                                            <span class="badge bg-warning text-dark">维护中</span>
+                                            {% elif equipment.status == 'scrapped' %}
+                                            <span class="badge bg-secondary">已报废</span>
+                                            {% elif equipment.status == 'idle' %}
+                                            <span class="badge bg-secondary">闲置</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ equipment.status }}</span>
+                                            {% endif %}
+                                            
+                                            <!-- 公开仓库标识 -->
+                                            {% if equipment.is_public_pool %}
+                                            <span class="badge" style="background-color: #7c3aed;" title="已加入信息部公开仓库">公开</span>
+                                            {% endif %}
                                             
                                             <!-- 借用状态 -->
                                             {% set loan_info = equipment_loan_status.get(equipment.id) if equipment_loan_status else None %}
-                                            {% if loan_info %}
-                                            <div>
-                                                <small class="text-muted">
-                                                    {% if loan_info.status == 'borrowed' %}
-                                                    <span class="badge bg-danger">已借出</span>
-                                                    <small>(借用人: {{ loan_info.requester }})</small>
-                                                    {% elif loan_info.status == 'approved' %}
-                                                    <span class="badge bg-warning">已批准待借出</span>
-                                                    <small>(申请人: {{ loan_info.requester }})</small>
-                                                    {% elif loan_info.status == 'returned' %}
-                                                    <span class="badge bg-success">已归还</span>
-                                                    {% else %}
-                                                    <span class="badge bg-secondary">可借用</span>
-                                                    {% endif %}
-                                                </small>
-                                            </div>
+                                            {% if loan_info and loan_info.status == 'borrowed' %}
+                                            <span class="badge bg-danger" title="借用人: {{ loan_info.requester }}">已借出</span>
+                                            {% elif loan_info and loan_info.status == 'approved' %}
+                                            <span class="badge bg-warning text-dark" title="申请人: {{ loan_info.requester }}">待借出</span>
                                             {% endif %}
                                         </div>
                                     </td>
                                     {% if current_user.role in ['admin', 'technician'] and not public_only %}
                                     <td>
-                                        <a href="{{ url_for('main.edit_equipment', id=equipment.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
-                                        {% if current_user.role == 'admin' %}
-                                        <button class="btn btn-sm btn-outline-danger delete-equipment" data-id="{{ equipment.id }}">删除</button>
-                                        <small class="text-muted d-block mt-2">如需加入/移出公开仓库或设置可申请，请使用上方批量操作。</small>
-                                        {% endif %}
+                                        <div class="btn-group-vertical btn-group-sm" role="group">
+                                            <a href="{{ url_for('main.edit_equipment', id=equipment.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i> 编辑
+                                            </a>
+                                            <a href="{{ url_for('main.print_asset_label', asset_type='equipment', asset_id=equipment.id) }}" 
+                                               class="btn btn-outline-info" target="_blank">
+                                                <i class="fas fa-qrcode"></i> 二维码
+                                            </a>
+                                            {% if current_user.role == 'admin' %}
+                                            <button class="btn btn-outline-danger delete-equipment" data-id="{{ equipment.id }}">
+                                                <i class="fas fa-trash"></i> 删除
+                                            </button>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     {% endif %}
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted py-5">暂无符合条件的设备</td>
+                                    <td colspan="12" class="text-center text-muted py-5">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                        暂无符合条件的设备
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

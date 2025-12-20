@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}公告管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-bullhorn"></i> 公告管理
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('main.create_announcement') }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> 创建公告
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>标题</th>
+                                <th>类型</th>
+                                <th>优先级</th>
+                                <th>状态</th>
+                                <th>发布时间</th>
+                                <th>创建者</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for announcement in announcements %}
+                            <tr>
+                                <td>{{ announcement.id }}</td>
+                                <td>
+                                    {% if announcement.is_pinned %}
+                                    <i class="fas fa-thumbtack text-danger"></i>
+                                    {% endif %}
+                                    {{ announcement.title }}
+                                </td>
+                                <td>
+                                    {% if announcement.type == 'urgent' %}
+                                    <span class="badge badge-danger">紧急</span>
+                                    {% elif announcement.type == 'system' %}
+                                    <span class="badge badge-warning">系统</span>
+                                    {% elif announcement.type == 'update' %}
+                                    <span class="badge badge-info">更新</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">通知</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ announcement.priority_display }}</td>
+                                <td>
+                                    {% if announcement.is_published %}
+                                    <span class="badge badge-success">已发布</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">草稿</span>
+                                    {% endif %}
+                                    
+                                    {% if announcement.is_active %}
+                                    <span class="badge badge-success">生效中</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ announcement.publish_time|format_dt('%Y-%m-%d %H:%M') if announcement.publish_time else '-' }}
+                                </td>
+                                <td>{{ announcement.creator.name if announcement.creator else '未知' }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('main.announcement_detail', id=announcement.id) }}" 
+                                           class="btn btn-info" title="查看">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('main.edit_announcement', id=announcement.id) }}" 
+                                           class="btn btn-primary" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-warning js-toggle-publish" 
+                                                data-announcement-id="{{ announcement.id }}" 
+                                                title="{% if announcement.is_published %}取消发布{% else %}发布{% endif %}">
+                                            <i class="fas fa-{% if announcement.is_published %}eye-slash{% else %}eye{% endif %}"></i>
+                                        </button>
+                                        <button class="btn btn-secondary js-toggle-pin" 
+                                                data-announcement-id="{{ announcement.id }}" 
+                                                title="{% if announcement.is_pinned %}取消置顶{% else %}置顶{% endif %}">
+                                            <i class="fas fa-thumbtack"></i>
+                                        </button>
+                                        <button class="btn btn-danger js-delete-announcement" 
+                                                data-announcement-id="{{ announcement.id }}" 
+                                                title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if pagination.pages > 1 %}
+                <div class="card-footer clearfix">
+                    <ul class="pagination pagination-sm m-0 float-right">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.admin_announcements', page=pagination.prev_num) }}">上一页</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num == pagination.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('main.admin_announcements', page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.admin_announcements', page=pagination.next_num) }}">下一页</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePublish(id) {
+    if (!confirm('确定要切换发布状态吗?')) return;
+    
+    fetch(`/admin/announcements/${id}/toggle-publish`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败: ' + error);
+    });
+}
+
+function togglePin(id) {
+    fetch(`/admin/announcements/${id}/toggle-pin`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败: ' + error);
+    });
+}
+
+function deleteAnnouncement(id) {
+    if (!confirm('确定要删除这条公告吗?此操作不可恢复!')) return;
+    
+    fetch(`/admin/announcements/${id}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('删除成功!');
+            location.reload();
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('删除失败: ' + error);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.js-toggle-publish').forEach(function(btn){
+    btn.addEventListener('click', function(){ togglePublish(this.dataset.announcementId); });
+  });
+  document.querySelectorAll('.js-toggle-pin').forEach(function(btn){
+    btn.addEventListener('click', function(){ togglePin(this.dataset.announcementId); });
+  });
+  document.querySelectorAll('.js-delete-announcement').forEach(function(btn){
+    btn.addEventListener('click', function(){ deleteAnnouncement(this.dataset.announcementId); });
+  });
+});
+</script>
+{% endblock %}

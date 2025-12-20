@@ -1,79 +1,172 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid">
-    <h2 class="mb-4">{{ title }}</h2>
+<div class="container-fluid px-4">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-database-gear"></i> {{ title }}</h2>
+        <a href="{{ url_for('main.database_tables') }}" class="btn btn-outline-primary">
+            <i class="bi bi-table"></i> 查看数据表
+        </a>
+    </div>
     
-    <!-- 数据库信息 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>数据库信息</h5>
+    <!-- 数据库状态卡片 -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="text-muted mb-2" style="font-size: 0.875rem; font-weight: 500;">数据库类型</p>
+                            <h4 class="mb-0 fw-bold" style="color: #0d6efd;">{{ db_info.type or 'Unknown' }}</h4>
+                        </div>
+                        <div class="stat-icon bg-primary">
+                            <i class="bi bi-hdd-stack"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <dl class="row">
-                <dt class="col-sm-3">数据库类型:</dt>
-                <dd class="col-sm-9">{{ db_info.type or 'Unknown' }}</dd>
-                
-                <dt class="col-sm-3">数据库路径:</dt>
-                <dd class="col-sm-9">{{ db_info.uri or 'N/A' }}</dd>
-                
-                {% if db_info.exists %}
-                <dt class="col-sm-3">文件大小:</dt>
-                <dd class="col-sm-9">
-                    {% if db_info.size %}
-                        {% set size_mb = db_info.size / 1024 / 1024 %}
-                        {{ "%.2f"|format(size_mb) }} MB
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </dd>
-                
-                <dt class="col-sm-3">最后修改:</dt>
-                <dd class="col-sm-9">{{ db_info.modified or 'N/A' }}</dd>
-                {% endif %}
-                
-                <dt class="col-sm-3">数据表数量:</dt>
-                <dd class="col-sm-9">{{ db_info.table_count or 0 }}</dd>
-            </dl>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="text-muted mb-2" style="font-size: 0.875rem; font-weight: 500;">文件大小</p>
+                            <h4 class="mb-0 fw-bold" style="color: #198754;">
+                                {% if db_info.size %}
+                                    {% set size_mb = db_info.size / 1024 / 1024 %}
+                                    {{ "%.2f"|format(size_mb) }} MB
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h4>
+                        </div>
+                        <div class="stat-icon bg-success">
+                            <i class="bi bi-database"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="text-muted mb-2" style="font-size: 0.875rem; font-weight: 500;">数据表数量</p>
+                            <h4 class="mb-0 fw-bold" style="color: #0dcaf0;">{{ db_info.table_count or 0 }}</h4>
+                        </div>
+                        <div class="stat-icon bg-info">
+                            <i class="bi bi-table"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="text-muted mb-2" style="font-size: 0.875rem; font-weight: 500;">备份总数</p>
+                            <h4 class="mb-0 fw-bold" style="color: #ffc107;">{{ total_backups }}</h4>
+                        </div>
+                        <div class="stat-icon bg-warning">
+                            <i class="bi bi-archive"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <!-- 数据库操作和备份列表 -->
-    <div class="row">
-        <div class="col-lg-4 col-md-12 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-gear"></i> 数据库操作</h5>
+    <!-- 主要操作区域 -->
+    <div class="row g-4 mb-4">
+        <!-- 左侧：备份与恢复 -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-gradient-primary text-white border-0 py-3 px-4">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2"></i>备份与恢复</h5>
+                    <p class="mb-0 mt-1 opacity-75" style="font-size: 0.875rem;">保护您的数据安全</p>
                 </div>
-                <div class="card-body d-flex flex-column">
-                    <div class="d-grid gap-2 mb-3">
-                        <button class="btn btn-primary btn-lg" id="backup-btn">
-                            <i class="bi bi-download"></i> 立即备份
-                        </button>
-                        <button class="btn btn-warning btn-lg" id="reset-btn" data-toggle="modal" data-target="#resetModal">
-                            <i class="bi bi-arrow-clockwise"></i> 重置数据库
-                        </button>
+                <div class="card-body p-4" style="background-color: #f8f9fa;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <button class="btn btn-primary w-100 py-3 btn-action" id="backup-btn">
+                                <i class="bi bi-download fs-4 d-block mb-2"></i>
+                                <span class="fw-bold d-block" style="font-size: 1.1rem;">立即备份</span>
+                                <small class="d-block mt-1 opacity-75" style="font-size: 0.8rem;">创建数据备份</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-success w-100 py-3 btn-action" id="restore-latest-btn">
+                                <i class="bi bi-arrow-counterclockwise fs-4 d-block mb-2"></i>
+                                <span class="fw-bold d-block" style="font-size: 1.1rem;">立即恢复</span>
+                                <small class="d-block mt-1 opacity-75" style="font-size: 0.8rem;">恢复最新备份</small>
+                            </button>
+                        </div>
                     </div>
                     
-                    <div class="alert alert-warning mb-0">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>警告：</strong>重置数据库将删除所有数据并重新初始化，请谨慎操作！
+                    <hr class="my-4" style="border-color: #dee2e6;">
+                    
+                    <!-- 导入数据库 -->
+                    <div class="mb-3 p-3 rounded" style="background-color: white;">
+                        <label class="form-label fw-bold mb-3" style="color: #495057; font-size: 1rem;">
+                            <i class="bi bi-upload me-2"></i>导入数据库文件
+                        </label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="import-db-file" 
+                                   accept=".db,.sql,.sql.gz" 
+                                   style="font-size: 0.95rem;">
+                            <button class="btn btn-outline-primary px-4" id="import-db-btn" style="font-weight: 600;">
+                                <i class="bi bi-upload me-1"></i>导入
+                            </button>
+                        </div>
+                        <small class="text-muted mt-2 d-block" style="font-size: 0.85rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {% if db_info.type == 'PostgreSQL' %}
+                                支持 .sql 和 .sql.gz 格式文件（PostgreSQL备份）
+                            {% elif db_info.type == 'SQLite' %}
+                                支持 .db 格式文件（SQLite数据库）
+                            {% else %}
+                                支持 .db, .sql, .sql.gz 格式文件
+                            {% endif %}
+                        </small>
                     </div>
                     
-                    <!-- 添加一些统计信息让卡片更充实 -->
-                    <div class="mt-auto pt-3 border-top">
-                        <h6 class="text-muted mb-2">快速统计</h6>
-                        <div class="row g-2 text-center">
-                            <div class="col-6">
-                                <div class="p-2 bg-light rounded">
-                                    <div class="fw-bold text-primary">{{ total_backups }}</div>
-                                    <small class="text-muted">备份总数</small>
+                    <hr class="my-4" style="border-color: #dee2e6;">
+                    
+                    <!-- 系统初始化和重置数据库 -->
+                    <div class="alert alert-danger border-0 mb-0" role="alert" style="background-color: #f8d7da;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3" style="color: #721c24;"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-3 fw-bold" style="color: #721c24; font-size: 1rem;">危险操作区域</h6>
+                                
+                                <!-- 初始化系统 -->
+                                <div class="mb-3 pb-3 border-bottom border-danger" style="border-bottom: 1px solid #f5c6cb !important;">
+                                    <h6 class="mb-2 fw-500" style="font-size: 0.95rem;">初始化系统</h6>
+                                    <p class="mb-2 small" style="color: #721c24; font-size: 0.9rem;">
+                                        清除所有业务数据（用户、设备、采购等），仅保留管理员账号、设备类型、配件类型、部门、地点和审批流程。
+                                    </p>
+                                    <button class="btn btn-danger btn-sm px-4" id="initialize-btn" data-toggle="modal" data-target="#initializeModal" style="font-weight: 600;">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>初始化系统
+                                    </button>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-2 bg-light rounded">
-                                    <div class="fw-bold text-success">{{ db_info.table_count or 0 }}</div>
-                                    <small class="text-muted">数据表</small>
+                                
+                                <!-- 重置数据库 -->
+                                <div>
+                                    <h6 class="mb-2 fw-500" style="font-size: 0.95rem;">重置数据库</h6>
+                                    <p class="mb-2 small" style="color: #721c24; font-size: 0.9rem;">
+                                        完全重置数据库，删除所有数据并重新初始化系统。
+                                    </p>
+                                    <button class="btn btn-warning btn-sm px-4" id="reset-btn" data-toggle="modal" data-target="#resetModal" style="font-weight: 600;">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>重置数据库
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -82,105 +175,352 @@
             </div>
         </div>
         
-        <div class="col-lg-8 col-md-12 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> 备份列表</h5>
-                    <div>
-                        <select class="form-control form-control-sm" id="backup-filter" style="width: auto; display: inline-block;">
-                            <option value="all" {% if filter_date == 'all' %}selected{% endif %}>全部</option>
-                            <option value="today" {% if filter_date == 'today' %}selected{% endif %}>今天</option>
-                            <option value="yesterday" {% if filter_date == 'yesterday' %}selected{% endif %}>昨天</option>
-                            <option value="week" {% if filter_date == 'week' %}selected{% endif %}>最近7天</option>
-                            <option value="month" {% if filter_date == 'month' %}selected{% endif %}>最近30天</option>
-                        </select>
-                    </div>
+        <!-- 右侧：数据库导出 -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-gradient-info text-white border-0 py-3 px-4">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-box-arrow-up me-2"></i>数据库导出</h5>
+                    <p class="mb-0 mt-1 opacity-75" style="font-size: 0.875rem;">导出到其他数据库格式</p>
                 </div>
-                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-                    {% if backups %}
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> 共 <strong>{{ total_backups }}</strong> 个备份文件
-                        </small>
-                        {% if total_pages > 1 %}
-                        <small class="text-muted">第 {{ page }} / {{ total_pages }} 页</small>
-                        {% endif %}
-                    </div>
-                    <div class="list-group">
-                        {% for backup in backups %}
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <i class="bi bi-clock-history me-2 text-primary"></i>
-                                        <strong class="text-primary">{{ backup.friendly_time }}</strong>
-                                    </div>
-                                    <div class="small text-muted mb-1">
-                                        <span class="me-2"><i class="bi bi-tag"></i> {{ backup.timestamp_str }}</span>
-                                        <span>
-                                            {% set size_mb = backup.size / 1024 / 1024 %}
-                                            <i class="bi bi-hdd"></i> {{ "%.2f"|format(size_mb) }} MB
-                                        </span>
-                                    </div>
-                                    <div class="small text-muted">
-                                        <i class="bi bi-calendar"></i> {{ backup.date }}
-                                    </div>
-                                </div>
-                                <div class="btn-group-vertical btn-group-sm ml-2">
-                                    <button class="btn btn-success restore-btn" data-filename="{{ backup.filename }}" title="恢复此备份">
-                                        <i class="bi bi-arrow-counterclockwise"></i> 恢复
-                                    </button>
-                                    <button class="btn btn-danger delete-backup-btn" data-filename="{{ backup.filename }}" title="删除此备份">
-                                        <i class="bi bi-trash"></i> 删除
-                                    </button>
-                                </div>
-                            </div>
+                <div class="card-body p-4" style="background-color: #f8f9fa;">
+                    <!-- 导出路径配置 -->
+                    <div class="mb-4 p-3 rounded" style="background-color: white;">
+                        <label for="export-path" class="form-label fw-bold mb-3" style="color: #495057; font-size: 1rem;">
+                            <i class="bi bi-folder2-open me-2"></i>导出路径
+                        </label>
+                        <input type="text" class="form-control mb-3" id="export-path" 
+                               placeholder="例: D:\Backups\Database\ 或留空使用默认路径" 
+                               title="输入完整路径，支持任何盘符和网络路径"
+                               style="font-size: 0.95rem;">
+                        
+                        <!-- 快捷路径 -->
+                        <div class="d-flex gap-2 flex-wrap mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary quick-path px-3" data-path="migrations/" style="font-size: 0.875rem;">
+                                <i class="bi bi-folder me-1"></i>默认
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary quick-path px-3" data-path="D:\Database\Exports\" style="font-size: 0.875rem;">
+                                <i class="bi bi-hdd me-1"></i>D盘
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary quick-path px-3" data-path="E:\Backups\" style="font-size: 0.875rem;">
+                                <i class="bi bi-hdd me-1"></i>E盘
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger px-3" id="clear-path" style="font-size: 0.875rem;">
+                                <i class="bi bi-x-circle me-1"></i>清空
+                            </button>
                         </div>
-                        {% endfor %}
+                        
+                        <div class="form-text" style="font-size: 0.85rem; color: #6c757d;">
+                            <i class="bi bi-info-circle me-1"></i>支持绝对路径、相对路径、网络路径
+                        </div>
+                        <small class="text-success d-none fw-bold" id="path-valid" style="font-size: 0.875rem;">
+                            <i class="bi bi-check-circle me-1"></i>路径格式正确
+                        </small>
+                        <small class="text-danger d-none fw-bold" id="path-invalid" style="font-size: 0.875rem;">
+                            <i class="bi bi-exclamation-circle me-1"></i>请输入有效的路径格式
+                        </small>
                     </div>
                     
-                    <!-- 分页 -->
-                    {% if total_pages > 1 %}
-                    <nav aria-label="备份列表分页" class="mt-3">
-                        <ul class="pagination pagination-sm justify-content-center">
-                            {% if page > 1 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?filter={{ filter_date }}&page={{ page - 1 }}">上一页</a>
-                            </li>
-                            {% endif %}
-                            
-                            {% for p in range(1, total_pages + 1) %}
-                                {% if p == page %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ p }}</span>
-                                </li>
-                                {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?filter={{ filter_date }}&page={{ p }}">{{ p }}</a>
-                                </li>
-                                {% elif p == 4 or p == total_pages - 3 %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
+                    <!-- 导出按钮 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <button class="btn btn-info w-100 py-3 text-white btn-export" id="export-mysql-btn">
+                                <i class="bi bi-filetype-sql fs-5 me-2"></i>
+                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 MySQL</span>
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-info w-100 py-3 text-white btn-export" id="export-mssql-btn">
+                                <i class="bi bi-filetype-sql fs-5 me-2"></i>
+                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 SQL Server</span>
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-info w-100 py-3 text-white btn-export" id="export-postgresql-btn">
+                                <i class="bi bi-filetype-sql fs-5 me-2"></i>
+                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 PostgreSQL</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 迁移指南 -->
+                    <div class="alert alert-info border-0 mb-0" role="alert" style="background-color: #cff4fc;">
+                        <h6 class="alert-heading mb-2 fw-bold" style="color: #055160; font-size: 1rem;">
+                            <i class="bi bi-book me-2"></i>数据库迁移指南
+                        </h6>
+                        <p class="mb-3" style="color: #087990; font-size: 0.9rem;">查看详细的迁移步骤和配置说明</p>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('main.migration_guide') }}" class="btn btn-info btn-sm px-3 text-white" style="font-weight: 600;">
+                                <i class="bi bi-eye me-1"></i>在线查看
+                            </a>
+                            <a href="{{ url_for('main.download_migration_guide') }}" class="btn btn-outline-info btn-sm px-3" download style="font-weight: 600;">
+                                <i class="bi bi-download me-1"></i>下载文档
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 备份列表 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-gradient-secondary text-white border-0 py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>备份历史</h5>
+                    <p class="mb-0 mt-1 opacity-75" style="font-size: 0.875rem;">共 {{ total_backups }} 个备份文件</p>
+                </div>
+                <select class="form-select form-select-sm text-dark" id="backup-filter" style="width: auto; font-weight: 600;">
+                    <option value="all" {% if filter_date == 'all' %}selected{% endif %}>全部</option>
+                    <option value="today" {% if filter_date == 'today' %}selected{% endif %}>今天</option>
+                    <option value="yesterday" {% if filter_date == 'yesterday' %}selected{% endif %}>昨天</option>
+                    <option value="week" {% if filter_date == 'week' %}selected{% endif %}>最近7天</option>
+                    <option value="month" {% if filter_date == 'month' %}selected{% endif %}>最近30天</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body p-4" style="background-color: #f8f9fa;">
+            {% if backups %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 bg-white">
+                    <thead style="background-color: #e9ecef;">
+                        <tr>
+                            <th class="border-0 py-3" style="color: #495057; font-weight: 600; font-size: 0.95rem;">
+                                <i class="bi bi-file-earmark me-1"></i>类型
+                            </th>
+                            <th class="border-0 py-3" style="color: #495057; font-weight: 600; font-size: 0.95rem;">
+                                <i class="bi bi-clock me-1"></i>时间
+                            </th>
+                            <th class="border-0 py-3" style="color: #495057; font-weight: 600; font-size: 0.95rem;">
+                                <i class="bi bi-hdd me-1"></i>文件大小
+                            </th>
+                            <th class="border-0 py-3" style="color: #495057; font-weight: 600; font-size: 0.95rem;">
+                                <i class="bi bi-calendar me-1"></i>日期
+                            </th>
+                            <th class="border-0 py-3 text-end" style="color: #495057; font-weight: 600; font-size: 0.95rem;">
+                                操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in backups %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td class="py-3">
+                                {% if backup.db_type == 'postgresql' %}
+                                    <span class="badge bg-info text-white px-3 py-2" style="font-size: 0.85rem; font-weight: 600;">
+                                        <i class="bi bi-database me-1"></i>PostgreSQL
+                                        {% if backup.compressed %}
+                                        <i class="bi bi-file-zip ms-1" title="压缩文件"></i>
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary px-3 py-2" style="font-size: 0.85rem; font-weight: 600;">
+                                        <i class="bi bi-database me-1"></i>SQLite
+                                    </span>
                                 {% endif %}
-                            {% endfor %}
-                            
-                            {% if page < total_pages %}
-                            <li class="page-item">
-                                <a class="page-link" href="?filter={{ filter_date }}&page={{ page + 1 }}">下一页</a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon-sm {% if backup.db_type == 'postgresql' %}bg-info{% else %}bg-primary{% endif %} me-3">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold" style="color: #212529; font-size: 0.95rem;">{{ backup.friendly_time }}</div>
+                                        <small class="text-muted" style="font-size: 0.85rem;">{{ backup.timestamp_str }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge bg-light text-dark border px-3 py-2" style="font-size: 0.875rem; font-weight: 600;">
+                                    {% set size_mb = backup.size / 1024 / 1024 %}
+                                    {{ "%.2f"|format(size_mb) }} MB
+                                    {% if backup.compressed %}
+                                    <small class="text-success ms-1">(压缩)</small>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <span class="text-muted" style="font-size: 0.9rem;">{{ backup.date }}</span>
+                            </td>
+                            <td class="py-3 text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-success restore-btn px-3" data-filename="{{ backup.filename }}" title="恢复此备份" style="font-weight: 600;">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>恢复
+                                    </button>
+                                    <button class="btn btn-danger delete-backup-btn px-3" data-filename="{{ backup.filename }}" title="删除此备份" style="font-weight: 600;">
+                                        <i class="bi bi-trash me-1"></i>删除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if total_pages > 1 %}
+            <nav aria-label="备份列表分页" class="mt-4">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?filter={{ filter_date }}&page={{ page - 1 }}">
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
                     {% endif %}
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ddd;"></i>
-                        <p class="text-muted mt-3 mb-0">暂无备份文件</p>
-                        <small class="text-muted">点击"立即备份"创建第一个备份</small>
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ p }}</span>
+                        </li>
+                        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="?filter={{ filter_date }}&page={{ p }}">{{ p }}</a>
+                        </li>
+                        {% elif p == 4 or p == total_pages - 3 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?filter={{ filter_date }}&page={{ page + 1 }}">
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                <p class="text-muted mt-3 mb-0">暂无备份文件</p>
+                <p class="text-muted small">点击上方"立即备份"按钮创建第一个备份</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 数据库路径信息 -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body p-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+            <div class="row g-0 align-items-center p-4">
+                <div class="col-md-1 text-center">
+                    <div class="d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px; background-color: rgba(255,255,255,0.2); border-radius: 12px;">
+                        <i class="bi bi-folder2-open text-white" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <div class="col-md-11 ps-md-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-database text-white me-2" style="font-size: 1.2rem;"></i>
+                        <span class="text-white fw-bold" style="font-size: 1.1rem;">数据库路径</span>
+                    </div>
+                    <div class="bg-white rounded p-3 mb-3" style="border-left: 4px solid #ffc107;">
+                        <code class="text-dark d-block" style="font-size: 1rem; font-weight: 600; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;">
+                            {{ db_info.uri or 'N/A' }}
+                        </code>
+                    </div>
+                    {% if db_info.modified %}
+                    <div class="d-flex align-items-center text-white">
+                        <i class="bi bi-clock-history me-2" style="font-size: 1rem;"></i>
+                        <span style="font-size: 0.95rem; font-weight: 500;">最后修改: {{ db_info.modified }}</span>
                     </div>
                     {% endif %}
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 系统初始化确认模态框 -->
+<div class="modal fade" id="initializeModal" tabindex="-1" aria-labelledby="initializeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="initializeModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>系统初始化确认
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger mb-4">
+                    <strong><i class="bi bi-exclamation-circle-fill me-2"></i>此操作将清除以下数据：</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>所有用户账号（保留管理员）</li>
+                        <li>所有设备记录</li>
+                        <li>所有采购记录</li>
+                        <li>所有转移/维修/报废记录</li>
+                        <li>所有借用记录</li>
+                        <li>所有审批申请</li>
+                        <li>所有系统日志</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong><i class="bi bi-info-circle-fill me-2"></i>此操作将保留以下数据：</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>管理员账号（admin / admin@123）</li>
+                        <li>所有设备类型</li>
+                        <li>所有配件类型</li>
+                        <li>部门和地点信息</li>
+                        <li>审批流程模板</li>
+                        <li>系统角色设置</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong><i class="bi bi-shield-exclamation me-2"></i>操作提示：</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>系统会自动创建备份文件</li>
+                        <li>初始化过程可能需要几秒钟</li>
+                        <li>初始化完成后需要重新登录</li>
+                    </ul>
+                </div>
+
+                <!-- 三步确认 -->
+                <div class="border rounded p-3 mt-4 bg-light">
+                    <h6 class="mb-3 fw-bold">确认步骤：请在下方输入确认信息</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">步骤 1：输入确认码</label>
+                        <input type="text" class="form-control form-control-lg" id="initializeConfirmInput" 
+                               placeholder="输入 INITIALIZE_SYSTEM 确认" autocomplete="off">
+                        <small class="text-muted d-block mt-1">请确保准确输入确认码</small>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="initializeCheckbox1" style="width: 1.25rem; height: 1.25rem;">
+                        <label class="form-check-label" for="initializeCheckbox1">
+                            我已备份重要数据
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="initializeCheckbox2" style="width: 1.25rem; height: 1.25rem;">
+                        <label class="form-check-label" for="initializeCheckbox2">
+                            我已知悉所有业务数据将被清除
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="initializeCheckbox3" style="width: 1.25rem; height: 1.25rem;">
+                        <label class="form-check-label" for="initializeCheckbox3">
+                            我同意执行系统初始化操作
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger px-4 fw-bold" id="confirmInitializeBtn" disabled>
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>确认初始化
+                </button>
             </div>
         </div>
     </div>
@@ -215,10 +555,278 @@
 </div>
 {% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* 页面整体优化 */
+    body {
+        background-color: #f0f2f5;
+    }
+    
+    .card {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* 统计卡片样式 */
+    .stat-card {
+        border-left: 4px solid transparent;
+    }
+    
+    .stat-card:nth-child(1) { border-left-color: #0d6efd; }
+    .stat-card:nth-child(2) { border-left-color: #198754; }
+    .stat-card:nth-child(3) { border-left-color: #0dcaf0; }
+    .stat-card:nth-child(4) { border-left-color: #ffc107; }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: white;
+    }
+    
+    .stat-icon.bg-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-icon.bg-success { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+    .stat-icon.bg-info { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); }
+    .stat-icon.bg-warning { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+    
+    .stat-icon-sm {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+    
+    .stat-icon-sm.bg-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    
+    /* 渐变背景 */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%) !important;
+    }
+    
+    .bg-gradient-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+    }
+    
+    /* 按钮优化 */
+    .btn {
+        transition: all 0.3s ease;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-action {
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+    
+    .btn-action:active {
+        transform: translateY(0);
+    }
+    
+    .btn-export {
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-export:hover {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%) !important;
+        border-color: #0d6efd;
+    }
+    
+    /* 表格优化 */
+    .table-hover tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: #f0f7ff !important;
+        transform: scale(1.005);
+    }
+    
+    /* 卡片头部 */
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+    
+    /* 阴影优化 */
+    .shadow-sm {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    }
+    
+    /* 快捷路径按钮 */
+    .quick-path {
+        transition: all 0.3s ease;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    
+    .quick-path:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+    }
+    
+    /* 空状态优化 */
+    .text-center .bi-inbox {
+        animation: float 3s ease-in-out infinite;
+        opacity: 0.3;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+    }
+    
+    /* 输入框优化 */
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+    
+    /* 路径输入框 */
+    #export-path {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+        padding: 0.75rem;
+    }
+    
+    #export-path:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15);
+    }
+    
+    /* 警告框优化 */
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+    
+    /* 分页按钮 */
+    .pagination .page-link {
+        border-radius: 6px;
+        margin: 0 3px;
+        font-weight: 600;
+        color: #667eea;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .pagination .page-link:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: transparent;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+    }
+    
+    /* 响应式优化 */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+        
+        h4 {
+            font-size: 1.25rem !important;
+        }
+        
+        .btn-group {
+            flex-direction: column;
+        }
+        
+        .btn-group .btn {
+            border-radius: 0.5rem !important;
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    /* 文件上传输入框 */
+    .form-control[type="file"] {
+        border-radius: 8px;
+        border: 2px dashed #dee2e6;
+        padding: 0.75rem;
+    }
+    
+    .form-control[type="file"]:hover {
+        border-color: #667eea;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
     $(document).ready(function() {
+        // 路径验证函数
+        function validatePath(path) {
+            if (!path) return true; // 空路径使用默认值
+            
+            // Windows绝对路径: C:\, D:\, \\server\share
+            var windowsAbsolute = /^[A-Za-z]:\\|^\\\\/;
+            // Linux/Mac绝对路径: /path/to/dir
+            var unixAbsolute = /^\//;
+            // 相对路径
+            var relative = /^[^\\\/].*[\\\/]?$/;
+            
+            return windowsAbsolute.test(path) || unixAbsolute.test(path) || relative.test(path);
+        }
+        
+        // 路径输入验证
+        $('#export-path').on('input', function() {
+            var path = $(this).val().trim();
+            var isValid = validatePath(path);
+            
+            $('#path-valid').toggleClass('d-none', !isValid || !path);
+            $('#path-invalid').toggleClass('d-none', isValid || !path);
+        });
+        
+        // 快捷路径按钮
+        $('.quick-path').on('click', function() {
+            var path = $(this).data('path');
+            $('#export-path').val(path).trigger('input');
+        });
+        
+        // 清空路径
+        $('#clear-path').on('click', function() {
+            $('#export-path').val('').trigger('input');
+        });
+        
         // 备份数据库
         $('#backup-btn').on('click', function() {
             var btn = $(this);
@@ -240,6 +848,33 @@
                 error: function() {
                     alert('备份失败，请稍后重试');
                     btn.prop('disabled', false).html('<i class="bi bi-download"></i> 立即备份');
+                }
+            });
+        });
+
+        // 立即恢复（恢复最近一次备份）
+        $('#restore-latest-btn').on('click', function() {
+            if (!confirm('确定要使用最近一次备份恢复数据库吗？当前数据库将被替换！')) {
+                return;
+            }
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 恢复中...');
+            $.ajax({
+                url: '{{ url_for("main.restore_latest_route") }}',
+                type: 'POST',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('恢复成功！页面将刷新。');
+                        location.reload();
+                    } else {
+                        alert('恢复失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-arrow-counterclockwise"></i> 立即恢复');
+                    }
+                },
+                error: function() {
+                    alert('恢复失败，请稍后重试');
+                    btn.prop('disabled', false).html('<i class="bi bi-arrow-counterclockwise"></i> 立即恢复');
                 }
             });
         });
@@ -273,6 +908,151 @@
                 error: function() {
                     alert('恢复失败，请稍后重试');
                     btn.prop('disabled', false).text('恢复');
+                }
+            });
+        });
+
+        // 导出为 MySQL
+        $('#export-mysql-btn').on('click', function() {
+            var btn = $(this);
+            var customPath = $('#export-path').val().trim();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 导出中...');
+            
+            var requestData = {};
+            if (customPath) {
+                requestData.custom_path = customPath;
+            }
+            
+            $.ajax({
+                url: '{{ url_for("main.export_mysql_route") }}',
+                type: 'POST',
+                data: JSON.stringify(requestData),
+                contentType: 'application/json',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        var savePath = response.save_path || 'migrations/';
+                        alert('✅ 导出成功: ' + response.dump_filename + '\n📁 文件已保存到: ' + savePath + '\n💡 请参考 DATABASE_MIGRATION_GUIDE.md 了解如何导入');
+                        $('#export-path').val(''); // 清空路径
+                        location.reload();
+                    } else {
+                        alert('❌ 导出失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> MySQL');
+                    }
+                },
+                error: function() {
+                    alert('导出失败，请稍后重试');
+                    btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> MySQL');
+                }
+            });
+        });
+
+        // 导出为 SQL Server
+        $('#export-mssql-btn').on('click', function() {
+            var btn = $(this);
+            var customPath = $('#export-path').val().trim();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 导出中...');
+            
+            var requestData = {};
+            if (customPath) {
+                requestData.custom_path = customPath;
+            }
+            
+            $.ajax({
+                url: '{{ url_for("main.export_mssql_route") }}',
+                type: 'POST',
+                data: JSON.stringify(requestData),
+                contentType: 'application/json',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        var savePath = response.save_path || 'migrations/';
+                        alert('✅ 导出成功: ' + response.dump_filename + '\n📁 文件已保存到: ' + savePath + '\n💡 请参考 DATABASE_MIGRATION_GUIDE.md 了解如何导入');
+                        $('#export-path').val(''); // 清空路径
+                        location.reload();
+                    } else {
+                        alert('❌ 导出失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> SQL Server');
+                    }
+                },
+                error: function() {
+                    alert('导出失败，请稍后重试');
+                    btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> SQL Server');
+                }
+            });
+        });
+
+        // 导出为 PostgreSQL
+        $('#export-postgresql-btn').on('click', function() {
+            var btn = $(this);
+            var customPath = $('#export-path').val().trim();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 导出中...');
+            
+            var requestData = {};
+            if (customPath) {
+                requestData.custom_path = customPath;
+            }
+            
+            $.ajax({
+                url: '{{ url_for("main.export_postgresql_route") }}',
+                type: 'POST',
+                data: JSON.stringify(requestData),
+                contentType: 'application/json',
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        var savePath = response.save_path || 'migrations/';
+                        alert('✅ 导出成功: ' + response.dump_filename + '\n📁 文件已保存到: ' + savePath + '\n💡 请参考 DATABASE_MIGRATION_GUIDE.md 了解如何导入');
+                        $('#export-path').val(''); // 清空路径
+                        location.reload();
+                    } else {
+                        alert('❌ 导出失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> PostgreSQL');
+                    }
+                },
+                error: function() {
+                    alert('导出失败，请稍后重试');
+                    btn.prop('disabled', false).html('<i class="bi bi-filetype-sql"></i> PostgreSQL');
+                }
+            });
+        });
+
+        // 导入数据库 (.db 文件)
+        $('#import-db-btn').on('click', function() {
+            var fileEl = $('#import-db-file')[0];
+            if (!fileEl.files || fileEl.files.length === 0) {
+                alert('请选择要导入的 .db 文件');
+                return;
+            }
+            if (!confirm('确定要上传并用该 .db 文件恢复数据库吗？当前数据库将被替换！')) {
+                return;
+            }
+            var file = fileEl.files[0];
+            var formData = new FormData();
+            formData.append('db_file', file);
+
+            var btn = $(this);
+            btn.prop('disabled', true).text('导入中...');
+
+            $.ajax({
+                url: '{{ url_for("main.import_database_route") }}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        alert('导入并恢复成功，页面将刷新。');
+                        location.reload();
+                    } else {
+                        alert('导入失败: ' + response.message);
+                        btn.prop('disabled', false).text('导入数据库 (.db)');
+                    }
+                },
+                error: function() {
+                    alert('导入失败，请稍后重试');
+                    btn.prop('disabled', false).text('导入数据库 (.db)');
                 }
             });
         });
@@ -348,12 +1128,92 @@
                     });
                 });
         
+        // 系统初始化按钮处理
+        // 更新确认按钮状态
+        $('#initializeConfirmInput, #initializeCheckbox1, #initializeCheckbox2, #initializeCheckbox3').on('change', function() {
+            var confirmValue = $('#initializeConfirmInput').val();
+            var checkbox1 = $('#initializeCheckbox1').is(':checked');
+            var checkbox2 = $('#initializeCheckbox2').is(':checked');
+            var checkbox3 = $('#initializeCheckbox3').is(':checked');
+            
+            var canSubmit = confirmValue === 'INITIALIZE_SYSTEM' && checkbox1 && checkbox2 && checkbox3;
+            $('#confirmInitializeBtn').prop('disabled', !canSubmit);
+        });
+        
+        $('#confirmInitializeBtn').on('click', function() {
+            var confirmValue = $('#initializeConfirmInput').val();
+            
+            if (confirmValue !== 'INITIALIZE_SYSTEM') {
+                alert('请输入正确的确认码');
+                return;
+            }
+            
+            if (!$('#initializeCheckbox1').is(':checked') || !$('#initializeCheckbox2').is(':checked') || !$('#initializeCheckbox3').is(':checked')) {
+                alert('请勾选所有确认项');
+                return;
+            }
+            
+            if (!confirm('最后确认：您确定要初始化系统吗？所有业务数据将被清除！')) {
+                return;
+            }
+            
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>初始化中...');
+            
+            $.ajax({
+                url: '{{ url_for("main.initialize_system_route") }}',
+                type: 'POST',
+                data: {
+                    confirm: confirmValue
+                },
+                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+                success: function(response) {
+                    if (response.success) {
+                        var message = '✅ 系统初始化成功！\n\n';
+                        message += '📊 初始化统计：\n';
+                        message += '- 删除用户: ' + (response.users_cleared || 0) + ' 人\n';
+                        message += '- 删除设备: ' + (response.equipment_cleared || 0) + ' 台\n';
+                        if (response.backup_file) {
+                            message += '- 备份文件: ' + response.backup_file + '\n';
+                        }
+                        message += '\n🔐 管理员账号: ' + response.admin_username + ' / ' + response.admin_password;
+                        message += '\n\n👉 页面将跳转到登录页，请使用新的管理员账号重新登录';
+                        
+                        alert(message);
+                        
+                        // 延迟后跳转到登录页
+                        setTimeout(function() {
+                            window.location.href = '{{ url_for("auth.logout") }}';
+                        }, 1000);
+                    } else {
+                        alert('❌ 初始化失败: ' + response.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-exclamation-triangle-fill me-1"></i>确认初始化');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    var errorMsg = '初始化过程中出现错误';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    alert('❌ ' + errorMsg);
+                    btn.prop('disabled', false).html('<i class="bi bi-exclamation-triangle-fill me-1"></i>确认初始化');
+                }
+            });
+        });
+        
         // 备份列表筛选
         $('#backup-filter').on('change', function() {
             var filter = $(this).val();
             window.location.href = '{{ url_for("main.database_management") }}?filter=' + filter;
         });
     });
-</script>
+    </script>
+    
+    <style>
+    .hover-shadow:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        transition: all 0.2s;
+    }
+    </style>
 {% endblock %}
-

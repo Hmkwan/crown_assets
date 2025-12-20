@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">➕ 记录生命周期事件</h1>
+        <p class="lead text-muted">为资产 <strong>{{ equipment.name }}</strong> 记录新的生命周期事件</p>
+    </div>
+
+    <form method="POST" class="row g-3">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <!-- 事件类型 -->
+                    <div class="mb-3">
+                        <label for="event_type" class="form-label">事件类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="event_type" name="event_type" onchange="updateEventTypeInfo()" required>
+                            <option value="">-- 请选择事件类型 --</option>
+                            <option value="purchase">📦 采购</option>
+                            <option value="deployment">📍 部署/调拨</option>
+                            <option value="maintenance">🔧 维护/修理</option>
+                            <option value="upgrade">⬆️ 升级/改造</option>
+                            <option value="retirement">🗑️ 报废/淘汰</option>
+                        </select>
+                        <small class="text-muted d-block mt-2" id="event_info"></small>
+                    </div>
+
+                    <!-- 事件日期 -->
+                    <div class="mb-3">
+                        <label for="event_date" class="form-label">事件日期 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="event_date" name="event_date" required>
+                        <small class="text-muted">选择事件发生的日期</small>
+                    </div>
+
+                    <!-- 描述 -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">事件描述 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="简要描述此事件发生的情况" required></textarea>
+                    </div>
+
+                    <!-- 成本（根据事件类型显示/隐藏） -->
+                    <div class="mb-3" id="cost_section" style="display: none;">
+                        <label for="cost" class="form-label">成本金额</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <small class="text-muted" id="cost_hint"></small>
+                    </div>
+
+                    <!-- 部门（部署时显示） -->
+                    <div class="mb-3" id="department_section" style="display: none;">
+                        <label for="department" class="form-label">部门</label>
+                        <select class="form-select" id="department" name="department">
+                            <option value="">-- 请选择部门 --</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept }}">{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 备注 -->
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="添加任何其他相关信息"></textarea>
+                    </div>
+
+                    <!-- 附件（可选） -->
+                    <div class="mb-3">
+                        <label for="attachment" class="form-label">上传附件</label>
+                        <input type="file" class="form-control" id="attachment" name="attachment">
+                        <small class="text-muted">支持图片、文档等文件</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 事件类型信息卡 -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 1rem;">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📋 事件类型说明</h5>
+                </div>
+                <div class="card-body" id="type_description">
+                    <p class="text-muted">请选择事件类型以查看详细信息</p>
+                </div>
+            </div>
+
+            <!-- 快速参考 -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📌 资产当前信息</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>资产编号</strong><br>
+                            <code>{{ equipment.asset_no }}</code>
+                        </li>
+                        <li class="mb-2">
+                            <strong>资产名称</strong><br>
+                            {{ equipment.name }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>采购日期</strong><br>
+                            {{ equipment.purchase_date.strftime('%Y-%m-%d') if equipment.purchase_date else 'N/A' }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>采购价格</strong><br>
+                            ¥{{ "%.0f"|format(equipment.price) if equipment.price else '0' }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>当前部门</strong><br>
+                            {{ equipment.department or 'N/A' }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- 操作按钮 -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            ✓ 保存事件
+        </button>
+        <a href="{{ url_for('main.asset_lifecycle', asset_id=equipment.id) }}" class="btn btn-outline-secondary btn-lg">
+            ← 取消
+        </a>
+    </div>
+</div>
+
+<script>
+const eventTypes = {
+    purchase: {
+        title: '📦 采购',
+        description: '记录资产的新采购。包括购买日期、成本等信息。',
+        showCost: true,
+        costHint: '采购价格',
+        showDepartment: false
+    },
+    deployment: {
+        title: '📍 部署/调拨',
+        description: '记录资产的部署或部门间调拨。例如从仓库发放到各部门。',
+        showCost: false,
+        showDepartment: true
+    },
+    maintenance: {
+        title: '🔧 维护/修理',
+        description: '记录资产的日常维护或维修。包括维护成本等。',
+        showCost: true,
+        costHint: '维护/修理费用'
+    },
+    upgrade: {
+        title: '⬆️ 升级/改造',
+        description: '记录资产的升级或改造。例如增加功能或提高性能。',
+        showCost: true,
+        costHint: '升级/改造成本'
+    },
+    retirement: {
+        title: '🗑️ 报废/淘汰',
+        description: '记录资产的报废或淘汰。资产达到生命周期末期。',
+        showCost: false
+    }
+};
+
+function updateEventTypeInfo() {
+    const typeSelect = document.getElementById('event_type');
+    const selectedType = typeSelect.value;
+    const typeDesc = document.getElementById('type_description');
+    const costSection = document.getElementById('cost_section');
+    const departmentSection = document.getElementById('department_section');
+    
+    if (selectedType && eventTypes[selectedType]) {
+        const info = eventTypes[selectedType];
+        typeDesc.innerHTML = `
+            <h6>${info.title}</h6>
+            <p class="text-muted small mb-0">${info.description}</p>
+        `;
+        
+        // 显示/隐藏成本字段
+        if (info.showCost) {
+            costSection.style.display = 'block';
+            document.getElementById('cost_hint').textContent = info.costHint;
+        } else {
+            costSection.style.display = 'none';
+        }
+        
+        // 显示/隐藏部门字段
+        if (info.showDepartment) {
+            departmentSection.style.display = 'block';
+        } else {
+            departmentSection.style.display = 'none';
+        }
+    }
+}
+
+// 设置默认日期为今天
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('event_date').value = today;
+});
+</script>
+
+<style>
+.sticky-top {
+    position: sticky;
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: relative;
+        top: 0;
+    }
+}
+</style>
+{% endblock %}

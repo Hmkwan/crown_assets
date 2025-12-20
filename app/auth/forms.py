@@ -17,11 +17,10 @@ class RegistrationForm(FlaskForm):
     full_name = StringField('姓名', validators=[DataRequired()])
     email = StringField('邮箱', validators=[DataRequired(), Email()])
     department = SelectField('所属部门', choices=[], coerce=int, validators=[DataRequired()])
-    role_requested = SelectField('申请角色', choices=[
-        ('user', '普通用户'),
-        ('technician', '技术员'),
-        ('department_head', '部门负责人')
-    ], validators=[DataRequired()], default='user')
+    # 申请角色统一为普通用户，其他权限由管理员在权限管理模块中分配
+    # role_requested = SelectField('申请角色', choices=[
+    #     ('user', '普通用户'),
+    # ], validators=[DataRequired()], default='user')
     reason = TextAreaField('申请说明（可选）')
     password = PasswordField('密码', validators=[DataRequired()])
     password2 = PasswordField('确认密码', validators=[DataRequired(), EqualTo('password')])

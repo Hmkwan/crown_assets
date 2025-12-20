@@ -1,0 +1,900 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* ========== 整体布局 ========== */
+    .workflow-config-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+        min-height: calc(100vh - 200px);
+        padding-bottom: 3rem;
+    }
+    
+    /* ========== 页面标题区域 ========== */
+    .page-header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 0;
+        margin: -1.5rem -1.5rem 2.5rem -1.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="%23ffffff"/><path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="%23ffffff"/><path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="%23ffffff"/></svg>') no-repeat bottom;
+        background-size: cover;
+        opacity: 0.1;
+    }
+    
+    .page-header-section h1 {
+        color: white;
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .page-header-section p {
+        font-size: 1.05rem;
+        opacity: 0.95;
+        margin-bottom: 0;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .page-header-section .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .page-header-section .breadcrumb-item,
+    .page-header-section .breadcrumb-item a {
+        color: rgba(255,255,255,0.9);
+    }
+    
+    .page-header-section .breadcrumb-item.active {
+        color: white;
+    }
+    
+    .page-header-section .breadcrumb-item + .breadcrumb-item::before {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    /* ========== 工单类型选择器 ========== */
+    .type-selector-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        margin-bottom: 2.5rem;
+        overflow: hidden;
+        border: 1px solid rgba(102,126,234,0.1);
+    }
+    
+    .type-selector-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 3px solid #667eea;
+    }
+    
+    .type-selector-header h5 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .type-selector-header small {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    /* ========== 工单类型卡片 ========== */
+    .order-type-card {
+        border: 2px solid #e8eef5;
+        border-radius: 16px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        background: white;
+        height: 100%;
+        min-height: 200px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .order-type-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+    
+    .order-type-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 12px 35px rgba(102,126,234,0.15);
+        border-color: #667eea;
+    .order-type-card .card-body {
+        padding: 2rem 1.5rem;
+        text-align: center;
+    }
+    
+    .order-type-card .card-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.75rem;
+    }
+    
+    .order-type-card .card-text {
+        line-height: 1.6;
+    }   box-shadow: 0 8px 25px rgba(102,126,234,0.25);
+        transform: translateY(-4px);
+    }
+    
+    .order-type-card.border-primary::before {
+        transform: scaleX(1);
+    }
+    
+    .order-type-card.border-primary {
+        border-color: #667eea !important;
+        background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 100%);
+        box-shadow: 0 5px 15px rgba(102,126,234,0.2);
+    }
+    
+    .order-type-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .order-type-card .card-title {
+        font-size: 1.1rem;
+    /* ========== 流程配置区域 ========== */
+    .workflow-config-section {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+        overflow: hidden;
+        border: 1px solid rgba(102,126,234,0.15);
+    }
+    
+    .workflow-config-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .workflow-config-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+    /* ========== 流程可视化 ========== */
+    .workflow-visualization {
+        background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);
+        border-radius: 12px;
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        border: 2px solid #e8eef5;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    
+    .workflow-visualization h6 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 2rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 3px solid #667eea;
+        display: flex;
+        align-items: center;
+    }
+    
+    .workflow-visualization h6 i {
+        margin-right: 0.5rem;
+        color: #667eea;
+    }
+    .workflow-config-header small {
+        position: relative;
+        z-index: 1;
+    }workflow-config-header h5 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    .workflow-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 150px;
+        padding: 1.5rem 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    
+    .workflow-step:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .workflow-step.start-node {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(17,153,142,0.3);
+    }
+    
+    .workflow-step.end-node {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102,126,234,0.3);
+    }
+    
+    .workflow-step.approval-node {
+        background: white;
+        border: 3px solid #667eea;
+    }
+    
+    .workflow-step.approval-node:hover {
+        border-color: #764ba2;
+    }   display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 140px;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .workflow-step:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    .workflow-step.start-node {
+    .step-icon {
+        font-size: 3rem;
+        margin-bottom: 0.75rem;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+    
+    .step-number {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.4);
+    }step-number {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    
+    .step-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 0.25rem;
+    }
+    
+    .step-role {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        text-align: center;
+    }
+    
+    .step-approvers {
+        margin-top: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .step-approvers .badge {
+        font-size: 0.7rem;
+    }
+    /* ========== 表格区域 ========== */
+    .table-section {
+        padding: 2rem;
+        background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+    }
+    
+    .table-section h6 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 3px solid #667eea;
+        display: flex;
+        align-items: center;
+    }
+    
+    .table-section h6 i {
+        margin-right: 0.5rem;
+        color: #667eea;
+    }
+    
+    .table {
+        margin-bottom: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        font-weight: 700;
+        color: white;
+        padding: 1.25rem 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+    }
+    
+    .table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table tbody tr:hover {
+        background: linear-gradient(90deg, #f8f9fc 0%, #ffffff 100%);
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    /* ========== 空状态 ========== */
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+        background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);
+        border-radius: 16px;
+        margin: 2rem;
+        border: 2px dashed #dee2e6;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .empty-state::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(102,126,234,0.03) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    .empty-state-icon {
+        font-size: 6rem;
+        opacity: 0.2;
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* ========== 按钮优化 ========== */
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(-1px);
+    }
+    
+    .btn-outline-primary:hover,
+    .btn-outline-danger:hover {
+        transform: translateY(-2px);
+    }
+    
+    .empty-state p {
+        color: #adb5bd;
+        margin-bottom: 2rem;
+        font-size: 1.05rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* ========== 用户选择列表 ========== */
+    .user-item {
+        cursor: pointer;
+        transition: all 0.2s;
+        padding: 0.5rem;
+        border-radius: 6px;
+    }
+    
+    .user-item:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .user-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .user-item.active {
+        background-color: #e7f3ff !important;
+    }
+    
+    #edit_selected_badges .badge {
+        font-size: 0.875rem;
+        padding: 5px 10px;
+    }
+    
+    /* ========== 响应式设计 ========== */
+    @media (max-width: 768px) {
+        .workflow-steps {
+            flex-direction: column;
+        }
+        
+        .workflow-arrow {
+            transform: rotate(90deg);
+        }
+        
+        .order-type-card {
+            margin-bottom: 1rem;
+        }
+        
+        .page-header-section h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workflow-config-container">
+    <!-- 页面标题区域 -->
+    <div class="page-header-section">
+        <div class="container-fluid">
+            <h1><i class="fas fa-sitemap"></i> 审批流程配置中心</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+                    <li class="breadcrumb-item active">审批流程配置</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- 工单类型选择器 -->
+        <div class="type-selector-card">
+            <div class="type-selector-header">
+                <h5><i class="fas fa-th-large"></i> 选择工单类型</h5>
+                <small class="text-muted">管理员可以自定义各工单类型的审批流程,支持多节点、金额阈值和跨部门审批</small>
+            </div>
+            <div class="type-selector-body">
+                <div class="row">
+                    {% for type_key, type_info in order_types.items() %}
+                    <div class="col-md-4 col-lg-3 mb-3">
+                        <div class="order-type-card {% if selected_type == type_key %}border-primary{% endif %}" 
+                             onclick="window.location.href='{{ url_for('main.workflow_config_by_type', order_type=type_key) }}'">
+                            <div class="card-body">
+                                <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">{{ type_info.icon }}</div>
+                                <h5 class="card-title text-center">{{ type_info.name }}</h5>
+                                <p class="card-text text-muted small text-center">{{ type_info.description }}</p>
+                                <div class="mt-3 text-center">
+                                    {% set node_count = workflow_stats.get(type_key, 0) %}
+                                    <span class="badge {% if node_count > 0 %}badge-success{% else %}badge-secondary{% endif %} px-3 py-2">
+                                        <i class="fas fa-check-circle"></i> {{ node_count }} 个审批节点
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% if selected_type %}
+        <!-- 当前工单类型的审批流配置 -->
+        <div class="workflow-config-section">
+            <div class="workflow-config-header">
+                <div>
+                    <h5>
+                        <span style="font-size: 1.8rem; margin-right: 0.5rem;">{{ order_types[selected_type].icon }}</span>
+                        {{ order_types[selected_type].name }} - 审批流程配置
+                    </h5>
+                    <small class="d-block mt-1" style="opacity: 0.9;">{{ order_types[selected_type].description }}</small>
+                </div>
+                <button class="btn btn-light btn-lg mt-2 mt-md-0" data-toggle="modal" data-target="#addNodeModal">
+                    <i class="fas fa-plus-circle"></i> 添加新节点
+                </button>
+            </div>
+            
+            <div class="table-section">
+                {% if nodes %}
+                <!-- 流程可视化 -->
+                <div class="workflow-visualization">
+                    <h6><i class="fas fa-project-diagram"></i> 流程可视化图</h6>
+                    <div class="workflow-steps">
+                        <div class="workflow-step start-node">
+                            <div class="step-icon">🚀</div>
+                            <div class="step-label">提交申请</div>
+                        </div>
+                        {% for node in nodes %}
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step approval-node">
+                            <div class="step-number">{{ loop.index }}</div>
+                            <div class="step-icon">
+                                {% if node.role_required == 'department_head' %}👔
+                                {% elif node.role_required == 'admin' %}👨‍💼
+                                {% elif node.role_required == 'technician' %}🔧
+                                {% elif node.role_required == 'procurement' %}📦
+                                {% elif node.role_required == 'warehouse' %}🏭
+                                {% elif node.role_required == 'finance' %}💰
+                                {% elif node.role_required == 'executive' %}🎯
+                                {% else %}✓{% endif %}
+                            </div>
+                            <div class="step-label">{{ node.name }}</div>
+                            <div class="step-role">{{ get_role_name(node.role_required) }}</div>
+                            {% if node.approver_user_ids %}
+                            <div class="step-approvers">
+                                {% set approvers = node.get_approver_users() %}
+                                {% if approvers %}
+                                    {% for a in approvers[:2] %}
+                                        <span class="badge badge-info">{{ a.username }}</span>
+                                    {% endfor %}
+                                    {% if approvers|length > 2 %}
+                                        <span class="badge badge-secondary">+{{ approvers|length - 2 }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step end-node">
+                            <div class="step-icon">✅</div>
+                            <div class="step-label">审批完成</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 节点详细列表 -->
+                <h6><i class="fas fa-list-alt"></i> 节点配置详情</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="60" class="text-center">序号</th>
+                                <th>节点名称</th>
+                                <th>所需角色</th>
+                                <th>金额阈值</th>
+                                <th>指定审批人</th>
+                                <th width="150" class="text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for node in nodes %}
+                            <tr>
+                                <td class="text-center">
+                                    <span class="badge badge-pill badge-primary" style="font-size: 1rem; padding: 0.5rem 0.75rem;">{{ node.sequence }}</span>
+                                </td>
+                                <td>
+                                    <strong style="font-size: 1rem;">{{ node.name }}</strong>
+                                    {% if node.condition_expr %}
+                                    <br><small class="text-muted"><i class="fas fa-code-branch"></i> {{ node.condition_expr }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if node.role_required == 'admin' %}danger{% elif node.role_required == 'department_head' %}warning{% else %}info{% endif %} px-3 py-2">
+                                        {{ get_role_name(node.role_required) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if node.condition_expr and '金额' in node.condition_expr %}
+                                    <span class="badge badge-warning">{{ node.condition_expr }}</span>
+                                    {% else %}
+                                    <span class="text-muted">未设置</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set approvers = node.get_approver_users() %}
+                                    {% if approvers and approvers|length > 0 %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% for a in approvers %}
+                                                <span class="badge badge-secondary">{{ a.username }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted"><i class="fas fa-users"></i> 按角色自动</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary edit-node" 
+                                                data-id="{{ node.id }}"
+                                                data-name="{{ node.name }}"
+                                                data-order-type="{{ node.order_type }}"
+                                                data-role-required="{{ node.role_required }}"
+                                                data-sequence="{{ node.sequence }}"
+                                                data-node-type="{{ node.node_type or 'approval' }}"
+                                                data-approver-user-ids='{{ node.approver_user_ids or "" }}'
+                                                data-condition-expr="{{ node.condition_expr or '' }}"
+                                                title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger delete-node" 
+                                                data-id="{{ node.id }}"
+                                                data-name="{{ node.name }}"
+                                                title="删除">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <!-- 空状态 -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h5>该工单类型暂未配置审批流程</h5>
+                    <p>开始添加审批节点,构建您的审批流程</p>
+                    <button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#addNodeModal">
+                        <i class="fas fa-plus-circle"></i> 添加第一个审批节点
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加节点模态框 -->
+<div class="modal fade" id="addNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> 添加审批节点</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addNodeForm">
+                <div class="modal-body">
+                    <input type="hidden" name="order_type" value="{{ selected_type }}">
+                    
+                    <!-- 基本信息 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-info-circle"></i> 基本信息</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>节点名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" required 
+                                       placeholder="例如:部门负责人审批">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>审批顺序 <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="sequence" required min="1" value="{{ next_sequence }}">
+                                        <small class="form-text text-muted">数字越小,越先审批</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>节点类型 <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="node_type" required>
+                                            <option value="approval">📋 标准审批</option>
+                                            <option value="parallel">🔀 并行审批</option>
+                                            <option value="condition">🔍 条件分支</option>
+                                            <option value="auto_action">⚡ 自动动作</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>审批角色 <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="role_required" required>
+                                            <option value="">请选择</option>
+                                            <option value="employee">普通员工</option>
+                                            <option value="department_head">部门负责人</option>
+                                            <option value="admin">管理员</option>
+                                            <option value="technician">技术员</option>
+                                            <option value="procurement">采购专员</option>
+                                            <option value="warehouse">仓库管理员</option>
+                                            <option value="security">信息安全员</option>
+                                            <option value="finance">财务审批人</option>
+                                            <option value="executive">高层管理者</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 审批人配置 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-users"></i> 审批人配置</strong>
+                            <small class="text-muted ml-2">(可选)</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <label>指定审批人</label>
+                                <select class="form-control select2" name="approver_user_ids" multiple>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.username }} - {{ user.get_department_name() }} ({{ get_role_name(user.role) }})</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 留空则根据审批角色自动分配审批人
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 高级配置 -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-cog"></i> 高级配置</strong>
+                            <small class="text-muted ml-2">(可选)</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <label>条件表达式</label>
+                                <input type="text" class="form-control" name="condition_expr" 
+                                       placeholder="例如:amount > 10000">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-code"></i> 用于条件分支节点,支持 Python 表达式
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> 编辑审批节点</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="editNodeForm">
+                <div class="modal-body" style="background-color: #f8f9fa;">
+                    <input type="hidden" name="id" id="edit_node_id">
+                    <input type="hidden" name="order_type" id="edit_order_type">
+                    
+                    <div class="row">
+                        <!-- 左侧:基本配置 -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> 基本配置</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">节点名称 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-lg" name="name" id="edit_name" required
+                                               placeholder="例如:部门负责人审批">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">审批角色 <span class="text-danger">*</span></label>
+                                        <select class="form-control form-control-lg" name="role_required" id="edit_role_required" required>
+                                            <option value="employee">👤 普通员工</option>
+                                            <option value="department_head">👔 部门负责人</option>
+                                            <option value="admin">⚙️ 管理员</option>
+                                            <option value="technician">🔧 技术员</option>
+                                            <option value="procurement">📦 采购专员</option>
+                                            <option value="warehouse">🏭 仓库管理员</option>
+                                            <option value="security">🔐 信息安全员</option>
+                                            <option value="finance">💰 财务审批人</option>
+                                            <option value="executive">👨‍💼 高层管理者</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">审批顺序 <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control form-control-lg" name="sequence" id="edit_sequence" required min="1">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-arrow-right"></i> 数字越小,越先审批
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">节点类型 <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-lg" name="node_type" id="edit_node_type" required>
+                                                    <option value="approval">📋 标准审批</option>
+                                                    <option value="parallel">🔀 并行审批</option>
+                                                    <option value="condition">🔍 条件分支</option>
+                                                    <option value="auto_action">⚡ 自动动作</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">条件表达式 <small class="text-muted">(可选)</small></label>
+                                        <input type="text" class="form-control" name="condition_expr" id="edit_condition_expr"
+                                               placeholder="例如:amount > 10000">
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-code"></i> 用于条件分支节点,支持 Python 表达式
+                                        </small>
+                                    </div>
+                                </div>

@@ -49,5 +49,32 @@
             });
         });
     });
+    
+    // 删除工单
+    function deleteOrder(orderId) {
+        if (confirm('确定要删除这个维修工单吗？此操作不可恢复！')) {
+            fetch(`/repair_orders/${orderId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('错误: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('请求失败: ' + error);
+            });
+        }
+    }
+    
+    // 将函数暴露到全局作用域
+    window.deleteOrder = deleteOrder;
 </script>
 {% endblock %}

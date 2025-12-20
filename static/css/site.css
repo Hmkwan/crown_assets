@@ -1,3 +1,16 @@
+:root{
+  --primary: #0d6efd;
+  --header-grad-start: #4f46e5;
+  --header-grad-end: #7c3aed;
+  --header-text: #ffffff;
+  --badge-success: #28a745;
+  --badge-warning: #ffc107;
+  --badge-secondary: #6c757d;
+  --badge-info: #17a2b8;
+  --badge-primary: #0d6efd;
+  --purple: #6f42c1;
+}
+
 /* Minimal fallback styles to make the app readable when CDN is unavailable */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
@@ -21,12 +34,57 @@ body {
 }
 .card {
   background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.25rem;
+  border: 1px solid #e6e9ee;
+  border-radius: 0.6rem;
   margin-bottom: 1rem;
+  /* 增强阴影与过渡以提高层次感 */
+  box-shadow: 0 6px 18px rgba(29,31,37,0.06);
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 .card .card-body {
   padding: 1rem;
+}
+
+.card .card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 0.35rem;
+}
+
+.card .card-text {
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+/* 卡片悬停轻微抬起，增加交互感 */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(29,31,37,0.10);
+}
+
+/* 卡片标题风格，用于仪表板分组 */
+.card .card-header {
+  background: transparent;
+  border-bottom: none;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  color: var(--purple);
+}
+
+/* 仪表板分区标题，便于快速扫读 */
+.dashboard-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: #343a40;
+}
+
+/* 指标数字样式 */
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
 }
 .btn {
   display: inline-block;
@@ -72,4 +130,57 @@ footer.bg-light {
 .col-md-12 { flex: 0 0 100%; max-width: 100%; padding: 0.5rem; }
 @media (max-width: 768px) {
   .col-md-4, .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+}
+
+/* 确保表单控件在所有页面中有足够对比度 */
+.form-control, .form-select {
+  color: #212529;
+  background-color: #ffffff;
+}
+
+.form-control option, .form-select option {
+  color: #212529;
+  background: #ffffff;
+}
+
+.form-control:disabled, .form-select:disabled, .form-control[readonly], .form-select[readonly] {
+  color: rgba(33,37,41,0.7);
+  background-color: #f8fafc;
+}
+
+/* 下拉控件增强，确保文本垂直居中且有足够点击高度 */
+.form-select {
+  min-height: 44px;
+  line-height: 1.25;
+  padding-right: 2.5rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #343a40 50%),
+                    linear-gradient(135deg, #343a40 50%, transparent 50%);
+  background-position: calc(100% - 1rem) calc(50% - 4px), calc(100% - 0.6rem) calc(50% - 4px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.form-select::-ms-expand { display: none; }
+
+/* 进一步针对 select 元素强制样式，覆盖第三方样式导致的垂直偏移问题 */
+select.form-select, select.form-control, .form-select, .form-control {
+  box-sizing: border-box;
+  font-size: 14px;
+  height: 44px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 12px !important;
+  padding-right: 2.5rem !important;
+  line-height: 20px !important;
+  vertical-align: middle;
+}
+
+html body select.form-select, html body select.form-control {
+  height: 44px !important;
+}
+
+@media (max-width: 480px) {
+  select.form-select, select.form-control { height: 42px !important; padding-top: 5px !important; padding-bottom: 5px !important; }
 }

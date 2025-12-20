@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}审批流程配置 - 管理员{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 表格样式优化 */
+    .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">

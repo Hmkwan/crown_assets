@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fas fa-recycle"></i> 处置报废设备</h2>
+                <a href="{{ url_for('main.scrap_disposal_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回列表
+                </a>
+            </div>
+
+            <!-- 报废信息卡片 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">报废申请信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>报废ID:</strong> #{{ scrap.id }}</p>
+                            <p><strong>设备名称:</strong> {{ scrap.equipment.name if scrap.equipment else '未知' }}</p>
+                            <p><strong>设备编号:</strong> {{ scrap.equipment.serial_number if scrap.equipment and scrap.equipment.serial_number else '无' }}</p>
+                            <p><strong>申请人:</strong> {{ scrap.requester.username if scrap.requester else '未知' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>申请时间:</strong> {{ scrap.created_date.strftime('%Y-%m-%d %H:%M') if scrap.created_date else '-' }}</p>
+                            <p><strong>报废原因:</strong> {{ scrap.description }}</p>
+                            <p><strong>当前状态:</strong> 
+                                <span class="badge badge-success">已批准待处置</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 处置表单 -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">填写处置信息</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="disposal_method">处置方式 <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="disposal_method" name="disposal_method" required>
+                                        <option value="">请选择处置方式</option>
+                                        {% for value, label in disposal_methods %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="disposal_company">处置公司/机构</label>
+                                    <input type="text" class="form-control" id="disposal_company" name="disposal_company" placeholder="选填">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="disposal_value">残值/售价 (元)</label>
+                                    <input type="number" class="form-control" id="disposal_value" name="disposal_value" step="0.01" min="0" value="0">
+                                    <small class="form-text text-muted">出售时填写售价,其他情况填写残值(如有)</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="disposal_notes">处置说明</label>
+                                    <textarea class="form-control" id="disposal_notes" name="disposal_notes" rows="6" placeholder="记录处置过程、联系人、注意事项等"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>处置说明:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>回收利用:</strong> 设备交给专业回收公司进行资源回收</li>
+                                <li><strong>捐赠:</strong> 设备捐赠给慈善机构、学校等组织</li>
+                                <li><strong>销毁:</strong> 设备进行物理销毁,确保数据安全</li>
+                                <li><strong>出售:</strong> 将设备出售给二手市场或个人</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-group text-right">
+                            <a href="{{ url_for('main.scrap_disposal_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> 确认处置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

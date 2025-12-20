@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-chart-bar"></i> 统计报表中心</h1>
+                <div>
+                    <a href="{{ url_for('main.export_statistics_xlsx', report_type='summary') }}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> 导出综合报表
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">用户总数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.users }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">设备总数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.equipment }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-desktop fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">维修工单</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.repair_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-wrench fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">配件申请</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.part_requests }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 本月统计 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">📊 本月统计</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <h5>{{ monthly_stats.new_equipment }}</h5>
+                            <p class="text-muted">新增设备</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5>{{ monthly_stats.new_repair_orders }}</h5>
+                            <p class="text-muted">新增工单</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5>{{ monthly_stats.completed_repairs }}</h5>
+                            <p class="text-muted">完成维修</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5>{{ monthly_stats.new_part_requests }}</h5>
+                            <p class="text-muted">配件申请</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报表导航 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">📑 详细报表</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-primary h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-desktop"></i> 设备统计报表</h5>
+                                    <p class="card-text text-muted">设备清单、状态分布、类型统计</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_equipment') }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='equipment') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-warning h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-wrench"></i> 维修工单统计</h5>
+                                    <p class="card-text text-muted">工单详情、处理时长、技术员绩效</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_repair_orders') }}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='repair_orders') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-info h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-boxes"></i> 配件统计报表</h5>
+                                    <p class="card-text text-muted">库存统计、申请单、使用趋势</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_spare_parts') }}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='spare_parts') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-success h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-dollar-sign"></i> 成本分析报表</h5>
+                                    <p class="card-text text-muted">部门成本、类型成本、年度分析</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_cost_analysis') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='cost_analysis') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-secondary h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-cogs"></i> 配件申请报表</h5>
+                                    <p class="card-text text-muted">申请清单、状态统计</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_part_requests') }}" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='part_requests') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-secondary h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-exchange-alt"></i> 设备调拨报表</h5>
+                                    <p class="card-text text-muted">调拨记录、部门流转</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_transfers') }}" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='transfers') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-dark h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-history"></i> 资产生命周期</h5>
+                                    <p class="card-text text-muted">事件记录、生命周期成本</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_asset_lifecycle') }}" class="btn btn-dark btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='asset_lifecycle') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-danger h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-trash-alt"></i> 设备报废报表</h5>
+                                    <p class="card-text text-muted">报废记录、原因分析</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_scraps') }}" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='scraps') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-info h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-hand-holding"></i> 设备借用报表</h5>
+                                    <p class="card-text text-muted">借用记录、归还统计</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('main.statistics_loans') }}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('main.export_statistics_xlsx', report_type='loans') }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> 导出
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趋势图表 -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">设备状态分布</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">近12个月维修趋势</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-secondary { border-left: 4px solid #858796 !important; }
+.border-left-dark { border-left: 4px solid #5a5c69 !important; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// 设备状态饼图
+const statusLabels = [
+    {% for item in equipment_status %}
+        {% set label_map = {
+            'active':'使用中',
+            'available':'可用',
+            'repair':'维修中',
+            'scrap':'报废',
+            'retired':'退役',
+            'transfer':'调拨中'
+        } %}
+        '{{ label_map.get(item.status, item.status) }}'{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+const statusData = {
+    labels: statusLabels,
+    datasets: [{
+        data: [
+            {% for item in equipment_status %}
+                {{ item.count }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        backgroundColor: [
+            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'
+        ]
+    }]
+};
+
+const statusChart = new Chart(document.getElementById('statusChart'), {
+    type: 'pie',
+    data: statusData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// 趋势折线图
+const trendData = {
+    labels: [
+        {% for item in months_data %}
+            '{{ item.month }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ],
+    datasets: [{
+        label: '维修工单',
+        data: [
+            {% for item in months_data %}
+                {{ item.repair_orders }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        borderColor: '#4e73df',
+        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+        tension: 0.3,
+        fill: true
+    }]
+};
+
+const trendChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: trendData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

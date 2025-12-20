@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> 编辑维修工单</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.edit_repair_order', id=order.id) }}">
+                        {{ form.hidden_tag() if form else '' }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label for="equipment_id" class="form-label">设备 *</label>
+                            <select class="form-select" id="equipment_id" name="equipment_id" required>
+                                <option value="">请选择设备</option>
+                                {% for equipment in equipments %}
+                                <option value="{{ equipment.id }}" {% if equipment.id == order.equipment_id %}selected{% endif %}>
+                                    {{ equipment.name }} - {{ equipment.department }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">故障描述 *</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required>{{ order.description }}</textarea>
+                            <small class="text-muted">请详细描述设备故障情况</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">工单状态</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="submitted" {% if order.status == 'submitted' %}selected{% endif %}>已提交</option>
+                                <option value="in_progress" {% if order.status == 'in_progress' %}selected{% endif %}>处理中</option>
+                                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>已完成</option>
+                                <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                            </select>
+                            <small class="text-muted">
+                                当前状态：
+                                {% if order.status == 'submitted' %}
+                                <span class="badge bg-warning">已提交</span>
+                                {% elif order.status == 'in_progress' %}
+                                <span class="badge bg-primary">处理中</span>
+                                {% elif order.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-secondary">已取消</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3" id="repair_description_group" style="display: none;">
+                            <label for="repair_description" class="form-label">维修说明</label>
+                            <textarea class="form-control" id="repair_description" name="repair_description" rows="3">{{ order.repair_description or '' }}</textarea>
+                            <small class="text-muted">完成工单时请填写维修说明</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.repair_order_detail', id=order.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 根据状态显示/隐藏维修说明字段
+        function toggleRepairDescription() {
+            const status = $('#status').val();
+            if (status === 'completed') {
+                $('#repair_description_group').show();
+                $('#repair_description').attr('required', true);
+            } else {
+                $('#repair_description_group').hide();
+                $('#repair_description').attr('required', false);
+            }
+        }
+        
+        // 初始化显示
+        toggleRepairDescription();
+        
+        // 状态改变时更新
+        $('#status').change(function() {
+            toggleRepairDescription();
+        });
+    });
+</script>
+{% endblock %}

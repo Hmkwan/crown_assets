@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">⚠️ 库存预警</h1>
+        <p class="lead text-muted">监控配件库存水位，及时补充，避免断货</p>
+    </div>
+
+    <!-- 预警统计卡片 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">紧急预警</h6>
+                    <p class="h3 text-danger">{{ total_critical }}</p>
+                    <small class="text-muted">低于紧急阈值的配件</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">预警数量</h6>
+                    <p class="h3 text-warning">{{ total_warning }}</p>
+                    <small class="text-muted">低于最小阈值的配件</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">风险库存价值</h6>
+                    <p class="h3 text-info">¥{{ "%.2f"|format(total_value_at_risk) }}</p>
+                    <small class="text-muted">预警项目总金额</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 预警列表 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">预警列表</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th>配件编号</th>
+                            <th class="text-center">当前库存</th>
+                            <th class="text-center">最小阈值</th>
+                            <th class="text-center">紧急阈值</th>
+                            <th class="text-end">单价</th>
+                            <th class="text-end">库存总值</th>
+                            <th>所属部门</th>
+                            <th>位置</th>
+                            <th class="text-center">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in warning_items %}
+                        <tr>
+                            <td>{{ item.part_name }}</td>
+                            <td><code>{{ item.part_number }}</code></td>
+                            <td class="text-center">
+                                <strong>{{ item.current_stock }}</strong>
+                            </td>
+                            <td class="text-center">{{ item.min_threshold }}</td>
+                            <td class="text-center">{{ item.critical_threshold }}</td>
+                            <td class="text-end">¥{{ "%.2f"|format(item.price) }}</td>
+                            <td class="text-end">¥{{ "%.2f"|format(item.total_value) }}</td>
+                            <td>{{ item.department }}</td>
+                            <td>{{ item.location }}</td>
+                            <td class="text-center">
+                                {% if item.is_critical %}
+                                <span class="badge bg-danger">🔴 紧急</span>
+                                {% elif item.is_warning %}
+                                <span class="badge bg-warning text-dark">🟡 预警</span>
+                                {% else %}
+                                <span class="badge bg-success">🟢 正常</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-5">暂无库存预警信息</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

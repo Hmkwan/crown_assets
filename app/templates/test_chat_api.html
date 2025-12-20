@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}聊天API测试{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>聊天API测试</h2>
+    
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>当前登录状态</h5>
+        </div>
+        <div class="card-body">
+            <p>用户名: {{ current_user.username }}</p>
+            <p>用户ID: {{ current_user.id }}</p>
+            <p>是否认证: {{ current_user.is_authenticated }}</p>
+        </div>
+    </div>
+    
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>API测试</h5>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary" onclick="testAPI('/api/chat/conversations')">测试获取会话列表</button>
+            <button class="btn btn-primary" onclick="testAPI('/api/chat/users')">测试获取用户列表</button>
+            <button class="btn btn-warning" onclick="testAPI('/api/chat/admin/statistics')">测试管理统计</button>
+            
+            <div id="result" class="mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function testAPI(url) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `<div class="alert alert-info">正在测试 ${url}...</div>`;
+    
+    try {
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        const contentType = response.headers.get('content-type');
+        let data;
+        
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+        
+        resultDiv.innerHTML = `
+            <div class="alert ${response.ok ? 'alert-success' : 'alert-danger'}">
+                <h6>状态码: ${response.status}</h6>
+                <h6>响应:</h6>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+        `;
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h6>错误:</h6>
+                <pre>${error.message}</pre>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

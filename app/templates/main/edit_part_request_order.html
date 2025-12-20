@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> 编辑配件申请</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.edit_part_request_order', id=order.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label for="part_name" class="form-label">配件名称 *</label>
+                            <input type="text" class="form-control" id="part_name" name="part_name" value="{{ order.part_name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="part_number" class="form-label">配件编号 *</label>
+                            <input type="text" class="form-control" id="part_number" name="part_number" value="{{ order.part_number }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">申请数量 *</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" value="{{ order.quantity }}" min="1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">申请原因 *</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" required>{{ order.reason }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">申请状态</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="submitted" {% if order.status == 'submitted' %}selected{% endif %}>待审批</option>
+                                <option value="department_head_approved" {% if order.status == 'department_head_approved' %}selected{% endif %}>部门领导已批准</option>
+                                <option value="admin_approved" {% if order.status == 'admin_approved' %}selected{% endif %}>管理员已批准</option>
+                                <option value="completed" {% if order.status in ['completed', 'approved'] %}selected{% endif %}>已完成</option>
+                                <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                            </select>
+                            <small class="text-muted">
+                                当前状态：
+                                {% if order.status == 'submitted' %}
+                                <span class="badge bg-warning">待审批</span>
+                                {% elif order.status == 'department_head_approved' %}
+                                <span class="badge bg-info">部门领导已批准</span>
+                                {% elif order.status == 'admin_approved' %}
+                                <span class="badge bg-success">管理员已批准</span>
+                                {% elif order.status in ['completed', 'approved'] %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-secondary">已取消</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.part_request_order_detail', id=order.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

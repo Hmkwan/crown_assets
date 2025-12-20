@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}聊天 - 设备管理系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="chat-container">
+        <!-- 会话列表 -->
+        <div class="conversation-list">
+            <div class="conversation-list-header">
+                <h3>消息</h3>
+                <button id="newChatBtn" class="new-chat-btn">
+                    <i class="fas fa-plus"></i> 新建
+                </button>
+            </div>
+            
+            <div class="conversation-search">
+                <input type="text" id="conversationSearch" placeholder="搜索会话..." class="form-control">
+            </div>
+            
+            <div id="conversationItems" class="conversation-items">
+                <!-- 会话列表将通过JavaScript动态加载 -->
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">加载中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 聊天窗口 -->
+        <div class="chat-window">
+            <div id="chatHeader" class="chat-header">
+                <!-- 聊天头部将通过JavaScript动态渲染 -->
+                <div class="chat-empty">
+                    <i class="fas fa-comments"></i>
+                    <p>选择一个会话开始聊天</p>
+                </div>
+            </div>
+            
+            <div id="chatMessages" class="chat-messages">
+                <!-- 消息列表将通过JavaScript动态渲染 -->
+            </div>
+            
+            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                正在输入...
+            </div>
+            
+            <div class="chat-input-area">
+                <div class="chat-toolbar">
+                    <button class="toolbar-btn" id="emojiBtn" title="表情">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                    <button class="toolbar-btn" id="fileUploadBtn" title="上传文件">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <button class="toolbar-btn" id="imageUploadBtn" title="上传图片">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <input type="file" id="fileInput" style="display: none;" accept="*/*">
+                </div>
+                
+                <div class="chat-input-box">
+                    <textarea id="chatInput" class="chat-input" placeholder="输入消息... (Enter发送, Shift+Enter换行)"></textarea>
+                </div>
+                
+                <div class="chat-send-area">
+                    <button id="sendBtn" class="send-btn">
+                        <i class="fas fa-paper-plane"></i> 发送
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建会话模态框 -->
+<div class="modal fade" id="newChatModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新建会话</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>会话类型</label>
+                    <select id="conversationType" class="form-control">
+                        <option value="direct">一对一</option>
+                        <option value="group">群组</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="groupNameGroup" style="display: none;">
+                    <label>群组名称</label>
+                    <input type="text" id="groupName" class="form-control" placeholder="输入群组名称">
+                </div>
+                
+                <div class="form-group">
+                    <label>选择成员</label>
+                    <select id="participantSelect" class="form-control" multiple size="10">
+                        <!-- 将通过AJAX加载用户列表 -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="createChatBtn">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 在线用户列表 -->
+<div class="online-users-container">
+    <h3>在线用户</h3>
+    <button id="fetch-online-users-btn" class="btn btn-primary">刷新在线用户</button>
+    <ul id="online-users-list" class="list-group mt-2">
+        <!-- 在线用户列表将通过JavaScript动态加载 -->
+    </ul>
+    <button id="create-conversation-btn" class="btn btn-success mt-2">
+        <i class="fas fa-comments"></i> 创建会话
+    </button>
+</div>
+
+<script>
+// 设置当前用户ID(用于判断消息是否为自己发送)
+window.currentUserId = {{ current_user.id }};
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}?v=20251206-2"></script>
+<script src="{{ url_for('static', filename='js/online-users.js') }}"></script>
+{% endblock %}

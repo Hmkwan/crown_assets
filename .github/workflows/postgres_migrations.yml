@@ -1,0 +1,67 @@
+name: Postgres migration validation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  postgres-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: difyai123456
+          POSTGRES_DB: it_asset
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Wait for Postgres ready
+        run: |
+          for i in {1..30}; do
+            pg_isready -U postgres -h localhost -p 5432 && break
+            sleep 1
+          done
+
+      - name: Run Alembic upgrade (heads)
+        env:
+          TEST_DATABASE_URI: postgresql://postgres:difyai123456@localhost:5432/it_asset
+        run: |
+          alembic heads
+          alembic upgrade heads
+
+      - name: Run Postgres migration tests
+        env:
+          TEST_DATABASE_URI: postgresql://postgres:difyai123456@localhost:5432/it_asset
+        run: |
+          pytest -q tests/test_migrations.py::test_named_chat_fk_constraints_exist -q
+
+      - name: Run remediation script (idempotency check)
+        env:
+          TEST_DATABASE_URI: postgresql://postgres:difyai123456@localhost:5432/it_asset
+        run: |
+          python scripts/apply_named_chat_fks.py
+          python scripts/apply_named_chat_fks.py
+
+      - name: Run remediation script tests
+        env:
+          TEST_DATABASE_URI: postgresql://postgres:difyai123456@localhost:5432/it_asset
+        run: |
+          pytest -q tests/test_apply_named_chat_fks.py -q

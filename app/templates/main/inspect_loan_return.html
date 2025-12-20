@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-clipboard-check"></i> 验收归还设备</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">借用信息</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>设备名称:</strong> {{ loan.equipment.name if loan.equipment else '未知' }}</p>
+                    <p><strong>设备编号:</strong> {{ loan.equipment.equipment_number if loan.equipment else '-' }}</p>
+                    <p><strong>设备价格:</strong> ¥{{ "%.2f"|format(loan.equipment.price) if loan.equipment and loan.equipment.price else '0.00' }}</p>
+                    <p><strong>借用人:</strong> {{ loan.requester.username if loan.requester else '未知' }}</p>
+                    <p><strong>借用部门:</strong> {{ loan.requester_dept or '-' }}</p>
+                    <p><strong>借用时间:</strong> {{ loan.borrowed_date.strftime('%Y-%m-%d %H:%M') if loan.borrowed_date else '-' }}</p>
+                    <p><strong>归还申请时间:</strong> {{ loan.return_request_date.strftime('%Y-%m-%d %H:%M') if loan.return_request_date else '-' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">借用人申报</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>申报状态:</strong> 
+                        {% if loan.return_condition == 'good' %}
+                            <span class="badge badge-success">完好无损</span>
+                        {% elif loan.return_condition == 'damaged' %}
+                            <span class="badge badge-danger">有损坏</span>
+                        {% elif loan.return_condition == 'lost' %}
+                            <span class="badge badge-dark">丢失</span>
+                        {% else %}
+                            {{ loan.return_condition or '未知' }}
+                        {% endif %}
+                    </p>
+                    <p><strong>归还说明:</strong></p>
+                    <div class="border p-2 bg-light">
+                        {{ loan.return_notes or '无' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">验收结果</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="inspection_result"><strong>验收结果 <span class="text-danger">*</span></strong></label>
+                    <select class="form-control" id="inspection_result" name="inspection_result" required onchange="toggleDamageFields()">
+                        <option value="">-- 请选择 --</option>
+                        <option value="passed">验收通过</option>
+                        <option value="requires_repair">需要维修</option>
+                        <option value="failed">验收未通过(损坏/丢失)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="inspection_notes"><strong>验收备注 <span class="text-danger">*</span></strong></label>
+                    <textarea class="form-control" id="inspection_notes" name="inspection_notes" rows="4" 
+                              placeholder="请详细描述验收情况、设备状态等..." required></textarea>
+                </div>
+
+                <div id="damageFields" style="display: none;">
+                    <hr>
+                    <h5 class="text-danger"><i class="fas fa-exclamation-triangle"></i> 损坏/丢失信息</h5>
+                    
+                    <div class="form-group">
+                        <label for="damage_description"><strong>损坏描述</strong></label>
+                        <textarea class="form-control" id="damage_description" name="damage_description" rows="3"
+                                  placeholder="请详细描述损坏情况..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="damage_compensation"><strong>赔偿金额 (元)</strong></label>
+                        <input type="number" class="form-control" id="damage_compensation" name="damage_compensation" 
+                               step="0.01" min="0" value="0">
+                        <small class="form-text text-muted">
+                            设备原价: ¥{{ "%.2f"|format(loan.equipment.price) if loan.equipment and loan.equipment.price else '0.00' }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <strong>验收说明:</strong>
+                    <ul class="mb-0">
+                        <li><strong>验收通过:</strong> 设备状态完好,将自动变更为"可用"状态</li>
+                        <li><strong>需要维修:</strong> 设备有小问题需要维修,系统将自动创建维修工单</li>
+                        <li><strong>验收未通过:</strong> 设备损坏严重或丢失,需要记录赔偿信息</li>
+                    </ul>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> 完成验收
+                    </button>
+                    <a href="{{ url_for('main.loans_return_pending') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回列表
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDamageFields() {
+    const result = document.getElementById('inspection_result').value;
+    const damageFields = document.getElementById('damageFields');
+    
+    if (result === 'failed') {
+        damageFields.style.display = 'block';
+    } else {
+        damageFields.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

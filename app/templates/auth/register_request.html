@@ -53,12 +53,18 @@
                                 <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <div class="col-md-6">
+                            {# 角色统一为普通用户，不再允许选择 #}
+                            {# <div class="col-md-6">
                                 {{ form.role_requested.label(class="form-label") }}
                                 {{ form.role_requested(class="form-control") }}
                                 {% for error in form.role_requested.errors %}
                                 <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
+                            </div> #}
+                            <div class="col-md-6">
+                                <label class="form-label">申请角色</label>
+                                <input type="text" class="form-control" value="普通用户" disabled>
+                                <small class="form-text text-muted">默认为普通用户，其他权限由管理员授权</small>
                             </div>
                             <div class="col-12">
                                 {{ form.reason.label(class="form-label") }}

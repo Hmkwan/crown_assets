@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>工作流配置帮助</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+            <li class="breadcrumb-item active" aria-current="page">工作流配置帮助</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-3">
+        <div class="card-header">快速上手示例</div>
+        <div class="card-body">
+            <h5>1. 基于角色的标准审批</h5>
+            <p>示例：维修工单 - 部门主管 → 管理员 → 技术员</p>
+            <ol>
+                <li>创建节点：顺序 1，角色：部门主管</li>
+                <li>创建节点：顺序 2，角色：管理员</li>
+                <li>创建节点：顺序 3，角色：技术员</li>
+            </ol>
+
+            <h5>2. 为特定节点指定审批人（单人或多人）</h5>
+            <p>在“审批流程管理”页面，添加/编辑节点时，可在“指定审批人”下拉中选择一个或多个用户：</p>
+            <ul>
+                <li>选择一个用户：该节点由该用户处理（优先于角色匹配）。</li>
+                <li>选择多个用户：视为并行审批，系统会默认 require_all（所有被选用户均需批准）。</li>
+            </ul>
+
+            <h5>3. 并行审批示例</h5>
+            <p>如果某个节点需要两个部门领导同时批准：</p>
+            <ol>
+                <li>在该节点的“指定审批人”中选择两位部门领导用户。</li>
+                <li>系统会自动将该节点设为并行审批，并将所需批准人数设为所选用户数。</li>
+            </ol>
+
+            <h5>4. 拒绝时自动处理</h5>
+            <p>在模板步骤中可以设置 <code>actions_on_reject</code>，例如：<code>{"return_to":"requester"}</code>，系统会在拒绝时执行该动作。</p>
+
+            <h5>5. 同步状态说明</h5>
+            <p>模板与节点为两套概念：模板是管理员可编辑的配置，节点是系统执行时使用的实际节点。
+            在管理概览页面可以看到模板与当前节点的同步情况，若修改模板后需要生效，请点击“设为默认并同步”或使用 <code>同步</code> 操作。</p>
+
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">操作指引</div>
+        <div class="card-body">
+            <ul>
+                <li>添加节点：点击“添加节点”，填写节点名称、工单类型、所需角色、可选的指定审批人。</li>
+                <li>编辑节点：点击“编辑”，可修改同样字段；指定多个审批人则为并行审批。</li>
+                <li>若需更复杂的并行阈值（例如三人中只需两人同意），请在编辑后通过脚本或数据库直接设置 `workflow_node.required_approvals` 字段。</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

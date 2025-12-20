@@ -6,15 +6,59 @@
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1>统计报表</h1>
-                <div>
-                    <a href="{{ url_for('main.export_report', type='summary') }}" class="btn btn-success">导出汇总报表</a>
-                    <a href="{{ url_for('main.export_report', type='equipment') }}" class="btn btn-success">导出设备报表</a>
-                    <a href="{{ url_for('main.export_report', type='users') }}" class="btn btn-success">导出用户报表</a>
-                    <a href="{{ url_for('main.export_report', type='repair_orders') }}" class="btn btn-success">导出工单报表</a>
-                    <a href="{{ url_for('main.export_report', type='transfers') }}" class="btn btn-success">导出调拨报表</a>
-                    <a href="{{ url_for('main.export_report', type='scraps') }}" class="btn btn-success">导出报废报表</a>
-                    <a href="{{ url_for('main.export_report', type='loans') }}" class="btn btn-success">导出借用报表</a>
-                    <a href="{{ url_for('main.export_report', type='part_requests') }}" class="btn btn-success">导出配件申请报表</a>
+            </div>
+            
+            <!-- 分组导出按钮 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 导出报表</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted mb-2">基础数据报表</h6>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('main.export_report', type='summary') }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download"></i> 汇总报表
+                                </a>
+                                <a href="{{ url_for('main.export_report', type='equipment') }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download"></i> 设备报表
+                                </a>
+                                <a href="{{ url_for('main.export_report', type='users') }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download"></i> 用户报表
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted mb-2">工单/申请报表</h6>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('main.export_report', type='repair_orders') }}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-download"></i> 维修工单
+                                </a>
+                                <a href="{{ url_for('main.export_report', type='part_requests') }}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-download"></i> 配件申请
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="text-muted mb-2">设备流转报表</h6>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('main.export_report', type='transfers') }}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-download"></i> 调拨报表
+                                </a>
+                                <a href="{{ url_for('main.export_report', type='loans') }}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-download"></i> 借用报表
+                                </a>
+                                <a href="{{ url_for('main.export_report', type='scraps') }}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-download"></i> 报废报表
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -75,9 +119,17 @@
                                         <td>
                                             {% if status == 'active' %}
                                             正常
+                                            {% elif status == 'available' %}
+                                            可用
                                             {% elif status == 'repair' %}
                                             维修中
                                             {% elif status == 'retired' %}
+                                            已报废
+                                            {% elif status == 'in_use' %}
+                                            使用中
+                                            {% elif status == 'maintenance' %}
+                                            维护中
+                                            {% elif status == 'scrapped' %}
                                             已报废
                                             {% else %}
                                             {{ status }}

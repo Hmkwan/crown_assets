@@ -69,11 +69,11 @@
                                     <td>
                                         {% if notification.order_type and notification.order_id %}
                                             {% if notification.order_type == 'repair_order' %}
-                                                <a href="{{ url_for('main.repair_order_detail', id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                                <a href="{{ url_for('main.repair_order_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
                                             {% elif notification.order_type == 'part_request_order' %}
-                                                <a href="{{ url_for('main.part_request_order_detail', id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                                <a href="{{ url_for('main.part_request_order_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
                                             {% elif notification.order_type == 'equipment_application' %}
-                                                <a href="{{ url_for('main.workflow_status', order_type='equipment_application', order_id=notification.order_id) }}" class="notification-link text-decoration-none" data-id="{{ notification.id }}">{{ notification.title }}</a>
+                                                <a href="{{ url_for('main.workflow_status', order_type='equipment_application', order_id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
                                             {% elif notification.order_type == 'account_request' %}
                                                 <a href="{{ url_for('main.account_request_detail', id=notification.order_id) }}" class="text-decoration-none">{{ notification.title }}</a>
                                             {% else %}

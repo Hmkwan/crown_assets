@@ -1,0 +1,54 @@
+<div>
+    <h3>创建公告</h3>
+    <input type="text" id="announcement-title" placeholder="标题">
+    <textarea id="announcement-content" placeholder="内容"></textarea>
+    <input type="date" id="announcement-valid-until" placeholder="有效期">
+    <input type="file" id="announcement-attachments" multiple>
+    <button id="create-announcement-btn">创建公告</button>
+</div>
+
+<div>
+    <h3>公告列表</h3>
+    <button id="fetch-announcements-btn">刷新公告</button>
+    <ul id="announcement-list"></ul>
+</div>
+
+<div>
+    <h3>公告附件</h3>
+    <input type="file" id="announcement-attachment" multiple>
+    <button id="upload-attachment-btn">上传附件</button>
+    <ul id="attachment-list"></ul>
+</div>
+
+<script src="/static/js/announcement.js"></script>
+<script>
+    document.getElementById('upload-attachment-btn').addEventListener('click', function() {
+        const fileInput = document.getElementById('announcement-attachment');
+        const formData = new FormData();
+
+        for (const file of fileInput.files) {
+            formData.append('file', file);
+        }
+
+        fetch('/api/upload_attachment', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(`上传失败: ${data.error}`);
+                } else {
+                    const attachmentList = document.getElementById('attachment-list');
+                    const item = document.createElement('li');
+                    item.textContent = data.file_name;
+                    const link = document.createElement('a');
+                    link.href = `/api/attachments/${data.attachment_id}/download`;
+                    link.textContent = '下载';
+                    item.appendChild(link);
+                    attachmentList.appendChild(item);
+                }
+            })
+            .catch(error => console.error('上传失败:', error));
+    });
+</script>

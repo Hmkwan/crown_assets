@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">📊 审批流程统计分析</h1>
+        <p class="lead text-muted">全面了解审批流程的效率、工作量和趋势</p>
+    </div>
+
+    <!-- 筛选条件 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="days_filter" class="form-label">时间范围</label>
+                    <select id="days_filter" class="form-select" onchange="applyFilters()">
+                        <option value="7" {{ 'selected' if selected_days == 7 }}>最近 7 天</option>
+                        <option value="30" {{ 'selected' if selected_days == 30 }}>最近 30 天</option>
+                        <option value="90" {{ 'selected' if selected_days == 90 }}>最近 3 个月</option>
+                        <option value="180" {{ 'selected' if selected_days == 180 }}>最近 6 个月</option>
+                        <option value="365" {{ 'selected' if selected_days == 365 }}>最近 1 年</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="dept_filter" class="form-label">部门筛选</label>
+                    <select id="dept_filter" class="form-select" onchange="applyFilters()">
+                        <option value="">全部部门</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {{ 'selected' if selected_dept == dept.id }}>{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button onclick="exportAllData()" class="btn btn-success w-100">
+                        <i class="bi bi-download"></i> 导出完整报表 (CSV)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div class="row g-3 mb-4">
+        {% set total_count = status_stats|sum(attribute='count') %}
+        {% set approved_count = status_stats|selectattr('0', 'equalto', 'approved')|map(attribute='count')|sum %}
+        {% set rejected_count = status_stats|selectattr('0', 'equalto', 'rejected')|map(attribute='count')|sum %}
+        {% set pending_count = status_stats|selectattr('0', 'equalto', 'pending')|map(attribute='count')|sum %}
+        
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">总审批数</h6>
+                    <p class="h2"><span class="badge bg-primary">{{ total_count }}</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">已通过</h6>
+                    <p class="h2"><span class="badge bg-success">{{ approved_count }}</span></p>
+                    <small class="text-muted">{{ "%.1f"|format(approved_count / total_count * 100 if total_count > 0 else 0) }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">已拒绝</h6>
+                    <p class="h2"><span class="badge bg-danger">{{ rejected_count }}</span></p>
+                    <small class="text-muted">{{ "%.1f"|format(rejected_count / total_count * 100 if total_count > 0 else 0) }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">待审批</h6>
+                    <p class="h2"><span class="badge bg-warning text-dark">{{ pending_count }}</span></p>
+                    <small class="text-muted">{{ "%.1f"|format(pending_count / total_count * 100 if total_count > 0 else 0) }}%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 业务类型统计 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📋 业务类型分析</h5>
+            <button id="exportTypeStats" class="btn btn-sm btn-outline-light">📄 导出 CSV</button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="typeStatsTable" class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>业务类型</th>
+                            <th class="text-end">总数</th>
+                            <th class="text-end">已通过</th>
+                            <th class="text-end">已拒绝</th>
+                            <th class="text-end">待审批</th>
+                            <th class="text-end">通过率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in type_stats %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {% if item[0] == 'repair_order' %}维修工单
+                                    {% elif item[0] == 'part_request_order' %}配件申请
+                                    {% elif item[0] == 'equipment_transfer' %}设备调拨
+                                    {% elif item[0] == 'equipment_loan' %}设备借用
+                                    {% else %}{{ item[0] }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold">{{ item[1] }}</td>
+                            <td class="text-end text-success">{{ item[2] }}</td>
+                            <td class="text-end text-danger">{{ item[3] }}</td>
+                            <td class="text-end text-warning">{{ item[4] }}</td>
+                            <td class="text-end">
+                                <span class="badge bg-info">
+                                    {{ "%.1f"|format(item[2] / item[1] * 100 if item[1] > 0 else 0) }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审批效率分析 -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">⏱️ 审批效率分析</h5>
+            <button id="exportEfficiency" class="btn btn-sm btn-outline-light">📄 导出 CSV</button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="efficiencyTable" class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>业务类型</th>
+                            <th class="text-end">平均审批时长</th>
+                            <th class="text-end">最快审批</th>
+                            <th class="text-end">最慢审批</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in efficiency_stats %}
+                        <tr>
+                            <td>
+                                {% if item[0] == 'repair_order' %}维修工单
+                                {% elif item[0] == 'part_request_order' %}配件申请
+                                {% elif item[0] == 'equipment_transfer' %}设备调拨
+                                {% elif item[0] == 'equipment_loan' %}设备借用
+                                {% else %}{{ item[0] }}
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(item[1] or 0) }} 小时</td>
+                            <td class="text-end text-success">{{ "%.1f"|format(item[2] or 0) }} 小时</td>
+                            <td class="text-end text-danger">{{ "%.1f"|format(item[3] or 0) }} 小时</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- 审批人工作量 TOP20 -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">👥 审批人工作量 TOP20</h5>
+                    <button id="exportApprovers" class="btn btn-sm btn-outline-light">📄 导出</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="approverTable" class="table table-sm table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>姓名</th>
+                                    <th class="text-end">总审批</th>
+                                    <th class="text-end">通过</th>
+                                    <th class="text-end">拒绝</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in approver_stats %}
+                                <tr>
+                                    <td>{{ item[1] or item[0] }}</td>
+                                    <td class="text-end">{{ item[2] }}</td>
+                                    <td class="text-end text-success">{{ item[3] }}</td>
+                                    <td class="text-end text-danger">{{ item[4] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 申请人统计 TOP20 -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📝 申请人统计 TOP20</h5>
+                    <button id="exportRequesters" class="btn btn-sm btn-outline-dark">📄 导出</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="requesterTable" class="table table-sm table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>姓名</th>
+                                    <th class="text-end">总申请</th>
+                                    <th class="text-end">通过</th>
+                                    <th class="text-end">拒绝</th>
+                                    <th class="text-end">待审</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in requester_stats %}
+                                <tr>
+                                    <td>{{ item[0] }}</td>
+                                    <td class="text-end">{{ item[1] }}</td>
+                                    <td class="text-end text-success">{{ item[2] }}</td>
+                                    <td class="text-end text-danger">{{ item[3] }}</td>
+                                    <td class="text-end text-warning">{{ item[4] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 每日审批趋势图 -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📈 每日审批趋势</h5>
+            <button id="exportTrendChart" class="btn btn-sm btn-outline-light">📊 导出图表</button>
+        </div>
+        <div class="card-body">
+            <canvas id="trendChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+function applyFilters() {
+    const days = document.getElementById('days_filter').value;
+    const dept = document.getElementById('dept_filter').value;
+    const params = new URLSearchParams();
+    if (days) params.append('days', days);
+    if (dept) params.append('department', dept);
+    window.location.href = '{{ url_for("approval_report.approval_statistics") }}?' + params.toString();
+}
+
+// 导出各个表格为 CSV
+function exportTableToCSV(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    let csv = '\uFEFF';  // UTF-8 BOM
+    const rows = table.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const rowData = Array.from(cells).map(cell => {
+            let text = cell.textContent.trim();
+            // 移除换行符和多余空格
+            text = text.replace(/\s+/g, ' ');
+            return `"${text}"`;
+        });
+        csv += rowData.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportTypeStats')?.addEventListener('click', () => {
+    exportTableToCSV('typeStatsTable', 'approval_type_stats.csv');
+});
+
+document.getElementById('exportEfficiency')?.addEventListener('click', () => {
+    exportTableToCSV('efficiencyTable', 'approval_efficiency.csv');
+});
+
+document.getElementById('exportApprovers')?.addEventListener('click', () => {
+    exportTableToCSV('approverTable', 'approver_workload.csv');
+});
+
+document.getElementById('exportRequesters')?.addEventListener('click', () => {
+    exportTableToCSV('requesterTable', 'requester_stats.csv');
+});
+
+// 导出完整报表
+function exportAllData() {
+    const date = new Date().toISOString().split('T')[0];
+    let csv = '\uFEFF审批流程统计报表\n生成日期：' + date + '\n\n';
+    
+    // 添加各个表格数据
+    ['typeStatsTable', 'efficiencyTable', 'approverTable', 'requesterTable'].forEach((tableId, index) => {
+        const table = document.getElementById(tableId);
+        if (table) {
+            csv += '\n' + table.closest('.card').querySelector('.card-header h5').textContent + '\n';
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('th, td');
+                const rowData = Array.from(cells).map(cell => `"${cell.textContent.trim().replace(/\s+/g, ' ')}"`);
+                csv += rowData.join(',') + '\n';
+            });
+        }
+    });
+    
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `approval_statistics_report_${date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+// 绘制每日趋势图
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('trendChart');
+    if (!canvas) return;
+    
+    const trendData = {{ daily_trend|tojson }};
+    const labels = trendData.map(item => item[0]);
+    const counts = trendData.map(item => item[1]);
+    
+    const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '审批数量',
+                data: counts,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // 导出趋势图
+    document.getElementById('exportTrendChart')?.addEventListener('click', () => {
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `approval_trend_${new Date().toISOString().split('T')[0]}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-trash-alt"></i> 设备报废报表
+                <div class="float-right">
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('main.scrap_disposal_list') }}" 
+                       class="btn btn-warning btn-sm mr-2">
+                        <i class="fas fa-tasks"></i> 处置管理
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('main.export_statistics_xlsx', report_type='scraps') }}" 
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </a>
+                </div>
+            </h2>
+        </div>
+    </div>
+
+    <!-- 汇总卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info"><i class="fas fa-list"></i> 总报废</h5>
+                    <h3>{{ total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning"><i class="fas fa-clock"></i> 待审批</h5>
+                    <h3>{{ submitted_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success"><i class="fas fa-check"></i> 已批准</h5>
+                    <h3>{{ approved_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-danger"><i class="fas fa-times"></i> 已拒绝</h5>
+                    <h3>{{ rejected_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label class="mr-2">状态:</label>
+                    <select name="status" class="form-control">
+                        <option value="">全部</option>
+                        <option value="submitted" {% if status == 'submitted' %}selected{% endif %}>已提交</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审批</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">日期:</label>
+                    <input type="date" name="date_from" class="form-control mr-2" value="{{ date_from }}">
+                    <span class="mr-2">至</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+                <a href="{{ url_for('main.statistics_scraps') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> 重置
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-pie"></i> 状态分布
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>数量</th>
+                                <th>占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in status_stats %}
+                            <tr>
+                                <td>
+                                    {% if stat.status == 'submitted' or stat.status == 'pending' %}
+                                        <span class="badge badge-warning">待审批</span>
+                                    {% elif stat.status == 'approved' %}
+                                        <span class="badge badge-success">已批准</span>
+                                    {% elif stat.status == 'rejected' %}
+                                        <span class="badge badge-danger">已拒绝</span>
+                                    {% elif stat.status == 'cancelled' %}
+                                        <span class="badge badge-secondary">已取消</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ stat.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ "%.1f"|format(stat.count / total_count * 100 if total_count > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报废详情 -->
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-list"></i> 报废申请详情 (共 {{ scraps|length }} 条)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>报废ID</th>
+                            <th>设备名称</th>
+                            <th>设备编号</th>
+                            <th>设备类型</th>
+                            <th>所属部门</th>
+                            <th>申请人</th>
+                            <th>报废原因</th>
+                            <th>状态</th>
+                            <th>申请时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in scraps %}
+                        <tr>
+                            <td>{{ s.id }}</td>
+                            <td>{{ s.equipment.name if s.equipment else '' }}</td>
+                            <td>{{ s.equipment.equipment_number if s.equipment else '' }}</td>
+                            <td>{{ s.equipment.equipment_type.name if s.equipment and s.equipment.equipment_type else '' }}</td>
+                            <td>{{ s.equipment.department.name if s.equipment and s.equipment.department else '' }}</td>
+                            <td>{{ s.requester.username if s.requester else '' }}</td>
+                            <td>
+                                <span title="{{ s.description }}">
+                                    {{ s.description[:30] + '...' if s.description and s.description|length > 30 else s.description }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if s.status == 'submitted' or s.status == 'pending' %}
+                                    <span class="badge badge-warning">待审批</span>
+                                {% elif s.status == 'approved' %}
+                                    <span class="badge badge-success">已批准</span>
+                                {% elif s.status == 'rejected' %}
+                                    <span class="badge badge-danger">已拒绝</span>
+                                {% elif s.status == 'cancelled' %}
+                                    <span class="badge badge-secondary">已取消</span>
+                                {% else %}
+                                    <span class="badge badge-light">{{ s.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s.created_date.strftime('%Y-%m-%d %H:%M') if s.created_date else '' }}</td>
+                            <td>
+                                <a href="{{ url_for('main.workflow_status', order_type='equipment_scrap', order_id=s.id) }}" 
+                                   class="btn btn-sm btn-info" title="查看流程">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

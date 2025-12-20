@@ -1,0 +1,1253 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* 整体布局优化 */
+    .workflow-config-container {
+        background: #f5f7fa;
+        min-height: calc(100vh - 200px);
+    }
+    
+    /* 页面标题区域 */
+    .page-header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin: -1.5rem -1.5rem 2rem -1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .page-header-section h1 {
+        color: white;
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-header-section .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .page-header-section .breadcrumb-item,
+    .page-header-section .breadcrumb-item a {
+        color: rgba(255,255,255,0.9);
+    }
+    
+    .page-header-section .breadcrumb-item.active {
+        color: white;
+    }
+    
+    .page-header-section .breadcrumb-item + .breadcrumb-item::before {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    /* 工单类型卡片优化 */
+    .order-type-card {
+        border: 2px solid #e1e8ed;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: white;
+        height: 100%;
+        min-height: 180px;
+    }
+    
+    .order-type-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-color: #667eea;
+    }
+    
+    .order-type-card.border-primary {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 100%);
+        box-shadow: 0 5px 15px rgba(102,126,234,0.2);
+    }
+    
+    .order-type-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .order-type-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* 节点配置区域优化 */
+    .workflow-config-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    
+    .workflow-config-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .workflow-config-header h5 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    /* 流程可视化优化 */
+    .workflow-visualization {
+        background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 2px solid #e1e8ed;
+    }
+    
+    .workflow-visualization h6 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .workflow-steps {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding: 1rem 0;
+        gap: 1rem;
+    }
+    
+    .workflow-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 140px;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .workflow-step:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    .workflow-step.start-node {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+    
+    .workflow-step.end-node {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .workflow-step.approval-node {
+        background: white;
+        border: 2px solid #667eea;
+    }
+    
+    .step-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .step-number {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    
+    .workflow-step {
+        position: relative;
+    }
+    
+    .step-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 0.25rem;
+    }
+    
+    .step-role {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        text-align: center;
+    }
+    
+    .step-approvers {
+        margin-top: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .step-approvers .badge {
+        font-size: 0.7rem;
+    }
+    
+    .workflow-arrow {
+        font-size: 1.5rem;
+        color: #667eea;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    
+    /* 表格优化 */
+    .table-section {
+        padding: 1.5rem;
+    }
+    
+    .table-section h6 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* 空状态优化 */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+        border-radius: 10px;
+        margin: 1.5rem;
+    }
+    
+    .empty-state-icon {
+        font-size: 5rem;
+        opacity: 0.3;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h5 {
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+        color: #adb5bd;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* 按钮优化 */
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+    }
+    
+    /* 工单类型选择器优化 */
+    .type-selector-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .type-selector-header {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 2px solid #e1e8ed;
+    }
+    
+    .type-selector-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .type-selector-body {
+        padding: 1.5rem;
+    }
+    
+    /* 用户列表项样式 */
+    .user-item {
+        cursor: pointer;
+        transition: all 0.2s;
+        padding: 0.5rem;
+        border-radius: 6px;
+    }
+    
+    .user-item:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .user-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .user-item.active {
+        background-color: #e7f3ff !important;
+    }
+    
+    /* 已选择标签样式 */
+    #edit_selected_badges .badge {
+        font-size: 0.875rem;
+        padding: 5px 10px;
+    }
+    
+    /* 响应式优化 */
+    @media (max-width: 768px) {
+        .workflow-steps {
+            flex-direction: column;
+        }
+        
+        .workflow-arrow {
+            transform: rotate(90deg);
+        }
+        
+        .order-type-card {
+            margin-bottom: 1rem;
+        }
+        
+        .page-header-section h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workflow-config-container">
+    <!-- 页面标题区域 -->
+    <div class="page-header-section">
+        <div class="container-fluid">
+            <h1><i class="fas fa-sitemap"></i> 审批流程配置中心</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.admin_dashboard') }}">管理面板</a></li>
+                    <li class="breadcrumb-item active">审批流程配置</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- 工单类型选择器 -->
+        <div class="type-selector-card">
+            <div class="type-selector-header">
+                <h5><i class="fas fa-th-large"></i> 选择工单类型</h5>
+                <small class="text-muted">管理员可以自定义各工单类型的审批流程,支持多节点、金额阈值和跨部门审批</small>
+            </div>
+            <div class="type-selector-body">
+                <div class="row">
+                    {% for type_key, type_info in order_types.items() %}
+                    <div class="col-md-4 col-lg-3 mb-3">
+                        <div class="order-type-card {% if selected_type == type_key %}border-primary{% endif %}" 
+                             onclick="window.location.href='{{ url_for('main.workflow_config_by_type', order_type=type_key) }}'">
+                            <div class="card-body">
+                                <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">{{ type_info.icon }}</div>
+                                <h5 class="card-title text-center">{{ type_info.name }}</h5>
+                                <p class="card-text text-muted small text-center">{{ type_info.description }}</p>
+                                <div class="mt-3 text-center">
+                                    {% set node_count = workflow_stats.get(type_key, 0) %}
+                                    <span class="badge {% if node_count > 0 %}badge-success{% else %}badge-secondary{% endif %} px-3 py-2">
+                                        <i class="fas fa-check-circle"></i> {{ node_count }} 个审批节点
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% if selected_type %}
+        <!-- 当前工单类型的审批流配置 -->
+        <div class="workflow-config-section">
+            <div class="workflow-config-header">
+                <div>
+                    <h5>
+                        <span style="font-size: 1.8rem; margin-right: 0.5rem;">{{ order_types[selected_type].icon }}</span>
+                        {{ order_types[selected_type].name }} - 审批流程配置
+                    </h5>
+                    <small class="d-block mt-1" style="opacity: 0.9;">{{ order_types[selected_type].description }}</small>
+                </div>
+                <button class="btn btn-light btn-lg mt-2 mt-md-0" data-toggle="modal" data-target="#addNodeModal">
+                    <i class="fas fa-plus-circle"></i> 添加新节点
+                </button>
+            </div>
+            
+            <div class="table-section">
+                {% if nodes %}
+                <!-- 流程可视化 -->
+                <div class="workflow-visualization">
+                    <h6><i class="fas fa-project-diagram"></i> 流程可视化图</h6>
+                    <div class="workflow-steps">
+                        <div class="workflow-step start-node">
+                            <div class="step-icon">🚀</div>
+                            <div class="step-label">提交申请</div>
+                        </div>
+                        {% for node in nodes %}
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step approval-node">
+                            <div class="step-number">{{ loop.index }}</div>
+                            <div class="step-icon">
+                                {% if node.role_required == 'department_head' %}👔
+                                {% elif node.role_required == 'admin' %}👨‍💼
+                                {% elif node.role_required == 'technician' %}🔧
+                                {% elif node.role_required == 'procurement' %}📦
+                                {% elif node.role_required == 'warehouse' %}🏭
+                                {% elif node.role_required == 'finance' %}💰
+                                {% elif node.role_required == 'executive' %}🎯
+                                {% else %}✓{% endif %}
+                            </div>
+                            <div class="step-label">{{ node.name }}</div>
+                            <div class="step-role">{{ get_role_name(node.role_required) }}</div>
+                            {% if node.approver_user_ids %}
+                            <div class="step-approvers">
+                                {% set approvers = node.get_approver_users() %}
+                                {% if approvers %}
+                                    {% for a in approvers[:2] %}
+                                        <span class="badge badge-info">{{ a.username }}</span>
+                                    {% endfor %}
+                                    {% if approvers|length > 2 %}
+                                        <span class="badge badge-secondary">+{{ approvers|length - 2 }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step end-node">
+                            <div class="step-icon">✅</div>
+                            <div class="step-label">审批完成</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 节点详细列表 -->
+                <h6><i class="fas fa-list-alt"></i> 节点配置详情</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="60" class="text-center">序号</th>
+                                <th>节点名称</th>
+                                <th>所需角色</th>
+                                <th>金额阈值</th>
+                                <th>指定审批人</th>
+                                <th width="150" class="text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for node in nodes %}
+                            <tr>
+                                <td class="text-center">
+                                    <span class="badge badge-pill badge-primary" style="font-size: 1rem; padding: 0.5rem 0.75rem;">{{ node.sequence }}</span>
+                                </td>
+                                <td>
+                                    <strong style="font-size: 1rem;">{{ node.name }}</strong>
+                                    {% if node.condition_expr %}
+                                    <br><small class="text-muted"><i class="fas fa-code-branch"></i> {{ node.condition_expr }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if node.role_required == 'admin' %}danger{% elif node.role_required == 'department_head' %}warning{% else %}info{% endif %} px-3 py-2">
+                                        {{ get_role_name(node.role_required) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if node.condition_expr and '金额' in node.condition_expr %}
+                                    <span class="badge badge-warning">{{ node.condition_expr }}</span>
+                                    {% else %}
+                                    <span class="text-muted">未设置</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set approvers = node.get_approver_users() %}
+                                    {% if approvers and approvers|length > 0 %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% for a in approvers %}
+                                                <span class="badge badge-secondary">{{ a.username }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted"><i class="fas fa-users"></i> 按角色自动</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary edit-node" 
+                                                data-id="{{ node.id }}"
+                                                data-name="{{ node.name }}"
+                                                data-order-type="{{ node.order_type }}"
+                                                data-role-required="{{ node.role_required }}"
+                                                data-sequence="{{ node.sequence }}"
+                                                data-node-type="{{ node.node_type or 'approval' }}"
+                                                data-approver-user-ids='{{ node.approver_user_ids or "" }}'
+                                                data-condition-expr="{{ node.condition_expr or '' }}"
+                                                title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger delete-node" 
+                                                data-id="{{ node.id }}"
+                                                data-name="{{ node.name }}"
+                                                title="删除">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <!-- 空状态 -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h5>该工单类型暂未配置审批流程</h5>
+                    <p>开始添加审批节点,构建您的审批流程</p>
+                    <button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#addNodeModal">
+                        <i class="fas fa-plus-circle"></i> 添加第一个审批节点
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加节点模态框 -->
+<div class="modal fade" id="addNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> 添加审批节点</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addNodeForm">
+                <div class="modal-body">
+                    <input type="hidden" name="order_type" value="{{ selected_type }}">
+                    
+                    <!-- 基本信息 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-info-circle"></i> 基本信息</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>节点名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" required 
+                                       placeholder="例如：部门负责人审批">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label>审批顺序 <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="sequence" required min="1" value="{{ next_sequence }}">
+                                        <small class="form-text text-muted">数字越小，越先审批</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label>节点类型 <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="node_type">
+                                            <option value="approval">标准审批</option>
+                                            <option value="parallel">并行审批</option>
+                                            <option value="condition">条件分支</option>
+                                            <option value="auto_action">自动动作</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label>审批角色 <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="role_required" required>
+                                            <option value="">请选择</option>
+                                            <option value="employee">普通员工</option>
+                                            <option value="department_head">部门负责人</option>
+                                            <option value="admin">管理员</option>
+                                            <option value="technician">技术员</option>
+                                            <option value="procurement">采购专员</option>
+                                            <option value="warehouse">仓库管理员</option>
+                                            <option value="security">信息安全员</option>
+                                            <option value="finance">财务审批人</option>
+                                            <option value="executive">高层管理者</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 审批人配置 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-users"></i> 审批人配置</strong>
+                            <small class="text-muted ml-2">（可选）</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <label>指定审批人</label>
+                                <select class="form-control select2" name="approver_user_ids" multiple>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.username }} - {{ user.get_department_name() }} ({{ get_role_name(user.role) }})</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 留空则根据审批角色自动分配审批人
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 高级配置 -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-cog"></i> 高级配置</strong>
+                            <small class="text-muted ml-2">（可选）</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <label>条件表达式</label>
+                                <input type="text" class="form-control" name="condition_expr" 
+                                       placeholder="例如：amount > 10000">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-code"></i> 用于条件分支节点，支持 Python 表达式
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> 编辑审批节点</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="editNodeForm">
+                <div class="modal-body" style="background-color: #f8f9fa;">
+                    <input type="hidden" name="id" id="edit_node_id">
+                    <input type="hidden" name="order_type" id="edit_order_type">
+                    
+                    <div class="row">
+                        <!-- 左侧：基本配置 -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> 基本配置</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">节点名称 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-lg" name="name" id="edit_name" required
+                                               placeholder="例如：部门负责人审批">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">审批角色 <span class="text-danger">*</span></label>
+                                        <select class="form-control form-control-lg" name="role_required" id="edit_role_required" required>
+                                            <option value="employee">👤 普通员工</option>
+                                            <option value="department_head">👔 部门负责人</option>
+                                            <option value="admin">⚙️ 管理员</option>
+                                            <option value="technician">🔧 技术员</option>
+                                            <option value="procurement">📦 采购专员</option>
+                                            <option value="warehouse">🏭 仓库管理员</option>
+                                            <option value="security">🔐 信息安全员</option>
+                                            <option value="finance">💰 财务审批人</option>
+                                            <option value="executive">👨‍💼 高层管理者</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">审批顺序 <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control form-control-lg" name="sequence" id="edit_sequence" required min="1">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-arrow-right"></i> 数字越小，越先审批
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">节点类型</label>
+                                                <select class="form-control form-control-lg" name="node_type" id="edit_node_type">
+                                                    <option value="approval">📋 标准审批</option>
+                                                    <option value="parallel">🔀 并行审批</option>
+                                                    <option value="condition">🔍 条件分支</option>
+                                                    <option value="auto_action">⚡ 自动动作</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">条件表达式 <small class="text-muted">（可选）</small></label>
+                                        <input type="text" class="form-control" name="condition_expr" id="edit_condition_expr"
+                                               placeholder="例如：amount > 10000">
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-code"></i> 用于条件分支节点，支持 Python 表达式
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：审批人配置 -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-users"></i> 指定审批人 <small>（可选）</small></h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info alert-sm mb-3">
+                                        <i class="fas fa-lightbulb"></i> 
+                                        <strong>提示：</strong>如果不选择，系统将根据<strong>审批角色</strong>自动分配审批人
+                                    </div>
+
+                                    <!-- 搜索框 -->
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">
+                                            <i class="fas fa-search"></i> 搜索过滤
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="edit_user_search" 
+                                                   placeholder="输入用户名、部门或角色...">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-primary" type="button" id="edit_search_btn">
+                                                    <i class="fas fa-search"></i> 搜索
+                                                </button>
+                                                <button class="btn btn-secondary" type="button" id="edit_show_all_btn">
+                                                    <i class="fas fa-list"></i> 显示全部
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">输入关键字后点击"搜索"按钮进行过滤</small>
+                                    </div>
+
+                                    <!-- 已选择的审批人 -->
+                                    <div id="edit_selected_users" class="mb-3 p-2 bg-light rounded">
+                                        <small class="text-muted">
+                                            <i class="fas fa-check-circle"></i> 
+                                            已选择: <strong><span id="edit_selected_count">0</span></strong> 人
+                                        </small>
+                                        <div id="edit_selected_badges" class="mt-2"></div>
+                                    </div>
+
+                                    <!-- 用户列表 -->
+                                    <div>
+                                        <label class="font-weight-bold mb-2">
+                                            <i class="fas fa-list"></i> 可选审批人列表 
+                                            <small class="text-muted">(点击勾选)</small>
+                                        </label>
+                                        <div class="border rounded" style="max-height: 300px; overflow-y: auto; background-color: white;">
+                                            {% if users and users|length > 0 %}
+                                            <div class="list-group list-group-flush" id="edit_user_list">
+                                                {% for user in users %}
+                                                <label class="list-group-item list-group-item-action d-flex align-items-center user-item mb-0" 
+                                                       style="cursor: pointer;"
+                                                       data-username="{{ user.username }}" 
+                                                       data-department="{{ user.get_department_name() }}" 
+                                                       data-role="{{ get_role_name(user.role) }}">
+                                                    <input type="checkbox" class="mr-2 user-checkbox" name="approver_user_ids" value="{{ user.id }}" style="width: 18px; height: 18px;">
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <strong>{{ user.username }}</strong>
+                                                            <span class="badge badge-primary badge-pill">{{ get_role_name(user.role) }}</span>
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-building"></i> {{ user.get_department_name() }}
+                                                        </small>
+                                                    </div>
+                                                </label>
+                                                {% endfor %}
+                                            </div>
+                                            {% else %}
+                                            <div class="p-3 text-center text-muted">
+                                                <i class="fas fa-exclamation-circle"></i> 暂无可选用户
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2 text-right">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit_clear_selection">
+                                            <i class="fas fa-times"></i> 清空选择
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> 更新
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.order-type-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+.order-type-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+.order-type-card.border-primary {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+}
+
+.workflow-visualization {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.workflow-steps {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: max-content;
+}
+.workflow-step {
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    min-width: 150px;
+    text-align: center;
+    position: relative;
+}
+.workflow-step.start-node {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    border-color: #84fab0;
+}
+.workflow-step.end-node {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-color: #a8edea;
+}
+.workflow-step.approval-node {
+    border-color: #667eea;
+}
+.step-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+.step-number {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #667eea;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.step-label {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+.step-role {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+.step-approvers {
+    margin-top: 0.5rem;
+}
+.step-approvers .badge {
+    font-size: 0.7rem;
+    margin: 2px;
+}
+.workflow-arrow {
+    color: #667eea;
+    font-size: 1.5rem;
+    margin: 0 0.5rem;
+    font-weight: bold;
+}
+</style>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    console.log('=== 审批流配置页面加载完成 ===');
+    console.log('jQuery版本:', $.fn.jquery);
+    console.log('编辑按钮数量:', $('.edit-node').length);
+    console.log('删除按钮数量:', $('.delete-node').length);
+
+    // 添加节点
+    $('#addNodeForm').submit(function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'approver_user_ids') {
+                const ids = $('#addNodeForm select[name="approver_user_ids"]').val();
+                data[key] = ids ? ids.join(',') : '';
+            } else {
+                data[key] = value;
+            }
+        });
+
+        $.ajax({
+            url: '{{ url_for("workflow.add_node") }}',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    alert('添加成功！');
+                    location.reload();
+                } else {
+                    alert('添加失败：' + (response.message || '未知错误'));
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || '添加失败，请重试';
+                alert(msg);
+            }
+        });
+    });
+
+    // 编辑节点（使用事件委托）
+    $(document).on('click', '.edit-node', function(e) {
+        e.preventDefault();
+        console.log('编辑节点按钮被点击');
+        
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        const orderType = $(this).data('order-type');
+        const roleRequired = $(this).data('role-required');
+        const sequence = $(this).data('sequence');
+        const nodeType = $(this).data('node-type') || 'approval';
+        const approverUserIds = $(this).data('approver-user-ids') || '';
+        const conditionExpr = $(this).data('condition-expr') || '';
+
+        $('#edit_node_id').val(id);
+        $('#edit_name').val(name);
+        $('#edit_order_type').val(orderType);
+        $('#edit_role_required').val(roleRequired);
+        $('#edit_sequence').val(sequence);
+        $('#edit_node_type').val(nodeType);
+        $('#edit_condition_expr').val(conditionExpr);
+
+        // 清空所有复选框
+        $('#edit_user_list .user-checkbox').prop('checked', false);
+        
+        // 设置审批人复选框
+        let ids = [];
+        if (approverUserIds) {
+            if (typeof approverUserIds === 'string') {
+                ids = approverUserIds.split(',').map(s => s.trim()).filter(s => s);
+            } else if (Array.isArray(approverUserIds)) {
+                ids = approverUserIds;
+            }
+        }
+        
+        // 勾选对应的复选框
+        ids.forEach(function(userId) {
+            $('#edit_user_list .user-checkbox[value="' + userId + '"]').prop('checked', true);
+        });
+        
+        // 更新已选显示
+        updateEditSelectedUsers();
+
+        // 显示模态框
+        $('#editNodeModal').modal('show');
+    });
+    
+    // 编辑窗口 - 搜索功能（按钮触发）
+    $(document).on('click', '#edit_search_btn', function() {
+        const searchText = $('#edit_user_search').val().toLowerCase().trim();
+        
+        if (searchText === '') {
+            alert('请输入搜索关键字');
+            return;
+        }
+        
+        let matchCount = 0;
+        let matchedUsers = [];
+        
+        $('#edit_user_list .user-item').each(function() {
+            const $item = $(this);
+            const username = ($item.attr('data-username') || '').toLowerCase();
+            const department = ($item.attr('data-department') || '').toLowerCase();
+            const role = ($item.attr('data-role') || '').toLowerCase();
+            const text = username + ' ' + department + ' ' + role;
+            
+            if (text.indexOf(searchText) > -1) {
+                // 匹配的用户：显示
+                $item.removeClass('d-none').addClass('d-flex');
+                matchCount++;
+                matchedUsers.push($item.attr('data-username'));
+            } else {
+                // 不匹配的用户：隐藏
+                $item.removeClass('d-flex').addClass('d-none');
+            }
+        });
+        
+        console.log('搜索关键字:', searchText);
+        console.log('匹配用户:', matchedUsers);
+        console.log('匹配数量:', matchCount);
+        
+        if (matchCount === 0) {
+            alert('未找到匹配的用户');
+        } else {
+            alert('找到 ' + matchCount + ' 个匹配的用户：' + matchedUsers.join(', '));
+        }
+    });
+    
+    // 编辑窗口 - 显示全部用户
+    $(document).on('click', '#edit_show_all_btn', function() {
+        $('#edit_user_list .user-item').removeClass('d-none').addClass('d-flex');
+        $('#edit_user_search').val('');
+    });
+    
+    // 编辑窗口 - 搜索框回车触发搜索
+    $(document).on('keypress', '#edit_user_search', function(e) {
+        if (e.which === 13) { // 回车键
+            e.preventDefault();
+            $('#edit_search_btn').click();
+        }
+    });
+    
+    // 编辑窗口 - 复选框变化时更新显示
+    $(document).on('change', '#edit_user_list .user-checkbox', function() {
+        updateEditSelectedUsers();
+    });
+    
+    // 编辑窗口 - 清空选择
+    $('#edit_clear_selection').on('click', function() {
+        $('#edit_user_list .user-checkbox').prop('checked', false);
+        updateEditSelectedUsers();
+    });
+    
+    // 更新已选用户显示
+    function updateEditSelectedUsers() {
+        const $checked = $('#edit_user_list .user-checkbox:checked');
+        const count = $checked.length;
+        $('#edit_selected_count').text(count);
+        
+        const $badges = $('#edit_selected_badges');
+        $badges.empty();
+        
+        if (count > 0) {
+            $checked.each(function() {
+                const $label = $(this).closest('.user-item');
+                const username = $label.data('username');
+                const $badge = $('<span class="badge badge-primary mr-1 mb-1">' + 
+                    '<i class="fas fa-user"></i> ' + username + 
+                    '</span>');
+                $badges.append($badge);
+            });
+        } else {
+            $badges.html('<small class="text-muted">未选择任何审批人</small>');
+        }
+    }
+
+    $('#editNodeForm').submit(function(e) {
+        e.preventDefault();
+        
+        // 表单验证
+        const name = $('#edit_name').val().trim();
+        const orderType = $('#edit_order_type').val();
+        const roleRequired = $('#edit_role_required').val();
+        const sequence = $('#edit_sequence').val();
+        
+        if (!name) {
+            alert('请输入节点名称');
+            $('#edit_name').focus();
+            return false;
+        }
+        
+        if (!orderType) {
+            alert('请选择工单类型');
+            $('#edit_order_type').focus();
+            return false;
+        }
+        
+        if (!roleRequired) {
+            alert('请选择所需角色');
+            $('#edit_role_required').focus();
+            return false;
+        }
+        
+        if (!sequence || sequence < 1) {
+            alert('请输入有效的执行顺序（大于0的整数）');
+            $('#edit_sequence').focus();
+            return false;
+        }
+        
+        // 收集表单数据
+        const data = {
+            id: $('#edit_node_id').val(),
+            order_type: orderType,
+            name: name,
+            role_required: roleRequired,
+            sequence: parseInt(sequence),
+            node_type: $('#edit_node_type').val() || 'approval',
+            condition_expr: $('#edit_condition_expr').val().trim()
+        };
+        
+        // 收集选中的审批人ID
+        const selectedIds = [];
+        $('#edit_user_list .user-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+        data.approver_user_ids = selectedIds.join(',');
+        
+        console.log('提交编辑数据:', data);
+
+        // 显示加载状态
+        const $submitBtn = $(this).find('button[type="submit"]');
+        const originalText = $submitBtn.html();
+        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 提交中...');
+
+        $.ajax({
+            url: '{{ url_for("workflow.update_node") }}',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    alert('更新成功！');
+                    location.reload();
+                } else {
+                    alert('更新失败：' + (response.message || '未知错误'));
+                    $submitBtn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || '更新失败，请重试';
+                alert(msg);
+                $submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // 删除节点（使用事件委托）
+    $(document).on('click', '.delete-node', function(e) {
+        e.preventDefault();
+        console.log('删除节点按钮被点击');
+        
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        
+        if (!confirm(`确定要删除节点"${name}"吗？`)) {
+            return;
+        }
+
+        $.ajax({
+            url: '{{ url_for("workflow.delete_node") }}',
+            method: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify({ id: id }),
+            success: function(response) {
+                if (response.success) {
+                    alert('删除成功！');
+                    location.reload();
+                } else {
+                    alert('删除失败：' + (response.message || '未知错误'));
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || '删除失败，请重试';
+                alert(msg);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

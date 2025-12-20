@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">💰 资产成本管理</h1>
+        <p class="lead text-muted">编辑 <strong>{{ equipment.name }}</strong> 的成本信息</p>
+    </div>
+
+    <form method="POST" class="row g-3">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📋 基本成本信息</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 采购价格 -->
+                    <div class="mb-3">
+                        <label for="purchase_price" class="form-label">采购价格 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="purchase_price" name="purchase_price" 
+                                   value="{{ cost.purchase_price or equipment.price or '' }}" 
+                                   min="0" step="0.01" required>
+                        </div>
+                        <small class="text-muted">资产的原始采购价格</small>
+                    </div>
+
+                    <!-- 采购日期 -->
+                    <div class="mb-3">
+                        <label for="purchase_date" class="form-label">采购日期</label>
+                        <input type="date" class="form-control" id="purchase_date" name="purchase_date"
+                               value="{% if cost.purchase_date %}{{ cost.purchase_date.strftime('%Y-%m-%d') }}{% elif equipment.purchase_date %}{{ equipment.purchase_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        <small class="text-muted">用于折旧计算；若留空系统会尝试使用设备的购买日期或跳过折旧估算。</small>
+                    </div>
+
+                    <!-- 年折旧率 -->
+                    <div class="mb-3">
+                        <label for="depreciation_rate" class="form-label">年折旧率 (%)</label>
+                        <input type="number" class="form-control" id="depreciation_rate" 
+                               name="depreciation_rate" 
+                               value="{{ (cost.depreciation_rate or 0.15) * 100 }}" 
+                               min="0" max="100" step="0.5">
+                        <small class="text-muted">采用直线折旧法。典型值：电脱15-20%、服务器10-15%、外设20-25%</small>
+                    </div>
+
+                    <!-- 预期使用年限 -->
+                    <div class="mb-3">
+                        <label for="expected_lifespan_years" class="form-label">预期使用年限 (年)</label>
+                        <input type="number" class="form-control" id="expected_lifespan_years" 
+                               name="expected_lifespan_years" 
+                               value="{{ cost.expected_lifespan_years or 5 }}" 
+                               min="1" step="0.5">
+                        <small class="text-muted">资产的计划使用寿命</small>
+                    </div>
+
+                    <!-- 残值率 -->
+                    <div class="mb-3">
+                        <label for="residual_value_percent" class="form-label">残值率 (%)</label>
+                        <input type="number" class="form-control" id="residual_value_percent" 
+                               name="residual_value_percent" 
+                               value="{{ cost.residual_value_percent or 10 }}" 
+                               min="0" max="100" step="0.5">
+                        <small class="text-muted">资产报废时的预期残值百分比（例如10%表示可回收原采购价的10%）</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 维护成本信息 -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🔧 维护成本</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 年均维护成本 -->
+                    <div class="mb-3">
+                        <label for="annual_maintenance_cost" class="form-label">年均维护成本</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="annual_maintenance_cost" 
+                                   name="annual_maintenance_cost" 
+                                   value="{{ cost.maintenance_cost or 0 }}" 
+                                   min="0" step="0.01">
+                        </div>
+                        <small class="text-muted">平均每年的维护费用（可通过历史记录统计得出）</small>
+                    </div>
+
+                    <!-- 年均维修次数 -->
+                    <!-- 维修频率字段已移除，数据库未存储此字段 -->
+                    <!--
+                    <div class="mb-3">
+                        <label for="annual_repair_frequency" class="form-label">年维修频率 (次)</label>
+                        <input type="number" class="form-control" id="annual_repair_frequency" 
+                               name="annual_repair_frequency" 
+                               value="0" 
+                               min="0" step="1">
+                        <small class="text-muted">平均每年需要维修的次数</small>
+                    </div>
+                    -->
+
+                    <!-- 最高维修成本 -->
+                    <div class="mb-3">
+                        <label for="max_repair_cost" class="form-label">单次最高维修成本</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="max_repair_cost" 
+                                   name="max_repair_cost" 
+                                   value="{{ cost.max_repair_cost or 0 }}" 
+                                   min="0" step="0.01">
+                        </div>
+                        <small class="text-muted">单次维修的最高成本记录</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 升级和其他成本 -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">⬆️ 升级和其他成本</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 累计升级成本 -->
+                    <div class="mb-3">
+                        <label for="total_upgrade_cost" class="form-label">累计升级改造成本</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="total_upgrade_cost" 
+                                   name="total_upgrade_cost" 
+                                   value="{{ cost.total_upgrade_cost or 0 }}" 
+                                   min="0" step="0.01">
+                        </div>
+                        <small class="text-muted">所有升级和改造费用的总计</small>
+                    </div>
+
+                    <!-- 其他费用 -->
+                    <div class="mb-3">
+                        <label for="other_cost" class="form-label">其他费用</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="other_cost" 
+                                   name="other_cost" 
+                                   value="{{ cost.other_cost or 0 }}" 
+                                   min="0" step="0.01">
+                        </div>
+                        <small class="text-muted">配置、运输、安装等其他相关费用</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 备注 -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <label for="notes" class="form-label">备注</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3" 
+                              placeholder="添加任何关于成本的说明或备注">{{ cost.notes or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 成本计算预览 -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 1rem;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">💹 成本计算预览</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">采购价格</p>
+                        <p class="h5" id="preview_purchase">
+                            ¥{{ "%.0f"|format(cost.purchase_price or equipment.price or 0) }}
+                        </p>
+                    </div>
+
+                    <hr/>
+
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">年折旧额</p>
+                        <p class="h5" id="preview_annual_depreciation">
+                            ¥{{ "%.0f"|format((cost.purchase_price or equipment.price or 0) * (cost.depreciation_rate or 0.15)) }}
+                        </p>
+                        <p class="text-muted small">年折旧率：{{ (cost.depreciation_rate or 0.15) * 100 }}%</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">预期残值</p>
+                        <p class="h5 text-info" id="preview_residual">
+                            ¥{{ "%.0f"|format((cost.purchase_price or equipment.price or 0) * (cost.residual_value_percent or 10) / 100) }}
+                        </p>
+                        <p class="text-muted small">残值率：{{ cost.residual_value_percent or 10 }}%</p>
+                    </div>
+
+                    <hr/>
+
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">累计维护成本</p>
+                        <p class="h5" id="preview_maintenance">
+                            ¥{{ "%.0f"|format(cost.maintenance_cost or 0) }}
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">累计升级成本</p>
+                        <p class="h5" id="preview_upgrade">
+                            ¥{{ "%.0f"|format(cost.total_upgrade_cost or 0) }}
+                        </p>
+                    </div>
+
+                    <hr/>
+
+                    <div>
+                        <p class="text-muted small mb-1">总成本</p>
+                        <p class="h4 text-danger" id="preview_total">
+                            ¥{{ "%.0f"|format((cost.purchase_price or equipment.price or 0) + (cost.maintenance_cost or 0)) }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 成本类别参考 -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📚 折旧率参考</h5>
+                </div>
+                <div class="card-body small">
+                    <ul class="list-unstyled">
+                        <li class="mb-1">
+                            <strong>高折旧率 (20-30%)</strong><br>
+                            <span class="text-muted">鼠标、键盘、外接硬盘等周边设备</span>
+                        </li>
+                        <li class="mb-1">
+                            <strong>中折旧率 (15-20%)</strong><br>
+                            <span class="text-muted">台式电脑、笔记本、打印机</span>
+                        </li>
+                        <li class="mb-1">
+                            <strong>低折旧率 (10-15%)</strong><br>
+                            <span class="text-muted">服务器、网络设备、存储设备</span>
+                        </li>
+                        <li>
+                            <strong>极低折旧率 (5-10%)</strong><br>
+                            <span class="text-muted">办公家具、展示架等其他资产</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- 操作按钮 -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            ✓ 保存成本信息
+        </button>
+        <a href="{{ url_for('main.asset_cost_detail', equipment_id=equipment.id) }}" class="btn btn-outline-secondary btn-lg">
+            ← 取消
+        </a>
+    </div>
+</div>
+
+<script>
+// 实时更新成本预览
+function updatePreview() {
+    const purchasePrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+    const deprecationRate = parseFloat(document.getElementById('annual_depreciation_rate').value) || 15;
+    const residualPercent = parseFloat(document.getElementById('residual_value_percent').value) || 10;
+    const annualMaintenance = parseFloat(document.getElementById('annual_maintenance_cost').value) || 0;
+    const totalUpgrade = parseFloat(document.getElementById('total_upgrade_cost').value) || 0;
+    const otherCost = parseFloat(document.getElementById('other_cost').value) || 0;
+
+    document.getElementById('preview_purchase').textContent = '¥' + purchasePrice.toFixed(0);
+    document.getElementById('preview_annual_depreciation').textContent = '¥' + (purchasePrice * deprecationRate / 100).toFixed(0);
+    document.getElementById('preview_residual').textContent = '¥' + (purchasePrice * residualPercent / 100).toFixed(0);
+    document.getElementById('preview_maintenance').textContent = '¥' + annualMaintenance.toFixed(0);
+    document.getElementById('preview_upgrade').textContent = '¥' + totalUpgrade.toFixed(0);
+    
+    const total = purchasePrice + annualMaintenance + totalUpgrade + otherCost;
+    document.getElementById('preview_total').textContent = '¥' + total.toFixed(0);
+}
+
+document.getElementById('purchase_price').addEventListener('input', updatePreview);
+document.getElementById('annual_depreciation_rate').addEventListener('input', updatePreview);
+document.getElementById('residual_value_percent').addEventListener('input', updatePreview);
+document.getElementById('annual_maintenance_cost').addEventListener('input', updatePreview);
+document.getElementById('total_upgrade_cost').addEventListener('input', updatePreview);
+document.getElementById('other_cost').addEventListener('input', updatePreview);
+</script>
+
+<style>
+.sticky-top {
+    position: sticky;
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: relative;
+        top: 0;
+    }
+}
+</style>
+{% endblock %}
+

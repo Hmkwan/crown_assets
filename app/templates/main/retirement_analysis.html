@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">🗑️ 资产报废分析</h1>
+        <p class="lead text-muted">基于使用年限、维护成本、故障频率等多维度的资产报废风险评估</p>
+    </div>
+
+    <!-- 报废风险等级说明 -->
+    <div class="alert alert-info mb-4">
+        <h5>📊 风险评分规则（满分100分）</h5>
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <small><strong>评分维度：</strong></small>
+                <ul class="small mb-0">
+                    <li>使用年限：满30分（5年及以上）</li>
+                    <li>维护成本：满25分（超采购价50%）</li>
+                    <li>维修频率：满20分（年均5次以上）</li>
+                    <li>残值率：满15分（低于10%）</li>
+                    <li>技术落后：满10分（已无同类销售）</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <small><strong>风险等级：</strong></small>
+                <ul class="small mb-0">
+                    <li><span class="badge bg-success">0-30分</span> 低风险 - 继续使用</li>
+                    <li><span class="badge bg-info">31-50分</span> 中低风险 - 监控维护</li>
+                    <li><span class="badge bg-warning">51-70分</span> 中等风险 - 计划更新</li>
+                    <li><span class="badge bg-danger">71-100分</span> 高风险 - 建议报废</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报废高危资产 -->
+    {% if retirement_analysis.high_risk|length > 0 %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🚨 高风险资产（71-100分） - 强烈建议报废</h5>
+                <span class="badge bg-light text-danger">{{ retirement_analysis.high_risk|length }} 项</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>资产编号</th>
+                            <th>资产名称</th>
+                            <th class="text-center">使用年限</th>
+                            <th class="text-end">采购价格</th>
+                            <th class="text-end">总维护费</th>
+                            <th class="text-end">残值</th>
+                            <th class="text-center">风险评分</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in retirement_analysis.high_risk %}
+                        <tr>
+                            <td><code>{{ asset.asset_no }}</code></td>
+                            <td>{{ asset.equipment_name }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ asset.usage_years }} 年</span>
+                            </td>
+                            <td class="text-end"><span class="badge bg-primary text-white">¥{{ "%.0f"|format(asset.purchase_price) }}</span></td>
+                            <td class="text-end"><span class="badge bg-danger text-white">¥{{ "%.0f"|format(asset.total_maintenance_cost) }}</span></td>
+                            <td class="text-end"><span class="text-secondary fw-bold">¥{{ "%.0f"|format(asset.residual_value) }}</span></td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ asset.risk_score }}</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.asset_lifecycle', asset_id=asset.equipment_id) }}" class="btn btn-sm btn-danger">
+                                    详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 中风险资产 -->
+    {% if retirement_analysis.medium_risk|length > 0 %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">⚠️ 中风险资产（51-70分） - 计划更新</h5>
+                <span class="badge bg-light text-warning">{{ retirement_analysis.medium_risk|length }} 项</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>资产编号</th>
+                            <th>资产名称</th>
+                            <th class="text-center">使用年限</th>
+                            <th class="text-end">维护成本占比</th>
+                            <th class="text-center">风险评分</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in retirement_analysis.medium_risk[:15] %}
+                        <tr>
+                            <td><code>{{ asset.asset_no }}</code></td>
+                            <td>{{ asset.equipment_name }}</td>
+                            <td class="text-center">{{ asset.usage_years }} 年</td>
+                            <td class="text-end">{{ "%.1f"|format(asset.maintenance_cost_ratio * 100) }}%</td>
+                            <td class="text-center">
+                                <span class="badge bg-warning">{{ asset.risk_score }}</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.asset_lifecycle', asset_id=asset.equipment_id) }}" class="btn btn-sm btn-outline-warning">
+                                    详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if retirement_analysis.medium_risk|length > 15 %}
+            <p class="text-muted mt-2 small">还有 {{ retirement_analysis.medium_risk|length - 15 }} 项中风险资产...</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 低风险资产摘要 -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">✓ 低风险资产（0-50分）</h5>
+                <span class="badge bg-light text-success">
+                    {{ retirement_analysis.low_risk|length + retirement_analysis.medium_low_risk|length }} 项
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">以下资产使用状况良好，可继续正常使用，无需立即更新。</p>
+            
+            <!-- 低风险数据透视 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>按使用年限分布</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="text-muted">0-2年</span>
+                            <span class="float-end badge bg-info">{{ retirement_analysis.age_0_2_count }}</span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="text-muted">2-5年</span>
+                            <span class="float-end badge bg-info">{{ retirement_analysis.age_2_5_count }}</span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="text-muted">5年以上</span>
+                            <span class="float-end badge bg-success">{{ retirement_analysis.age_5_plus_count }}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>维护成本分析</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="text-muted">维护成本 < 20% 采购价</span>
+                            <span class="float-end badge bg-success">{{ retirement_analysis.low_maintenance_count }}</span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="text-muted">维护成本 20-50% 采购价</span>
+                            <span class="float-end badge bg-info">{{ retirement_analysis.medium_maintenance_count }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 低风险资产列表 -->
+            <h6>详细列表</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>资产编号</th>
+                            <th>资产名称</th>
+                            <th class="text-center">使用年限</th>
+                            <th class="text-end">风险评分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in (retirement_analysis.low_risk + retirement_analysis.medium_low_risk)[:20] %}
+                        <tr>
+                            <td><code>{{ asset.asset_no }}</code></td>
+                            <td>{{ asset.equipment_name }}</td>
+                            <td class="text-center">{{ asset.usage_years }} 年</td>
+                            <td class="text-end">
+                                <span class="badge {% if asset.risk_score <= 30 %}bg-success{% else %}bg-info{% endif %}">
+                                    {{ asset.risk_score }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

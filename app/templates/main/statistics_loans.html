@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-hand-holding"></i> 设备借用报表
+                <a href="{{ url_for('main.export_statistics_xlsx', report_type='loans') }}" 
+                   class="btn btn-success btn-sm float-right">
+                    <i class="fas fa-file-excel"></i> 导出Excel
+                </a>
+            </h2>
+        </div>
+    </div>
+
+    <!-- 汇总卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info"><i class="fas fa-list"></i> 总借用</h5>
+                    <h3>{{ total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-secondary"><i class="fas fa-file-alt"></i> 已提交</h5>
+                    <h3>{{ submitted_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary"><i class="fas fa-check"></i> 已批准</h5>
+                    <h3>{{ approved_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning"><i class="fas fa-hand-holding"></i> 借用中</h5>
+                    <h3>{{ borrowed_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success"><i class="fas fa-undo"></i> 已归还</h5>
+                    <h3>{{ returned_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-danger"><i class="fas fa-exclamation-triangle"></i> 逾期</h5>
+                    <h3>{{ overdue_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label class="mr-2">状态:</label>
+                    <select name="status" class="form-control">
+                        <option value="">全部</option>
+                        <option value="submitted" {% if status == 'submitted' %}selected{% endif %}>已提交</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="borrowed" {% if status == 'borrowed' %}selected{% endif %}>借用中</option>
+                        <option value="returned" {% if status == 'returned' %}selected{% endif %}>已归还</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">日期:</label>
+                    <input type="date" name="date_from" class="form-control mr-2" value="{{ date_from }}">
+                    <span class="mr-2">至</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+                <a href="{{ url_for('main.statistics_loans') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> 重置
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-pie"></i> 状态分布
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>数量</th>
+                                <th>占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in status_stats %}
+                            <tr>
+                                <td>
+                                    {% if stat.status == 'submitted' %}
+                                        <span class="badge badge-secondary">已提交</span>
+                                    {% elif stat.status == 'approved' %}
+                                        <span class="badge badge-primary">已批准</span>
+                                    {% elif stat.status == 'borrowed' %}
+                                        <span class="badge badge-warning">借用中</span>
+                                    {% elif stat.status == 'returned' %}
+                                        <span class="badge badge-success">已归还</span>
+                                    {% elif stat.status == 'rejected' %}
+                                        <span class="badge badge-danger">已拒绝</span>
+                                    {% else %}
+                                        <span class="badge badge-light">{{ stat.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ "%.1f"|format(stat.count / total_count * 100 if total_count > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-exclamation-circle"></i> 逾期未归还设备 ({{ overdue_count }} 条)
+                </div>
+                <div class="card-body">
+                    {% if overdue_count > 0 %}
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>借用ID</th>
+                                    <th>设备名称</th>
+                                    <th>借用人</th>
+                                    <th>计划归还</th>
+                                    <th>逾期天数</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for loan in overdue_loans %}
+                                <tr>
+                                    <td>{{ loan.id }}</td>
+                                    <td>{{ loan.equipment.name if loan.equipment else '' }}</td>
+                                    <td>{{ loan.requester.username if loan.requester else '' }}</td>
+                                    <td>{{ loan.end_date.strftime('%Y-%m-%d') if loan.end_date else '' }}</td>
+                                    <td class="text-danger">
+                                        <strong>{{ (now() - loan.end_date).days }} 天</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">暂无逾期记录</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 借用详情 -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-list"></i> 借用记录详情 (共 {{ loans|length }} 条)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>借用ID</th>
+                            <th>设备名称</th>
+                            <th>设备编号</th>
+                            <th>借用人</th>
+                            <th>借用部门</th>
+                            <th>计划开始</th>
+                            <th>计划结束</th>
+                            <th>实际借出</th>
+                            <th>实际归还</th>
+                            <th>状态</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr {% if loan.status == 'borrowed' and loan.end_date and loan.end_date < now() %}class="table-danger"{% endif %}>
+                            <td>{{ loan.id }}</td>
+                            <td>{{ loan.equipment.name if loan.equipment else '' }}</td>
+                            <td>{{ loan.equipment.equipment_number if loan.equipment else '' }}</td>
+                            <td>{{ loan.requester.username if loan.requester else '' }}</td>
+                            <td>{{ loan.requester_dept or '' }}</td>
+                            <td>{{ loan.start_date.strftime('%Y-%m-%d') if loan.start_date else '' }}</td>
+                            <td>{{ loan.end_date.strftime('%Y-%m-%d') if loan.end_date else '' }}</td>
+                            <td>{{ loan.borrowed_date.strftime('%Y-%m-%d %H:%M') if loan.borrowed_date else '' }}</td>
+                            <td>{{ loan.returned_date.strftime('%Y-%m-%d %H:%M') if loan.returned_date else '' }}</td>
+                            <td>
+                                {% if loan.status == 'submitted' %}
+                                    <span class="badge badge-secondary">已提交</span>
+                                {% elif loan.status == 'approved' %}
+                                    <span class="badge badge-primary">已批准</span>
+                                {% elif loan.status == 'borrowed' %}
+                                    <span class="badge badge-warning">借用中</span>
+                                    {% if loan.end_date and loan.end_date < now() %}
+                                        <span class="badge badge-danger">逾期</span>
+                                    {% endif %}
+                                {% elif loan.status == 'returned' %}
+                                    <span class="badge badge-success">已归还</span>
+                                {% elif loan.status == 'rejected' %}
+                                    <span class="badge badge-danger">已拒绝</span>
+                                {% elif loan.status == 'cancelled' %}
+                                    <span class="badge badge-secondary">已取消</span>
+                                {% else %}
+                                    <span class="badge badge-light">{{ loan.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span title="{{ loan.notes }}">
+                                    {{ loan.notes[:20] + '...' if loan.notes and loan.notes|length > 20 else loan.notes }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

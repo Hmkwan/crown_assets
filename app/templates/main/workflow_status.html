@@ -7,13 +7,20 @@
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">{{ order_title }}</h5>
-          <a href="{{ url_for('main.approvals') }}" class="btn btn-sm btn-outline-secondary">返回审批列表</a>
+          <div>
+            {% if current_user.role in ['admin', 'super_admin'] and current_pending %}
+            <a href="{{ url_for('admin.approval_flow_detail', approval_id=current_pending.id) }}" class="btn btn-sm btn-warning me-2">
+              <i class="fas fa-tools"></i> 管理员干预
+            </a>
+            {% endif %}
+            <a href="{{ url_for('main.approvals') }}" class="btn btn-sm btn-outline-secondary">返回审批列表</a>
+          </div>
         </div>
         <div class="card-body">
           <div class="row g-3 align-items-stretch">
             {% for s in steps %}
-            <div class="col-12 col-sm-6 col-lg-3">
-              <div class="card h-100 {% if s.status == 'pending' %}border-info{% elif s.status == 'approved' %}border-success{% elif s.status == 'rejected' %}border-secondary{% endif %}">
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="card h-100 shadow-sm {% if s.status == 'pending' %}border-warning{% elif s.status == 'approved' %}border-success{% elif s.status == 'rejected' %}border-danger{% else %}border-light{% endif %}" style="border-left: 4px solid {% if s.status == 'pending' %}#ffc107{% elif s.status == 'approved' %}#28a745{% elif s.status == 'rejected' %}#dc3545{% else %}#6c757d{% endif %};">
                 <div class="card-body d-flex flex-column">
                   <h6 class="card-title mb-1">{{ s.name or '节点' }}</h6>
                   <small class="text-muted mb-2">
@@ -21,11 +28,11 @@
                   </small>
                   <p class="mb-2">
                     {% if s.status == 'approved' %}
-                      <span class="badge bg-success">已通过</span>
+                      <span class="badge bg-success"><i class="fas fa-check"></i> 已通过</span>
                     {% elif s.status == 'rejected' %}
-                      <span class="badge bg-secondary">已拒绝</span>
+                      <span class="badge bg-danger"><i class="fas fa-times"></i> 已拒绝</span>
                     {% elif s.status == 'pending' %}
-                      <span class="badge bg-info">待审批</span>
+                      <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> 待审批</span>
                     {% else %}
                       <span class="badge bg-light text-dark">未开始</span>
                     {% endif %}

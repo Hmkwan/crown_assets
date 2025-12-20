@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">📋 采购建议计划</h1>
+        <p class="lead text-muted">基于库存分析自动生成的采购建议</p>
+    </div>
+
+    <!-- 采购概览 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">建议采购总额</h6>
+                    <p class="h3"><span class="badge bg-primary text-white px-3 py-2 fs-4">¥{{ "%.0f"|format(procurement_summary.total_cost) }}</span></p>
+                    <small class="text-muted">预计投资</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">紧急采购项</h6>
+                    <p class="h3 text-danger">{{ procurement_plan.critical|length }}</p>
+                    <small class="text-muted">需立即订购</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">常规采购项</h6>
+                    <p class="h3 text-info">{{ procurement_plan.normal|length }}</p>
+                    <small class="text-muted">可按计划订购</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 采购优先级说明 -->
+    <div class="alert alert-info">
+        <strong>💡 采购优先级说明：</strong>
+        <ul class="mb-0 mt-2">
+            <li><strong class="text-danger">紧急采购（红色）</strong>：库存已触发紧急阈值，立即可能影响业务</li>
+            <li><strong class="text-warning">建议采购（黄色）</strong>：库存接近最小值，建议主动补充</li>
+            <li><strong class="text-info">参考采购（蓝色）</strong>：库存充足，可考虑批量采购优化成本</li>
+        </ul>
+    </div>
+
+    <!-- 紧急采购计划 -->
+    {% if procurement_plan.critical %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🚨 紧急采购计划</h5>
+                <span class="badge bg-light text-dark">{{ procurement_plan.critical|length }} 项</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>配件编号</th>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">建议采购量</th>
+                            <th class="text-end">单位价格</th>
+                            <th class="text-end">采购合计</th>
+                            <th class="text-center">优先级</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in procurement_plan.critical %}
+                        <tr class="table-danger">
+                            <td><code>{{ item.spare_part_code }}</code></td>
+                            <td>{{ item.spare_part_name }}</td>
+                            <td class="text-end">{{ item.current_stock }}</td>
+                            <td class="text-end"><strong>{{ item.reorder_quantity }}</strong></td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.2f"|format(item.unit_price) }}</span></td>
+                            <td class="text-end"><strong class="text-danger">¥{{ "%.0f"|format(item.total_cost) }}</strong></td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">紧急</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-warning mt-3 mb-0">
+                <strong>总计：</strong><span class="badge bg-danger text-white">¥{{ "%.0f"|format(procurement_plan.critical|sum(attribute='total_cost')) }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 建议采购计划 -->
+    {% if procurement_plan.warning %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">⚠️ 建议采购计划</h5>
+                <span class="badge bg-light text-dark">{{ procurement_plan.warning|length }} 项</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-warning">
+                        <tr>
+                            <th>配件编号</th>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">建议采购量</th>
+                            <th class="text-end">单位价格</th>
+                            <th class="text-end">采购合计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in procurement_plan.warning %}
+                        <tr class="table-warning">
+                            <td><code>{{ item.spare_part_code }}</code></td>
+                            <td>{{ item.spare_part_name }}</td>
+                            <td class="text-end">{{ item.current_stock }}</td>
+                            <td class="text-end">{{ item.reorder_quantity }}</td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.2f"|format(item.unit_price) }}</span></td>
+                            <td class="text-end"><strong class="text-warning">¥{{ "%.0f"|format(item.total_cost) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+                <div class="alert alert-info mt-3 mb-0">
+                <strong>小计：</strong><span class="badge bg-warning text-dark">¥{{ "%.0f"|format(procurement_plan.warning|sum(attribute='total_cost')) }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 参考采购 -->
+    {% if procurement_plan.normal %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">💡 参考采购（库存充足）</h5>
+                <span class="badge bg-secondary">{{ procurement_plan.normal|length }} 项</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <small>以下配件库存充足，考虑批量采购可能获得更优的采购价格</small>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>配件名称</th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">建议批量采购量</th>
+                            <th class="text-end">单位价格</th>
+                            <th class="text-end">采购合计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in procurement_plan.normal[:15] %}
+                        <tr>
+                            <td>{{ item.spare_part_name }}</td>
+                            <td class="text-end">{{ item.current_stock }}</td>
+                            <td class="text-end">{{ item.batch_quantity }}</td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.2f"|format(item.unit_price) }}</span></td>
+                            <td class="text-end"><strong class="text-info">¥{{ "%.0f"|format(item.total_cost) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if procurement_plan.normal|length > 15 %}
+            <p class="text-muted mt-2 small">还有 {{ procurement_plan.normal|length - 15 }} 项参考采购配件...</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 采购建议总结 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📊 采购预算统计</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>按优先级统计</h6>
+                    <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <span class="badge bg-danger">紧急采购</span>
+                                    <span class="float-end"><strong class="text-danger">¥{{ "%.0f"|format(procurement_plan.critical|sum(attribute='total_cost')) }}</strong></span>
+                                </li>
+                        <li class="mb-2">
+                            <span class="badge bg-warning">建议采购</span>
+                            <span class="float-end"><strong class="text-warning">¥{{ "%.0f"|format(procurement_plan.warning|sum(attribute='total_cost')) }}</strong></span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-info">参考采购</span>
+                            <span class="float-end"><strong class="text-info">¥{{ "%.0f"|format(procurement_plan.normal|sum(attribute='total_cost')) }}</strong></span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>周期采购建议</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>立即执行</strong>
+                            <span class="float-end"><strong class="text-danger">¥{{ "%.0f"|format(procurement_plan.critical|sum(attribute='total_cost')) }}</strong></span>
+                        </li>
+                        <li class="mb-2">
+                            <strong>本月内</strong>
+                            <span class="float-end"><strong class="text-warning">¥{{ "%.0f"|format(procurement_plan.warning|sum(attribute='total_cost')) }}</strong></span>
+                        </li>
+                        <li class="mb-2">
+                            <strong>灵活安排</strong>
+                            <span class="float-end"><strong class="text-info">¥{{ "%.0f"|format(procurement_plan.normal|sum(attribute='total_cost')) }}</strong></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr/>
+            <h5 class="text-center">
+                总采购预算：<strong class="text-primary"><span class="badge bg-primary text-white">¥{{ "%.0f"|format(procurement_summary.total_cost) }}</span></strong>
+            </h5>
+        </div>
+    </div>
+</div>
+{% endblock %}

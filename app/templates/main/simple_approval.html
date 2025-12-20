@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h2 class="mb-0">快速审批</h2>
+        <span class="badge bg-primary fs-6">待处理 {{ total_pending }}</span>
+    </div>
+
+    {% if total_pending == 0 %}
+        <div class="alert alert-success">目前没有待审批的工单。</div>
+    {% endif %}
+
+    {% macro render_section(title, items, badge_class) %}
+        {% if items %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-{{ badge_class }}">{{ items|length }}</span>
+                    <span class="fw-semibold">{{ title }}</span>
+                </div>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for approval in items %}
+                <div class="list-group-item">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+                        <div>
+                            <div class="fw-semibold">工单 #{{ approval.order_id }}</div>
+                            <div class="text-muted small">
+                                类型: {{ approval.order_type }}
+                                {% if approval.workflow_node %}| 节点: {{ approval.workflow_node.name }}{% endif %}
+                                {% if approval.approver %}| 当前审批人: {{ approval.approver.name }}{% endif %}
+                                {% if approval.approval_level %}| 级别: {{ approval.approval_level }}{% endif %}
+                            </div>
+                            {% if approval.comments %}
+                                <div class="text-muted small">备注: {{ approval.comments }}</div>
+                            {% endif %}
+                            {% if approval.created_date %}
+                                <div class="text-muted small">提交时间: {{ approval.created_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                            {% endif %}
+                        </div>
+                        <form class="d-flex flex-wrap gap-2" method="post" action="{{ url_for('main.simple_approve', order_type=approval.order_type, order_id=approval.order_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <input type="hidden" name="comments" value="快速审批" />
+                            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">通过</button>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">拒绝</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endmacro %}
+
+    {{ render_section('维修工单审批', repair_pending, 'info') }}
+    {{ render_section('备件申请审批', part_pending, 'secondary') }}
+    {{ render_section('借用申请审批', loan_pending, 'warning') }}
+    {{ render_section('调拨申请审批', transfer_pending, 'dark') }}
+    {{ render_section('报废申请审批', scrap_pending, 'danger') }}
+    {{ render_section('设备申购审批', application_pending, 'primary') }}
+</div>
+{% endblock %}

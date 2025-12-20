@@ -22,6 +22,7 @@
                                     <th>申请人</th>
                                     <th>申请部门</th>
                                     <th>故障描述</th>
+                                    <th>维修费用</th>
                                     <th>优先级</th>
                                     <th>申请时间</th>
                                     <th>审批级别</th>
@@ -36,6 +37,13 @@
                                     <td>{{ item.order.requester.username }}</td>
                                     <td>{{ item.order.requester.department }}</td>
                                     <td>{{ item.order.description[:50] }}...</td>
+                                    <td>
+                                        {% if item.order.repair_cost and item.order.repair_cost > 0 %}
+                                        <span class="badge bg-success">￥{{ "%.2f"|format(item.order.repair_cost) }}</span>
+                                        {% else %}
+                                        <span class="text-muted">未评估</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if item.order.status == 'submitted' %}
                                         <span class="badge bg-warning">已提交</span>
@@ -63,11 +71,13 @@
                                         <span class="badge bg-secondary">已拒绝</span>
                                         {% else %}
                                         <button class="btn btn-sm btn-primary" 
-                                                data-toggle="modal" 
-                                                data-target="#approveModal"
-                                                data-order-id="{{ item.order.id }}"
-                                                data-order-type="repair"
-                                                data-action="approve">
+                                            data-toggle="modal" 
+                                            data-target="#approveModal"
+                                            data-order-id="{{ item.order.id }}"
+                                            data-order-type="repair"
+                                            data-action="approve"
+                                            data-node-name="{{ item.approval.workflow_node.name if item.approval.workflow_node else '' }}"
+                                            data-repair-cost="{{ item.order.repair_cost if item.order.repair_cost else 0 }}">
                                             批准
                                         </button>
                                         <button class="btn btn-sm btn-danger" 
@@ -391,6 +401,16 @@
                         <label for="approve_comments" class="form-label">审批意见（可选）</label>
                         <textarea class="form-control" id="approve_comments" rows="3"></textarea>
                     </div>
+                    <!-- 显示已评估的维修金额 -->
+                    <div class="alert alert-info" id="estimated_cost_display" style="display:none;">
+                        <strong>💰 管理员已评估维修费用：</strong>
+                        <span class="fs-5 text-success" id="estimated_cost_value"></span>
+                    </div>
+                    <!-- 管理员输入维修金额 -->
+                    <div class="mb-3" id="repair_cost_group" style="display:none;">
+                        <label for="repair_cost" class="form-label">维修金额（管理员填写）</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="repair_cost" placeholder="请输入维修金额">
+                    </div>
                 </form>
                 <p>确定要批准这个申请吗？</p>
             </div>
@@ -442,10 +462,31 @@ $(document).ready(function() {
         var button = $(event.relatedTarget);
         var orderId = button.data('order-id');
         var orderType = button.data('order-type');
+        var nodeName = button.data('node-name') || '';
+        var repairCost = button.data('repair-cost') || 0;
         
         var modal = $(this);
         modal.find('#approve_order_id').val(orderId);
         modal.find('#approve_order_type').val(orderType);
+        
+        // 判断是否需要输入金额(管理员评估节点)
+        var needsCostInput = orderType === 'repair' && (nodeName.indexOf('管理员') >= 0 && nodeName.indexOf('评估') >= 0);
+        // 判断是否需要显示已评估金额(确定维修金额节点)
+        var needsShowCost = orderType === 'repair' && nodeName.indexOf('确定') >= 0 && nodeName.indexOf('维修') >= 0 && repairCost > 0;
+        
+        if (needsCostInput) {
+            $('#repair_cost_group').show();
+            $('#estimated_cost_display').hide();
+        } else if (needsShowCost) {
+            $('#repair_cost_group').hide();
+            $('#repair_cost').val('');
+            $('#estimated_cost_value').text('￥' + parseFloat(repairCost).toFixed(2));
+            $('#estimated_cost_display').show();
+        } else {
+            $('#repair_cost_group').hide();
+            $('#repair_cost').val('');
+            $('#estimated_cost_display').hide();
+        }
     });
     
     // 设置拒绝模态框数据
@@ -506,14 +547,22 @@ $(document).ready(function() {
     }
 
     $('#confirmApprove').click(async function() {
+        console.log('批准按钮被点击');
         var orderId = $('#approve_order_id').val();
         var orderType = $('#approve_order_type').val();
         var comments = $('#approve_comments').val();
+        
+        console.log('订单ID:', orderId, '订单类型:', orderType);
 
         var formData = { comments: comments };
         var url = null;
         if (orderType === 'repair') {
             url = '{{ url_for("main.approve_repair_order", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
+            var rc = $('#repair_cost').val();
+            if ($('#repair_cost_group').is(':visible')) {
+                if (!rc || parseFloat(rc) < 0) { showToast('请输入有效的维修金额', 'danger'); return; }
+                formData['repair_cost'] = rc;
+            }
         } else if (orderType === 'part') {
             url = '{{ url_for("main.approve_part_order", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
         } else if (orderType === 'transfer') {
@@ -526,15 +575,23 @@ $(document).ready(function() {
             url = '{{ url_for("main.approve_loan", order_id=0, action="approve") }}'.replace('/0/', '/' + orderId + '/');
         }
 
-        if (!url) { showToast('无法解析审批地址', 'danger'); return; }
+        if (!url) { 
+            console.error('无法解析审批地址');
+            showToast('无法解析审批地址', 'danger'); 
+            return; 
+        }
+        
+        console.log('审批URL:', url);
+        console.log('表单数据:', formData);
 
         try {
             $('#confirmApprove').prop('disabled', true).text('处理中...');
             await postAction(url, formData);
+            console.log('审批成功');
             showToast('审批成功', 'success');
-            location.reload();
+            setTimeout(function(){ location.reload(); }, 1000);
         } catch (err) {
-            console.error(err);
+            console.error('审批失败:', err);
             showToast('审批失败：' + err.message, 'danger');
         } finally {
             $('#confirmApprove').prop('disabled', false).text('确认批准');

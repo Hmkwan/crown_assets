@@ -31,17 +31,33 @@
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>流程图</th>
+                <th>管理员干预</th>
             </tr>
         </thead>
         <tbody>
             {% for t in transfers.items %}
+            {% set pending_approval = t.approvals|selectattr('status', 'equalto', 'pending')|first %}
             <tr>
                 <td>{{ t.id }}</td>
                 <td>{{ t.equipment.name if t.equipment else '—' }}</td>
                 <td>{{ t.from_department }}</td>
                 <td>{{ t.to_department }}</td>
                 <td>{{ t.requester.username if t.requester else '—' }}</td>
-                <td>{{ t.status }}</td>
+                <td>
+                  {% if t.status == 'submitted' or t.status == 'pending' %}
+                  <span class="badge bg-warning text-dark">已提交</span>
+                  {% elif t.status == 'approved' %}
+                  <span class="badge bg-success">已批准</span>
+                  {% elif t.status == 'completed' %}
+                  <span class="badge bg-primary">已完成</span>
+                  {% elif t.status == 'cancelled' %}
+                  <span class="badge bg-secondary">已取消</span>
+                  {% elif t.status == 'rejected' %}
+                  <span class="badge bg-danger">已驳回</span>
+                  {% else %}
+                  {{ t.status }}
+                  {% endif %}
+                </td>
                 <td>{{ moment(t.created_date).format('YYYY-MM-DD HH:mm:ss') }}</td>
                 <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.workflow_status', order_type='equipment_transfer', order_id=t.id) }}">查看</a></td>
             </tr>

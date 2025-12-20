@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block title %}我的待审批 - 审批中心{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i> 我的待审批
+                    </h4>
+                    <div>
+                        <button class="btn btn-light btn-sm" onclick="refreshList()">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                        <a href="{{ url_for('main.my_approvals_history') }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-history"></i> 审批历史
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选器 -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-control" id="filterOrderType" onchange="filterApprovals()">
+                                <option value="">全部工单类型</option>
+                                <option value="repair_order">维修工单</option>
+                                <option value="part_request_order">备件申请</option>
+                                <option value="equipment_application">设备申请</option>
+                                <option value="equipment_transfer">设备调拨</option>
+                                <option value="equipment_scrap">设备报废</option>
+                                <option value="equipment_loan">设备借用</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" id="filterOverdue" onchange="filterApprovals()">
+                                <option value="">全部状态</option>
+                                <option value="overdue">已逾期</option>
+                                <option value="urgent">即将到期</option>
+                                <option value="normal">正常</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchKeyword" 
+                                       placeholder="搜索工单号、发起人..." onkeyup="filterApprovals()">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 统计卡片 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <h2 id="overdueCount">0</h2>
+                                    <p class="mb-0">已逾期</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h2 id="urgentCount">0</h2>
+                                    <p class="mb-0">即将到期</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h2 id="normalCount">0</h2>
+                                    <p class="mb-0">正常</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h2 id="totalCount">0</h2>
+                                    <p class="mb-0">总计</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 待审批列表 -->
+                    <div id="approvalList">
+                        <div class="text-center py-5">
+                            <i class="fas fa-spinner fa-spin fa-3x text-muted"></i>
+                            <p class="mt-3 text-muted">加载中...</p>
+                        </div>
+                    </div>
+
+                    <!-- 分页 -->
+                    <nav id="pagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="paginationList"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审批操作模态框 -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalTitle">审批操作</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="approvalModalBody">
+                <!-- 工单详情将动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-danger" onclick="rejectApproval()">
+                    <i class="fas fa-times-circle"></i> 拒绝
+                </button>
+                <button type="button" class="btn btn-success" onclick="approveApproval()">
+                    <i class="fas fa-check-circle"></i> 通过
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.approval-item {
+    border-left: 4px solid #007bff;
+    transition: all 0.3s;
+}
+.approval-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+.approval-item.overdue {
+    border-left-color: #dc3545;
+}
+.approval-item.urgent {
+    border-left-color: #ffc107;
+}
+.badge-overdue {
+    background-color: #dc3545;
+}
+.badge-urgent {
+    background-color: #ffc107;
+}
+.badge-normal {
+    background-color: #28a745;
+}
+</style>
+
+<script>
+let currentPage = 1;
+let currentStepId = null;
+let approvalData = [];
+
+// 页面加载时获取数据
+$(document).ready(function() {
+    loadPendingApprovals();
+    
+    // 每30秒自动刷新
+    setInterval(function() {
+        loadPendingApprovals(true);
+    }, 30000);
+});
+
+function loadPendingApprovals(silent = false) {
+    if (!silent) {
+        $('#approvalList').html(`
+            <div class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-3x text-muted"></i>
+                <p class="mt-3 text-muted">加载中...</p>
+            </div>
+        `);
+    }
+    
+    $.ajax({
+        url: '/api/approval/my-pending',
+        method: 'GET',
+        data: {
+            page: currentPage,
+            per_page: 20
+        },
+        success: function(response) {
+            if (response.success) {
+                approvalData = response.data.items;
+                renderApprovalList(approvalData);
+                updateStatistics(approvalData);
+                updatePagination(response.data);
+            }
+        },
+        error: function(xhr) {
+            showError('加载失败: ' + (xhr.responseJSON?.message || '网络错误'));
+        }
+    });
+}
+
+function renderApprovalList(items) {
+    if (items.length === 0) {
+        $('#approvalList').html(`
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted"></i>
+                <p class="mt-3 text-muted">暂无待审批事项</p>
+            </div>
+        `);
+        return;
+    }
+    
+    const now = new Date();
+    let html = '<div class="list-group">';
+    
+    items.forEach(function(item) {
+        const deadline = item.deadline ? new Date(item.deadline) : null;
+        const isOverdue = deadline && deadline < now;
+        const isUrgent = deadline && (deadline - now) < 24 * 3600 * 1000 && !isOverdue;
+        const statusClass = isOverdue ? 'overdue' : (isUrgent ? 'urgent' : 'normal');
+        
+        const orderTypeMap = {
+            'repair_order': '维修工单',
+            'part_request_order': '备件申请',
+            'equipment_application': '设备申请',
+            'equipment_transfer': '设备调拨',
+            'equipment_scrap': '设备报废',
+            'equipment_loan': '设备借用'
+        };
+        
+        html += `
+        <div class="list-group-item approval-item ${statusClass} mb-2" data-step-id="${item.step_id}">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-1">
+                        <span class="badge badge-primary">${orderTypeMap[item.order_type] || item.order_type}</span>
+                        <strong>#${item.order_id}</strong> - ${item.node_name}
+                    </h6>
+                    <small class="text-muted">
+                        <i class="fas fa-user"></i> 发起人: ${item.initiator} | 
+                        <i class="fas fa-clock"></i> ${formatDate(item.assigned_at)}
+                        ${item.is_parallel ? '<span class="badge badge-info ml-2">并行审批</span>' : ''}
+                    </small>
+                </div>
+                <div class="col-md-3">
+                    ${deadline ? `
+                        <small>
+                            <i class="fas fa-calendar-alt"></i> 截止: ${formatDate(item.deadline)}
+                            <br>
+                            <span class="badge badge-${isOverdue ? 'overdue' : (isUrgent ? 'urgent' : 'normal')}">
+                                ${isOverdue ? '已逾期' : (isUrgent ? '即将到期' : '正常')}
+                            </span>
+                        </small>
+                    ` : '<small class="text-muted">无截止时间</small>'}
+                </div>
+                <div class="col-md-3 text-right">
+                    <button class="btn btn-sm btn-info" onclick="viewApprovalDetail(${item.step_id}, ${item.instance_id})">
+                        <i class="fas fa-eye"></i> 查看
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="quickApprove(${item.step_id})">
+                        <i class="fas fa-check"></i> 通过
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    html += '</div>';
+    $('#approvalList').html(html);
+}
+
+function updateStatistics(items) {
+    const now = new Date();
+    let overdue = 0, urgent = 0, normal = 0;
+    
+    items.forEach(function(item) {
+        if (!item.deadline) {
+            normal++;
+            return;
+        }
+        const deadline = new Date(item.deadline);
+        if (deadline < now) {
+            overdue++;
+        } else if ((deadline - now) < 24 * 3600 * 1000) {
+            urgent++;
+        } else {
+            normal++;
+        }
+    });
+    
+    $('#overdueCount').text(overdue);
+    $('#urgentCount').text(urgent);
+    $('#normalCount').text(normal);
+    $('#totalCount').text(items.length);
+}
+
+function viewApprovalDetail(stepId, instanceId) {
+    currentStepId = stepId;
+    
+    $('#approvalModalBody').html(`
+        <div class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+        </div>
+    `);
+    $('#approvalModal').modal('show');
+    
+    $.ajax({
+        url: '/api/approval/instance/' + instanceId,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                renderApprovalDetail(response.data, stepId);
+            }
+        },
+        error: function(xhr) {
+            $('#approvalModalBody').html(`
+                <div class="alert alert-danger">
+                    加载失败: ${xhr.responseJSON?.message || '网络错误'}
+                </div>
+            `);
+        }
+    });
+}
+
+function renderApprovalDetail(data, currentStepId) {
+    const orderTypeMap = {
+        'repair_order': '维修工单',
+        'part_request_order': '备件申请',
+        'equipment_application': '设备申请',
+        'equipment_transfer': '设备调拨',
+        'equipment_scrap': '设备报废',
+        'equipment_loan': '设备借用'
+    };
+    
+    let html = `
+    <div class="approval-detail">
+        <h5>${orderTypeMap[data.order_type] || data.order_type} #${data.order_id}</h5>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>状态:</strong> <span class="badge badge-${data.status === 'pending' ? 'info' : 'success'}">${data.status}</span>
+            </div>
+            <div class="col-md-6">
+                <strong>发起人:</strong> ${data.initiator}
+            </div>
+            <div class="col-md-6">
+                <strong>当前节点:</strong> ${data.current_node || '已完成'}
+            </div>
+            <div class="col-md-6">
+                <strong>发起时间:</strong> ${formatDate(data.started_at)}
+            </div>
+        </div>
+        
+        <h6>审批流程</h6>
+        <div class="timeline">
+    `;
+    
+    data.steps.forEach(function(step) {
+        const isCurrent = step.id === currentStepId;
+        const statusIcon = {
+            'pending': 'fa-clock',
+            'approved': 'fa-check-circle',
+            'rejected': 'fa-times-circle',
+            'skipped': 'fa-forward'
+        }[step.status] || 'fa-question';
+        
+        const statusClass = {
+            'pending': 'info',
+            'approved': 'success',
+            'rejected': 'danger',
+            'skipped': 'secondary'
+        }[step.status] || 'secondary';
+        
+        html += `
+        <div class="timeline-item ${isCurrent ? 'current' : ''}">
+            <div class="timeline-marker">
+                <i class="fas ${statusIcon} text-${statusClass}"></i>
+            </div>
+            <div class="timeline-content">
+                <h6>${step.node_name} ${isCurrent ? '<span class="badge badge-warning">当前步骤</span>' : ''}</h6>
+                <p class="mb-1">审批人: ${step.approver}</p>
+                <p class="mb-1">状态: <span class="badge badge-${statusClass}">${step.status}</span></p>
+                ${step.comments ? `<p class="mb-1">意见: ${step.comments}</p>` : ''}
+                ${step.processed_at ? `<small class="text-muted">处理时间: ${formatDate(step.processed_at)}</small>` : ''}
+            </div>
+        </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        
+        <div class="form-group mt-4">
+            <label for="approvalComments"><strong>审批意见 ${$('#rejectBtn').length ? '<span class="text-danger">*</span>' : ''}</strong></label>
+            <textarea class="form-control" id="approvalComments" rows="3" placeholder="请输入审批意见..."></textarea>
+        </div>
+    </div>
+    `;
+    
+    $('#approvalModalBody').html(html);
+}
+
+function quickApprove(stepId) {
+    if (!confirm('确定要通过此审批吗?')) return;
+    
+    currentStepId = stepId;
+    processApproval('approve', '');
+}
+
+function approveApproval() {
+    const comments = $('#approvalComments').val();
+    processApproval('approve', comments);
+}
+
+function rejectApproval() {
+    const comments = $('#approvalComments').val();
+    if (!comments.trim()) {
+        showError('拒绝时必须填写审批意见');
+        return;
+    }
+    if (!confirm('确定要拒绝此审批吗?')) return;
+    processApproval('reject', comments);
+}
+
+function processApproval(action, comments) {
+    const url = action === 'approve' 
+        ? '/api/approval/approve/' + currentStepId 
+        : '/api/approval/reject/' + currentStepId;
+    
+    $.ajax({
+        url: url,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            comments: comments
+        }),
+        success: function(response) {
+            if (response.success) {
+                showSuccess(action === 'approve' ? '审批通过成功' : '审批拒绝成功');
+                $('#approvalModal').modal('hide');
+                loadPendingApprovals();
+            } else {
+                showError(response.message || '操作失败');
+            }
+        },
+        error: function(xhr) {
+            showError(xhr.responseJSON?.message || '网络错误');
+        }
+    });
+}
+
+function filterApprovals() {
+    const orderType = $('#filterOrderType').val();
+    const overdueFilter = $('#filterOverdue').val();
+    const keyword = $('#searchKeyword').val().toLowerCase();
+    
+    let filtered = approvalData.filter(function(item) {
+        if (orderType && item.order_type !== orderType) return false;
+        
+        if (overdueFilter) {
+            const now = new Date();
+            const deadline = item.deadline ? new Date(item.deadline) : null;
+            if (overdueFilter === 'overdue' && (!deadline || deadline >= now)) return false;
+            if (overdueFilter === 'urgent') {
+                if (!deadline) return false;
+                const diff = deadline - now;
+                if (diff < 0 || diff > 24 * 3600 * 1000) return false;
+            }
+            if (overdueFilter === 'normal') {
+                if (!deadline) return true;
+                const diff = deadline - now;
+                if (diff < 24 * 3600 * 1000) return false;
+            }
+        }
+        
+        if (keyword) {
+            const searchText = `${item.order_id} ${item.initiator} ${item.node_name}`.toLowerCase();
+            if (!searchText.includes(keyword)) return false;
+        }
+        
+        return true;
+    });
+    
+    renderApprovalList(filtered);
+}
+
+function refreshList() {
+    loadPendingApprovals();
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showSuccess(message) {
+    // 使用Bootstrap toast或alert
+    alert(message);
+}
+
+function showError(message) {
+    alert('错误: ' + message);
+}
+
+function updatePagination(data) {
+    if (data.pages <= 1) {
+        $('#pagination').addClass('d-none');
+        return;
+    }
+    
+    $('#pagination').removeClass('d-none');
+    let html = '';
+    
+    for (let i = 1; i <= data.pages; i++) {
+        html += `
+        <li class="page-item ${i === data.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+        </li>
+        `;
+    }
+    
+    $('#paginationList').html(html);
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadPendingApprovals();
+}
+</script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+.timeline-item.current {
+    background: #fff3cd;
+    padding: 10px;
+    border-radius: 5px;
+}
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+}
+.timeline-content {
+    padding-left: 10px;
+}
+</style>
+{% endblock %}

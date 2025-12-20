@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header mb-4">
+        <h1>审批流程管理总览</h1>
+        <p class="lead text-muted">模板与节点同步状态一览，便于设置默认流程并进行同步。</p>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">流程模板</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>名称</th><th>订单类型</th><th>同步节点</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for item in templates_info %}
+                            {% set t = item.template %}
+                            <tr>
+                                <td>{{ t.name }}{% if t.is_default %} <span class="badge badge-success">默认</span>{% endif %}</td>
+                                <td>{{ t.order_type }}</td>
+                                <td>{{ item.node_count }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.edit_workflow_template', template_id=t.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                    <form method="post" action="{{ url_for('main.set_default_workflow_template', template_id=t.id) }}" style="display:inline-block; margin-left:6px;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-sm btn-outline-success">设为默认并同步</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">流程节点</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>节点名</th><th>工单类型</th><th>角色</th><th>顺序</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for node in nodes %}
+                            <tr>
+                                <td>{{ node.name }}</td>
+                                <td>{{ node.order_type }}</td>
+                                <td>{{ node.role_required }}</td>
+                                <td>{{ node.sequence }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

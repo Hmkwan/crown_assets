@@ -4,7 +4,17 @@
 <div class="container">
   <div class="row">
     <div class="col-md-8">
-      <h2>配件申请 - 详情 (#{{ order.id }})</h2>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>配件申请 - 详情 (#{{ order.id }})</h2>
+        {% if current_user.role in ['admin', 'super_admin'] %}
+        {% set pending_approval = order.approvals|selectattr('status', 'equalto', 'pending')|first %}
+        {% if pending_approval %}
+        <a href="{{ url_for('admin.approval_flow_detail', approval_id=pending_approval.id) }}" class="btn btn-warning">
+          <i class="fas fa-tools"></i> 管理员干预
+        </a>
+        {% endif %}
+        {% endif %}
+      </div>
       <div class="card">
         <div class="card-body">
           <dl class="row">
@@ -24,7 +34,23 @@
             <dd class="col-sm-9">{{ order.reason }}</dd>
 
             <dt class="col-sm-3">状态</dt>
-            <dd class="col-sm-9">{{ order.status }}</dd>
+            <dd class="col-sm-9">
+              {% if order.status == 'submitted' or order.status == 'pending' %}
+              <span class="badge bg-warning text-dark">已提交</span>
+              {% elif order.status == 'department_head_approved' %}
+              <span class="badge bg-info">部门已批</span>
+              {% elif order.status == 'admin_approved' %}
+              <span class="badge bg-success">管理员已批</span>
+              {% elif order.status == 'completed' %}
+              <span class="badge bg-primary">已完成</span>
+              {% elif order.status == 'cancelled' %}
+              <span class="badge bg-secondary">已取消</span>
+              {% elif order.status == 'rejected' %}
+              <span class="badge bg-danger">已驳回</span>
+              {% else %}
+              {{ order.status }}
+              {% endif %}
+            </dd>
 
             <dt class="col-sm-3">创建时间</dt>
             <dd class="col-sm-9">{{ moment(order.created_date).format('YYYY-MM-DD HH:mm') }}</dd>

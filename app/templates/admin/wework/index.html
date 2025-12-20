@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}企业微信集成管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title">
+                        <i class="fab fa-weixin"></i> 企业微信集成管理
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- 配置状态 -->
+                    <div class="alert alert-{% if wework_enabled %}success{% else %}warning{% endif %}">
+                        <h5>
+                            <i class="fas fa-info-circle"></i> 
+                            配置状态: {% if wework_enabled %}已启用{% else %}未配置{% endif %}
+                        </h5>
+                        {% if not wework_enabled %}
+                        <p class="mb-0">
+                            企业微信集成功能未启用。请配置环境变量后重启服务:
+                        </p>
+                        <ul class="mb-0">
+                            <li>WEWORK_CORP_ID - 企业ID</li>
+                            <li>WEWORK_AGENT_ID - 应用AgentId</li>
+                            <li>WEWORK_SECRET - 应用Secret</li>
+                            <li>WEWORK_ENABLED=true - 启用标志</li>
+                        </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- 配置信息 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">当前配置</h5>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th width="40%">企业ID:</th>
+                                            <td>{{ config.corp_id or '未配置' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>应用AgentId:</th>
+                                            <td>{{ config.agent_id or '未配置' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>应用Secret:</th>
+                                            <td>{{ '已配置' if config.secret else '未配置' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>功能状态:</th>
+                                            <td>
+                                                {% if wework_enabled %}
+                                                <span class="badge badge-success">已启用</span>
+                                                {% else %}
+                                                <span class="badge badge-secondary">未启用</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">功能说明</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>企业微信集成提供以下功能:</strong></p>
+                                    <ul>
+                                        <li>扫码登录</li>
+                                        <li>同步组织架构</li>
+                                        <li>同步员工通讯录</li>
+                                        <li>部门成员管理</li>
+                                    </ul>
+                                    <p class="text-muted mb-0">
+                                        <small>详细配置说明请参考文档: 
+                                            <a href="{{ url_for('static', filename='docs/WEWORK_INTEGRATION.md') }}" target="_blank">
+                                                企业微信集成指南
+                                            </a>
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 功能测试 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">功能测试与管理</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <button class="btn btn-primary btn-block" onclick="testConnection()">
+                                        <i class="fas fa-plug"></i> 测试连接
+                                    </button>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <button class="btn btn-info btn-block" onclick="previewDepartments()">
+                                        <i class="fas fa-sitemap"></i> 预览部门列表
+                                    </button>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <button class="btn btn-info btn-block" onclick="previewUsers()">
+                                        <i class="fas fa-users"></i> 预览用户列表
+                                    </button>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <button class="btn btn-success btn-block" onclick="syncDepartments()">
+                                        <i class="fas fa-sync"></i> 同步部门
+                                    </button>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <button class="btn btn-success btn-block" onclick="syncUsers()">
+                                        <i class="fas fa-sync"></i> 同步用户
+                                    </button>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="{{ url_for('auth.wework_login') }}" class="btn btn-warning btn-block" target="_blank">
+                                        <i class="fab fa-weixin"></i> 测试扫码登录
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 结果显示区域 -->
+                    <div class="card mt-3" id="resultCard" style="display: none;">
+                        <div class="card-header">
+                            <h5 class="mb-0">操作结果</h5>
+                        </div>
+                        <div class="card-body">
+                            <pre id="resultContent" class="bg-light p-3" style="max-height: 400px; overflow-y: auto;"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showResult(data) {
+    document.getElementById('resultCard').style.display = 'block';
+    document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+}
+
+function testConnection() {
+    fetch('{{ url_for("main.test_wework_connection") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+        if (data.success) {
+            alert('连接测试成功!');
+        } else {
+            alert('连接测试失败: ' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function previewDepartments() {
+    fetch('{{ url_for("main.preview_wework_departments") }}')
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function previewUsers() {
+    fetch('{{ url_for("main.preview_wework_users") }}')
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function syncDepartments() {
+    if (!confirm('确定要同步部门数据吗?这将更新本地部门信息。')) {
+        return;
+    }
+    
+    fetch('{{ url_for("main.sync_wework_departments") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+        if (data.success) {
+            alert('部门同步成功!');
+        } else {
+            alert('部门同步失败: ' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function syncUsers() {
+    if (!confirm('确定要同步用户数据吗?这将更新本地用户信息。')) {
+        return;
+    }
+    
+    fetch('{{ url_for("main.sync_wework_users") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+        if (data.success) {
+            alert('用户同步成功!');
+        } else {
+            alert('用户同步失败: ' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+</script>
+{% endblock %}

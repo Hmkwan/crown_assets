@@ -1,0 +1,809 @@
+{% extends "base.html" %}
+
+{% block title %}审批流程配置 - 管理员{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== 页面整体优化 ========== */
+    .workflow-config-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        min-height: calc(100vh - 56px);
+        padding-bottom: 3rem;
+    }
+    
+    /* ========== 页面标题 ========== */
+    .workflow-config-container h2 {
+        color: #2c3e50;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        margin-bottom: 0.5rem;
+    }
+    
+    /* ========== 卡片优化 ========== */
+    .workflow-config-container .card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .workflow-config-container .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    }
+    
+    .workflow-config-container .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 1.25rem;
+    }
+    
+    .card-header h5 {
+        color: white;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    /* ========== 表格优化 ========== */
+    .workflow-config-container .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .workflow-config-container .table {
+        margin-bottom: 0;
+    }
+    
+    .workflow-config-container .table thead th {container .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        padding: 1rem 0.75rem;
+    }
+    
+    .workflow-config-container .table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .workflow-config-container .table tbody tr:hover {
+        background: linear-gradient(90deg, #f8f9fc 0%, #ffffff 100%);
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    /* ========== 徽章优化 ========== */
+    .workflow-config-container .badge {w-config-container .badge {
+        padding: 0.5rem 0.85rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    
+    .workflow-config-container .badge.bg-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+    }
+    
+    .workflow-config-container .badge.bg-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    }
+    
+    .workflow-config-container .badge.bg-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    }
+    
+    .workflow-config-container .badge.bg-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    }
+    
+    /* ========== 按钮优化 ========== */
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .btn-outline-primary {
+        border-color: #667eea;
+        color: #667eea;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    }
+    
+    .btn-outline-danger {
+        border-color: #dc3545;
+        color: #dc3545;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-outline-danger:hover {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-color: #dc3545;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220,53,69,0.3);
+    }
+    
+    /* ========== 提示框优化 ========== */
+    .alert {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .alert-info {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .alert-warning {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+        border-left: 4px solid #ffc107;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border-left: 4px solid #28a745;
+    }
+    
+    /* ========== 表单优化 ========== */
+    .form-select, .form-control {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .form-select:focus, .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102,126,234,0.25);
+    }
+    
+    /* ========== 模态框优化 ========== */
+    .modal-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+    }
+    
+    .modal-header .modal-title {
+        font-weight: 600;
+    }
+    
+    .modal-header .close {
+        color: white;
+        opacity: 0.8;
+    }
+    
+    .modal-header .close:hover {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid workflow-config-container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-sitemap"></i> 审批流程配置</h2>
+            <p class="text-muted">管理员可以自定义审批流程节点、金额阈值和跳过规则</p>
+        </div>
+    </div>
+
+    <!-- 工单类型选择 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <label for="orderTypeSelect" class="form-label"><strong>选择工单类型:</strong></label>
+                    <select class="form-select" id="orderTypeSelect" onchange="changeOrderType()">
+                        {% for ot in order_types %}
+                        <option value="{{ ot.value }}" {% if ot.value == selected_type %}selected{% endif %}>
+                            {{ ot.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary mt-4" onclick="showAddNodeModal()">
+                <i class="fas fa-plus"></i> 添加新节点
+            </button>
+        </div>
+    </div>
+
+    <!-- 流程模板信息 -->
+    {% if template %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <strong>流程模板:</strong> {{ template.name }}
+                {% if template.description %}
+                <br><small>{{ template.description }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 流程节点列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">流程节点配置</h5>
+                </div>
+                <div class="card-body">
+                    {% if nodes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">序号</th>
+                                    <th>节点名称</th>
+                                    <th>所需角色</th>
+                                    <th>金额阈值</th>
+                                    <th>跳过规则</th>
+                                    <th style="width: 200px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nodesTableBody">
+                                {% for node in nodes %}
+                                <tr data-node-id="{{ node.id }}">
+                                    <td>
+                                        <span class="badge bg-secondary">{{ node.sequence }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ node.name }}</strong>
+                                    </td>
+                                    <td>
+                                        {% set role_map = {'department_head': '部门负责人', 'admin': '管理员', 'technician': '技术员', 'warehouse': '仓库管理员', 'finance': '财务'} %}
+                                        <span class="badge bg-info">{{ role_map.get(node.role_required, node.role_required) }}</span>
+                                    </td>
+                                    <td>
+                                        {% if node.amount_threshold %}
+                                        <span class="text-primary">¥{{ "%.2f"|format(node.amount_threshold) }}</span>
+                                        {% else %}
+                                        <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if node.amount_threshold %}
+                                            {% if node.skip_if_below_threshold %}
+                                            <span class="badge bg-warning">金额 &lt; 阈值时跳过</span>
+                                            {% else %}
+                                            <span class="badge bg-success">金额 ≥ 阈值时需要</span>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" data-node-id="{{ node.id }}" data-action="edit">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" data-node-id="{{ node.id }}" data-node-name="{{ node.name }}" data-action="delete">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 该工单类型暂无流程节点,请点击"添加新节点"创建
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle"></i> 使用说明</h5>
+                </div>
+                <div class="card-body">
+                    <h6>金额阈值设置:</h6>
+                    <ul>
+                        <li><strong>金额阈值</strong>: 设置该节点触发的金额条件,例如 1000.00</li>
+                        <li><strong>跳过规则 - "金额 &lt; 阈值时跳过"</strong>: 当工单金额低于阈值时,该审批节点将被自动跳过</li>
+                        <li><strong>跳过规则 - "金额 ≥ 阈值时需要"</strong>: 当工单金额达到或超过阈值时,才需要该审批节点</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">示例场景:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-success">
+                                <strong>配件申请 - 管理员审批</strong><br>
+                                金额阈值: ¥1000.00<br>
+                                跳过规则: 金额 &lt; 阈值时跳过<br>
+                                <small class="text-muted">→ 配件金额小于1000元时,无需管理员审批</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <strong>设备报废 - 财务审批</strong><br>
+                                金额阈值: ¥10000.00<br>
+                                跳过规则: 金额 &lt; 阈值时跳过<br>
+                                <small class="text-muted">→ 设备价值小于1万元时,无需财务审批</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑流程节点</h5>
+                <button type="button" class="close" onclick="closeEditModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editNodeForm">
+                    <input type="hidden" id="editNodeId">
+                    
+                    <div class="mb-3">
+                        <label for="editNodeName" class="form-label">节点名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editNodeName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editNodeRole" class="form-label">所需角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editNodeRole" required>
+                            <option value="department_head">部门负责人</option>
+                            <option value="admin">管理员</option>
+                            <option value="technician">技术员</option>
+                            <option value="warehouse">仓库管理员</option>
+                            <option value="finance">财务</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editNodeSequence" class="form-label">执行序号 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="editNodeSequence" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editNodeThreshold" class="form-label">金额阈值 (元)</label>
+                        <input type="number" class="form-control" id="editNodeThreshold" step="0.01" min="0" placeholder="留空表示不设置金额条件">
+                        <small class="text-muted">例如: 1000.00</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">跳过规则</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="skipRule" id="skipBelowThreshold" value="true">
+                            <label class="form-check-label" for="skipBelowThreshold">
+                                金额 &lt; 阈值时跳过 <small class="text-muted">(低金额自动跳过该节点)</small>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="skipRule" id="requireAboveThreshold" value="false" checked>
+                            <label class="form-check-label" for="requireAboveThreshold">
+                                金额 ≥ 阈值时需要 <small class="text-muted">(达到阈值才需要该节点)</small>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveNode()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加节点模态框 -->
+<div class="modal fade" id="addNodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加流程节点</h5>
+                <button type="button" class="close" onclick="closeAddModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addNodeForm">
+                    <div class="mb-3">
+                        <label for="addNodeName" class="form-label">节点名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addNodeName" required placeholder="例如: 部门负责人审批">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="addNodeRole" class="form-label">所需角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="addNodeRole" required>
+                            <option value="">请选择...</option>
+                            <option value="department_head">部门负责人</option>
+                            <option value="admin">管理员</option>
+                            <option value="technician">技术员</option>
+                            <option value="warehouse">仓库管理员</option>
+                            <option value="finance">财务</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="addNodeSequence" class="form-label">执行序号 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="addNodeSequence" min="1" required value="1">
+                        <small class="text-muted">节点执行顺序,数字越小越先执行</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="addNodeThreshold" class="form-label">金额阈值 (元)</label>
+                        <input type="number" class="form-control" id="addNodeThreshold" step="0.01" min="0" placeholder="留空表示不设置金额条件">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">跳过规则</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="addSkipRule" id="addSkipBelowThreshold" value="true">
+                            <label class="form-check-label" for="addSkipBelowThreshold">
+                                金额 &lt; 阈值时跳过
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="addSkipRule" id="addRequireAboveThreshold" value="false" checked>
+                            <label class="form-check-label" for="addRequireAboveThreshold">
+                                金额 ≥ 阈值时需要
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addNode()">添加</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 角色显示映射
+const roleDisplayMap = {
+    'department_head': '部门负责人',
+    'admin': '管理员',
+    'technician': '技术员',
+    'warehouse': '仓库管理员',
+    'finance': '财务'
+};
+
+// 切换工单类型
+function changeOrderType() {
+    const orderType = document.getElementById('orderTypeSelect').value;
+    window.location.href = `/admin/workflow_config?order_type=${orderType}`;
+}
+
+// 显示添加节点模态框
+function showAddNodeModal() {
+    document.getElementById('addNodeForm').reset();
+    
+    // 自动设置序号为当前最大序号+1
+    const rows = document.querySelectorAll('#nodesTableBody tr');
+    let maxSeq = 0;
+    rows.forEach(row => {
+        const seqBadge = row.querySelector('.badge');
+        if (seqBadge) {
+            const seq = parseInt(seqBadge.textContent);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+    document.getElementById('addNodeSequence').value = maxSeq + 1;
+    
+    // 使用jQuery方式显示模态框(Bootstrap 4兼容)
+    $('#addNodeModal').modal('show');
+    // 移除 aria-hidden 以避免辅助功能警告
+    $('#addNodeModal').removeAttr('aria-hidden');
+}
+
+// 编辑节点
+function editNode(nodeId) {
+    try {
+        console.log('编辑节点 ID:', nodeId);
+        
+        // 从表格中获取节点数据
+        const row = document.querySelector(`tr[data-node-id="${nodeId}"]`);
+        if (!row) {
+            console.error('找不到节点行:', nodeId);
+            alert('找不到节点数据,节点ID: ' + nodeId);
+            return;
+        }
+        
+        console.log('找到行:', row);
+        
+        // 获取所有td
+        const tds = row.querySelectorAll('td');
+        console.log('列数:', tds.length);
+        
+        if (tds.length < 5) {
+            alert('表格列数不足: ' + tds.length);
+            return;
+        }
+        
+        // 序号在第一列的badge中
+        const sequenceBadge = tds[0].querySelector('.badge');
+        const sequence = sequenceBadge ? sequenceBadge.textContent.trim() : '1';
+        
+        // 节点名称在第二列的strong中
+        const nameStrong = tds[1].querySelector('strong');
+        const name = nameStrong ? nameStrong.textContent.trim() : '';
+        
+        // 角色在第三列的badge中
+        const roleBadge = tds[2].querySelector('.badge');
+        const roleText = roleBadge ? roleBadge.textContent.trim() : '';
+        
+        // 金额阈值在第四列
+        const thresholdText = tds[3].textContent.trim();
+        
+        // 跳过规则在第五列
+        const skipRuleText = tds[4].textContent.trim();
+        
+        console.log('解析数据:', {sequence, name, roleText, thresholdText, skipRuleText});
+        
+        if (!name) {
+            alert('无法获取节点名称');
+            return;
+        }
+        
+        // 反向查找角色值
+        let roleValue = 'admin';
+        for (const [key, value] of Object.entries(roleDisplayMap)) {
+            if (value === roleText) {
+                roleValue = key;
+                break;
+            }
+        }
+        
+        // 解析金额
+        let threshold = '';
+        if (thresholdText.includes('¥')) {
+            threshold = thresholdText.replace('¥', '').replace(',', '').trim();
+        }
+        
+        // 解析跳过规则
+        const skipBelow = skipRuleText.includes('跳过');
+        
+        // 填充表单
+        document.getElementById('editNodeId').value = nodeId;
+        document.getElementById('editNodeName').value = name;
+        document.getElementById('editNodeRole').value = roleValue;
+        document.getElementById('editNodeSequence').value = sequence;
+        document.getElementById('editNodeThreshold').value = threshold;
+        
+        if (skipBelow) {
+            document.getElementById('skipBelowThreshold').checked = true;
+        } else {
+            document.getElementById('requireAboveThreshold').checked = true;
+        }
+        
+        console.log('表单已填充,准备显示模态框');
+        
+        // 显示模态框 - 直接使用jQuery方式(Bootstrap 4兼容)
+        const modalEl = document.getElementById('editNodeModal');
+        if (!modalEl) {
+            alert('找不到模态框元素');
+            return;
+        }
+        
+        // 使用jQuery方式显示模态框
+        $('#editNodeModal').modal('show');
+        // 移除 aria-hidden 以避免辅助功能警告
+        $('#editNodeModal').removeAttr('aria-hidden');
+        console.log('模态框已显示');
+    } catch (error) {
+        console.error('编辑节点出错:', error);
+        alert('编辑节点出错: ' + error.message);
+    }
+}
+
+// 关闭编辑模态框
+function closeEditModal() {
+    $('#editNodeModal').modal('hide');
+}
+
+// 关闭添加模态框
+function closeAddModal() {
+    $('#addNodeModal').modal('hide');
+    // 清空表单
+    setTimeout(() => {
+        document.getElementById('addNodeForm').reset();
+    }, 300);
+}
+
+// 保存节点
+function saveNode() {
+    const nodeId = document.getElementById('editNodeId').value;
+    const name = document.getElementById('editNodeName').value.trim();
+    const role = document.getElementById('editNodeRole').value;
+    const sequence = document.getElementById('editNodeSequence').value;
+    const threshold = document.getElementById('editNodeThreshold').value;
+    const skipBelow = document.getElementById('skipBelowThreshold').checked;
+    
+    if (!name || !role || !sequence) {
+        alert('请填写所有必填字段');
+        return;
+    }
+    
+    const data = {
+        name: name,
+        role_required: role,
+        sequence: parseInt(sequence),
+        amount_threshold: threshold ? parseFloat(threshold) : null,
+        skip_if_below_threshold: skipBelow
+    };
+    
+    fetch(`/admin/workflow_config/update_node/${nodeId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('节点已更新');
+            location.reload();
+        } else {
+            alert('更新失败: ' + result.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+
+// 添加节点
+function addNode() {
+    const name = document.getElementById('addNodeName').value.trim();
+    const role = document.getElementById('addNodeRole').value;
+    const sequence = document.getElementById('addNodeSequence').value;
+    const threshold = document.getElementById('addNodeThreshold').value;
+    const skipBelow = document.getElementById('addSkipBelowThreshold').checked;
+    const orderType = document.getElementById('orderTypeSelect').value;
+    
+    if (!name || !role || !sequence) {
+        alert('请填写所有必填字段');
+        return;
+    }
+    
+    const data = {
+        order_type: orderType,
+        name: name,
+        role_required: role,
+        sequence: parseInt(sequence),
+        amount_threshold: threshold ? parseFloat(threshold) : null,
+        skip_if_below_threshold: skipBelow
+    };
+    
+    fetch('/admin/workflow_config/add_node', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('节点已添加');
+            location.reload();
+        } else {
+            alert('添加失败: ' + result.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+
+// 删除节点
+function deleteNode(nodeId, nodeName) {
+    if (!confirm(`确定要删除节点"${nodeName}"吗?`)) {
+        return;
+    }
+    
+    fetch(`/admin/workflow_config/delete_node/${nodeId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('节点已删除');
+            location.reload();
+        } else {
+            alert('删除失败: ' + result.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误: ' + error);
+    });
+}
+
+// 为编辑和删除按钮添加事件委托
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.getElementById('nodesTableBody');
+    if (tableBody) {
+        tableBody.addEventListener('click', function(e) {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            
+            const action = button.dataset.action;
+            const nodeId = parseInt(button.dataset.nodeId);
+            
+            if (action === 'edit') {
+                editNode(nodeId);
+            } else if (action === 'delete') {
+                const nodeName = button.dataset.nodeName;
+                deleteNode(nodeId, nodeName);
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- 修复 aria-hidden 警告 - 监听模态框显示事件 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 使用原生 JavaScript 监听 Bootstrap 模态框事件
+    var editModal = document.getElementById('editNodeModal');
+    var addModal = document.getElementById('addNodeModal');
+    
+    if (editModal) {
+        $(editModal).on('shown.bs.modal', function() {
+            this.removeAttribute('aria-hidden');
+        });
+    }
+    
+    if (addModal) {
+        $(addModal).on('shown.bs.modal', function() {
+            this.removeAttribute('aria-hidden');
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -15,16 +15,20 @@ def test_create_sequenced_approvals_auto_assign():
     with app.app_context():
         db.create_all()
 
-        # 创建一个管理员用户
-        admin = User(username='admin', email='admin@example.com', role='admin')
-        admin.set_password('secret')
-        db.session.add(admin)
-        db.session.commit()
+        # 创建一个管理员用户（如果已存在则复用）
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(username='admin', email='admin@example.com', role='admin')
+            admin.set_password('secret')
+            db.session.add(admin)
+            db.session.commit()
 
-        # 创建部门和设备
-        dept = Department(name='IT', code='IT01')
-        db.session.add(dept)
-        db.session.commit()
+        # 创建部门和设备（若存在则复用，避免冲突）
+        dept = Department.query.filter_by(code='IT01').first()
+        if not dept:
+            dept = Department(name='IT', code='IT01')
+            db.session.add(dept)
+            db.session.commit()
 
         equipment = Equipment(name='EQ1', serial_number='S1', department=dept.name, department_id=dept.id)
         db.session.add(equipment)

@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}实时聊天{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_modern.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    <div class="chat-container">
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h4><i class="fas fa-comments"></i> 实时聊天</h4>
+                <button class="new-chat-btn" id="newChatBtn"><i class="fas fa-plus"></i> 新建会话</button>
+            </div>
+            <div class="chat-search">
+                <input type="text" placeholder="搜索会话..." id="searchInput">
+            </div>
+            <div class="conversation-list" id="conversationList">
+                <div class="loading-spinner"><div class="spinner"></div><p>连接中...</p></div>
+            </div>
+            <div class="online-status" id="onlineStatus" style="padding:12px 20px;border-top:1px solid #e4e7ed;font-size:13px;color:#909399;">
+                <i class="fas fa-circle" style="font-size:8px;color:#909399;"></i> 连接中...
+            </div>
+        </div>
+        <div class="chat-main" id="chatMain">
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <p>选择一个会话开始实时聊天</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> 新建会话</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择用户</label>
+                    <select class="form-control" id="userSelect"><option>加载中...</option></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="createBtn"><i class="fas fa-check"></i> 创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+const UID={{current_user.id}},UNAME="{{current_user.username}}";
+let socket,curConv,convs=[],msgs=[],typingT;
+
+$(function(){
+  $('#newChatBtn').click(showNewChat);
+  $('#createBtn').click(createConv);
+  initWS();
+  loadConvs();
+});
+
+function initWS(){
+  console.log('[WS] 连接...');
+  socket=io({transports:['websocket','polling'],reconnection:true,reconnectionAttempts:10});
+  
+  socket.on('connect',()=>{
+    console.log('[WS] ✓ 连接成功');
+    $('#onlineStatus').html('<i class="fas fa-circle" style="font-size:8px;color:#67c23a;"></i> 在线');
+  });
+  
+  socket.on('disconnect',()=>{
+    console.log('[WS] ✗ 断开');
+    $('#onlineStatus').html('<i class="fas fa-circle" style="font-size:8px;color:#f56c6c;"></i> 离线');
+  });
+  
+  socket.on('new_message',(msg)=>{
+    console.log('[WS] 📨 新消息',msg);
+    if(curConv&&msg.conversation_id===curConv.id){
+      msgs.push(msg);
+      renderMsgs();
+      scrollBot();
+    }
+    loadConvs();
+  });
+  
+  socket.on('user_typing',(d)=>{
+    if(curConv&&d.user_id!==UID){
+      $('#typingInd').html(d.is_typing?`<i class="fas fa-circle" style="font-size:8px;animation:pulse 1s infinite;"></i> ${d.username} 正在输入...`:'');
+    }
+  });
+}
+
+function loadConvs(){
+  console.log('[API] 加载会话列表...');
+  $.get('/api/chat/conversations')
+    .done(d=>{
+      console.log('[API] ✓ 会话数据:', d);
+      convs=d.conversations||[];
+      renderConvs();
+    })
+    .fail((xhr,status,error)=>{
+      console.error('[API] ✗ 加载会话失败:', status, error, xhr.responseJSON);
+      if(xhr.status===401){
+        $('#conversationList').html('<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>未登录,请先<a href="/auth/login">登录</a></p></div>');
+      }else{
+        $('#conversationList').html(`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败: ${error}</p></div>`);
+      }
+    });
+}
+
+function renderConvs(){
+  let h='';
+  if(!convs.length){
+    h='<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无会话</p></div>';
+  }else{
+    convs.forEach(c=>{
+      const act=curConv&&curConv.id===c.id?'active':'';
+      const av=c.type==='direct'&&c.other_user?(c.other_user.real_name||c.other_user.username)[0]:(c.name||'群')[0];
+      const nm=c.name||'未命名';
+      const pv=c.last_message?c.last_message.content:'暂无消息';
+      const tm=c.last_message_time?fmtTime(c.last_message_time):'';
+      h+=`<div class="conversation-item ${act}" onclick="selConv(${c.id})">
+        <div class="conversation-avatar">${av}</div>
+        <div class="conversation-info">
+          <div class="conversation-name"><span>${esc(nm)}</span><span class="conversation-time">${tm}</span></div>
+          <div class="conversation-preview">${esc(pv)}</div>
+        </div>
+      </div>`;
+    });
+  }
+  $('#conversationList').html(h);
+}
+
+function selConv(id){
+  const c=convs.find(x=>x.id===id);
+  if(!c)return;
+  if(curConv&&socket)socket.emit('leave_conversation',{conversation_id:curConv.id});
+  curConv=c;
+  renderConvs();
+  renderChat(c);
+  loadMsgs(id);
+  if(socket)socket.emit('join_conversation',{conversation_id:id});
+}
+
+function renderChat(c){
+  const h=`
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <h5><i class="fas fa-${c.type==='group'?'users':'user'}"></i> ${esc(c.name||'未命名')}</h5>
+        <div class="chat-header-meta">
+          ${c.type==='group'?c.participant_count+'人':''}
+          <span id="typingInd" style="color:#67c23a;margin-left:10px;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMsgs"></div>
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <textarea id="msgInp" rows="2" placeholder="Enter发送" onkeydown="kd(event)" oninput="typing()"></textarea>
+        <button class="send-btn" onclick="send()"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  `;
+  $('#chatMain').html(h);
+}
+
+function loadMsgs(cid){
+  $.get(`/api/chat/conversations/${cid}/messages`,d=>{
+    msgs=d.messages||[];
+    renderMsgs();
+    scrollBot();
+  });
+}
+
+function renderMsgs(){
+  let h='';
+  if(!msgs.length){
+    h='<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无消息</p></div>';
+  }else{
+    msgs.forEach(m=>{
+      const own=m.sender_id===UID?'own':'';
+      const av=(m.sender_name||'?')[0];
+      const cnt=m.is_recalled?'<i>[已撤回]</i>':esc(m.content);
+      const tm=fmtTime(m.created_date);
+      h+=`<div class="message ${own}">
+        <div class="message-avatar">${av}</div>
+        <div class="message-content">
+          ${!own?`<div class="message-sender">${esc(m.sender_name)}</div>`:''}
+          <div class="message-bubble">${cnt}</div>
+          <div class="message-time">${tm}</div>
+        </div>
+      </div>`;
+    });
+  }
+  $('#chatMsgs').html(h);
+}
+
+function send(){
+  if(!curConv||!socket||!socket.connected)return alert('未连接');
+  const v=$('#msgInp').val().trim();
+  if(!v)return;
+  socket.emit('send_message',{conversation_id:curConv.id,content:v,message_type:'text'});
+  $('#msgInp').val('');
+  $('#typingInd').text('');
+}
+
+function typing(){
+  if(!curConv||!socket)return;
+  if(typingT)clearTimeout(typingT);
+  socket.emit('typing',{conversation_id:curConv.id,is_typing:true});
+  typingT=setTimeout(()=>socket.emit('typing',{conversation_id:curConv.id,is_typing:false}),3000);
+}
+
+function kd(e){
+  if(e.keyCode===13&&!e.shiftKey){e.preventDefault();send();}
+}
+
+function showNewChat(){
+  console.log('[UI] 打开新建会话对话框...');
+  $.get('/api/chat/users')
+    .done(d=>{
+      console.log('[API] ✓ 用户列表:', d);
+      $('#userSelect').html(d.users.map(u=>`<option value="${u.id}">${u.real_name||u.username} (${u.department||'无部门'})</option>`).join(''));
+      $('#newChatModal').modal('show');
+    })
+    .fail((xhr,status,error)=>{
+      console.error('[API] ✗ 加载用户失败:', status, error);
+      alert('加载用户列表失败: '+error);
+    });
+}
+
+function createConv(){
+  const uid=$('#userSelect').val();
+  if(!uid)return alert('请选择用户');
+  $.ajax({
+    url:'/api/chat/conversations',
+    method:'POST',
+    contentType:'application/json',
+    data:JSON.stringify({type:'direct',participant_ids:[parseInt(uid)]}),
+    success:(d)=>{
+      $('#newChatModal').modal('hide');
+      loadConvs();
+      setTimeout(()=>selConv(d.conversation.id),500);
+    }
+  });
+}
+
+function fmtTime(t){
+  const d=new Date(t),n=new Date(),df=(n-d)/1000;
+  if(df<60)return'刚刚';
+  if(df<3600)return Math.floor(df/60)+'分钟前';
+  if(df<86400)return Math.floor(df/3600)+'小时前';
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function scrollBot(){
+  setTimeout(()=>{
+    const $m=$('#chatMsgs');
+    if($m.length)$m.scrollTop($m[0].scrollHeight);
+  },100);
+}
+
+function esc(t){
+  if(!t)return'';
+  const d=document.createElement('div');
+  d.textContent=t;
+  return d.innerHTML;
+}
+</script>
+<style>
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+</style>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}审批流程管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-sitemap"></i> 审批流程管理</h2>
+                    <p class="text-muted">管理各类工单的审批流程模板和节点配置</p>
+                </div>
+                <div>
+                    <button class="btn btn-success btn-lg" onclick="initDefaultWorkflows()">
+                        <i class="fas fa-magic"></i> 初始化默认流程
+                    </button>
+                    <button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#createTemplateModal">
+                        <i class="fas fa-plus"></i> 创建流程模板
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 流程模板列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">流程模板列表</h5>
+                </div>
+                <div class="card-body">
+                    {% if templates %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>模板名称</th>
+                                    <th>工单类型</th>
+                                    <th>版本</th>
+                                    <th>节点数</th>
+                                    <th>状态</th>
+                                    <th>默认</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>{{ template.id }}</td>
+                                    <td><strong>{{ template.name }}</strong></td>
+                                    <td>
+                                        {% set type_map = {
+                                            'repair_order': '维修工单',
+                                            'part_request_order': '配件申请',
+                                            'equipment_transfer': '设备调拨',
+                                            'equipment_scrap': '设备报废',
+                                            'equipment_loan': '设备借用',
+                                            'equipment_application': '设备申请'
+                                        } %}
+                                        <span class="badge bg-info">{{ type_map.get(template.order_type, template.order_type) }}</span>
+                                    </td>
+                                    <td>v{{ template.version }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ template.node_count }} 个节点</span>
+                                    </td>
+                                    <td>
+                                        {% if template.is_active %}
+                                        <span class="badge bg-success">启用</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">禁用</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if template.is_default %}
+                                        <span class="badge bg-warning text-dark">默认</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ template.created_date.strftime('%Y-%m-%d') if template.created_date else '-' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_approval_workflow_template', template_id=template.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </a>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="deleteTemplate({{ template.id }}, '{{ template.name }}')">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <h5>暂无流程模板</h5>
+                        <p>点击右上角"初始化默认流程"按钮创建标准流程模板</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建模板模态框 -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> 创建流程模板</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" style="color: white;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createTemplateForm">
+                    <div class="mb-3">
+                        <label class="form-label">模板代码 *</label>
+                        <input type="text" class="form-control" id="template_code" required>
+                        <small class="text-muted">例如: repair_order_custom_v1</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">模板名称 *</label>
+                        <input type="text" class="form-control" id="template_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">工单类型 *</label>
+                        <select class="form-control" id="template_order_type" required>
+                            <option value="">请选择</option>
+                            <option value="repair_order">维修工单</option>
+                            <option value="part_request_order">配件申请</option>
+                            <option value="equipment_transfer">设备调拨</option>
+                            <option value="equipment_scrap">设备报废</option>
+                            <option value="equipment_loan">设备借用</option>
+                            <option value="equipment_application">设备申请</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" id="template_description" rows="3"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="template_is_active" checked>
+                        <label class="form-check-label" for="template_is_active">启用此模板</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="template_is_default">
+                        <label class="form-check-label" for="template_is_default">设为默认模板</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createTemplate()">
+                    <i class="fas fa-save"></i> 创建
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function initDefaultWorkflows() {
+    if (confirm('确定要初始化默认审批流程吗？\n\n这将为所有工单类型创建标准的审批流程模板（如果不存在）。')) {
+        fetch('{{ url_for("admin.init_default_workflows") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('错误: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('请求失败: ' + error);
+        });
+    }
+}
+
+function createTemplate() {
+    const data = {
+        code: document.getElementById('template_code').value,
+        name: document.getElementById('template_name').value,
+        order_type: document.getElementById('template_order_type').value,
+        description: document.getElementById('template_description').value,
+        is_active: document.getElementById('template_is_active').checked,
+        is_default: document.getElementById('template_is_default').checked
+    };
+    
+    if (!data.code || !data.name || !data.order_type) {
+        alert('请填写所有必填项');
+        return;
+    }
+    
+    fetch('{{ url_for("admin.create_approval_workflow_template") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#createTemplateModal').modal('hide');
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function deleteTemplate(templateId, templateName) {
+    if (confirm(`确定要删除流程模板"${templateName}"吗？\n\n删除后将无法恢复，且会删除所有关联的节点。`)) {
+        fetch(`/admin/workflow_template/${templateId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('错误: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('请求失败: ' + error);
+        });
+    }
+}
+</script>
+
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-sm {
+    margin: 0 2px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-undo"></i> 申请归还设备</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">借用信息</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>设备名称:</strong> {{ loan.equipment.name if loan.equipment else '未知' }}</p>
+                    <p><strong>设备编号:</strong> {{ loan.equipment.equipment_number if loan.equipment else '-' }}</p>
+                    <p><strong>借用部门:</strong> {{ loan.requester_dept or '-' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>借用开始:</strong> {{ loan.start_date.strftime('%Y-%m-%d') if loan.start_date else '-' }}</p>
+                    <p><strong>计划归还:</strong> {{ loan.end_date.strftime('%Y-%m-%d') if loan.end_date else '-' }}</p>
+                    <p><strong>实际借出:</strong> {{ loan.borrowed_date.strftime('%Y-%m-%d %H:%M') if loan.borrowed_date else '-' }}</p>
+                </div>
+            </div>
+            
+            {% if loan.end_date and loan.end_date < now() %}
+            <div class="alert alert-danger mt-2">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>逾期提醒:</strong> 已逾期 {{ (now() - loan.end_date).days }} 天
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">归还信息</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="form-group">
+                    <label for="return_condition"><strong>设备状态 <span class="text-danger">*</span></strong></label>
+                    <select class="form-control" id="return_condition" name="return_condition" required>
+                        <option value="good">完好无损</option>
+                        <option value="damaged">有损坏</option>
+                        <option value="lost">丢失</option>
+                    </select>
+                    <small class="form-text text-muted">
+                        请如实报告设备状态
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="return_notes"><strong>归还说明</strong></label>
+                    <textarea class="form-control" id="return_notes" name="return_notes" rows="4"
+                              placeholder="请描述设备使用情况、是否存在问题等..."></textarea>
+                </div>
+
+                {% if loan.equipment and (loan.equipment.require_return_inspection or (loan.equipment.price and loan.equipment.price > 5000)) %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>提示:</strong> 此设备价值较高或需要验收,提交后需要等待管理员验收才能完成归还流程。
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>提示:</strong> 此设备支持快速归还,提交后将立即完成归还流程。
+                </div>
+                {% endif %}
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> 提交归还申请
+                    </button>
+                    <a href="{{ url_for('main.my_loans') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

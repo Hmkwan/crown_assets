@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">{{ '编辑模板' if template else '新建审批流程模板' }}</h1>
+        <p class="lead text-muted">请使用 JSON 编辑步骤（简单版）。下面提供常用场景示例与可视化预览，帮助快速构建审批流程。</p>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>示例说明（中文）：</strong>
+        <ul>
+            <li>跨部门审批：在步骤中设置 <code>approver_dept</code> 为目标部门编码或名称。</li>
+            <li>并行审批（两人同时同意才通过）：设置 <code>is_parallel": true</code> 并配置 <code>required_approvals</code> 为 2。</li>
+            <li>一人拒绝回退给发起人：在 <code>actions_on_reject</code> 中设置 <code>{"return_to":"requester"}</code>（后端会解析并执行回退）。</li>
+        </ul>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">常用 JSON 示例（点击可复制）</label>
+        <pre id="example1" class="p-3" style="background:#f8f9fa;border-radius:6px;cursor:pointer;">[  
+  {"step_name":"部门主管审批","approver_role":"department_head","approver_dept":"IT"},
+  {"step_name":"管理员复核","approver_role":"admin"}
+]</pre>
+
+        <pre id="example2" class="p-3 mt-2" style="background:#f8f9fa;border-radius:6px;cursor:pointer;">[
+  {"step_name":"跨部门审核","approver_role":"department_head","approver_dept":"HR"},
+  {"step_name":"并行签署","approver_role":"department_head","is_parallel":true,"required_approvals":2}
+]</pre>
+        <small class="form-text text-muted">点示例可复制到“步骤”编辑框。</small>
+    </div>
+
+    <form method="post">
+        <div class="mb-3">
+            <label class="form-label">模板名称</label>
+            <input type="text" name="name" class="form-control" value="{{ template.name if template else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">订单类型 (order_type)</label>
+            <input type="text" name="order_type" class="form-control" value="{{ template.order_type if template else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea name="description" class="form-control">{{ template.description if template else '' }}</textarea>
+        </div>
+        <div class="mb-3">
+            <div class="form-check">
+                <input type="checkbox" id="is_default" name="is_default" class="form-check-input" 
+                       {% if template and template.is_default %}checked{% endif %}>
+                <label class="form-check-label" for="is_default">
+                    设置为系统默认流程（保存时不会自动同步节点，需要在模板列表点击"设为默认并同步"按钮）
+                </label>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">步骤（可拖拽排序，可新增/编辑/删除）</label>
+
+            <div id="step_builder" class="mb-2">
+                <div id="steps_list" style="min-height:80px;padding:12px;background:#fff;border:1px solid #e9ecef;border-radius:6px;"></div>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add_step_btn">+ 添加步骤</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear_steps_btn">清空</button>
+                </div>
+            </div>
+
+            <input type="hidden" id="steps_hidden" name="steps" value='{{ steps_json if steps_json is defined else "[]" }}'>
+            <small class="form-text text-muted">使用拖拽调整步骤执行顺序；并行步骤请勾选“并行”，并设置 <code>required_approvals</code>。</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">流程预览</label>
+            <div id="flow_preview" style="min-height:80px;padding:12px;background:#fff;border:1px solid #e9ecef;border-radius:6px;"></div>
+            <small class="form-text text-muted">可视化仅用于预览，真正生效以保存后的模板为准。</small>
+        </div>
+
+        <!-- 内联步骤编辑表单（隐藏，点击编辑/添加时显示） -->
+        <div id="step_form" style="display:none;margin-bottom:12px;">
+            <div class="card p-3">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">步骤名称</label>
+                        <input id="sf_step_name" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">审批角色</label>
+                        <input id="sf_approver_role" class="form-control" placeholder="例如: department_head, admin" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">审批部门（可选）</label>
+                        <input id="sf_approver_dept" class="form-control" placeholder="例如: IT, HR" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">并行</label>
+                        <select id="sf_is_parallel" class="form-select"><option value="false">否</option><option value="true">是</option></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">需要同意数</label>
+                        <input id="sf_required_approvals" type="number" min="1" class="form-control" value="1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">超时（天）</label>
+                        <input id="sf_timeout_days" type="number" min="0" class="form-control" value="5" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">拒绝动作（JSON）</label>
+                        <input id="sf_actions_on_reject" class="form-control" placeholder='{"return_to":"requester"}' />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">条件（JSON，可选）</label>
+                        <input id="sf_conditions" class="form-control" placeholder='{"amount_gt":10000}' />
+                    </div>
+                </div>
+
+                <div class="mt-2 text-end">
+                    <button type="button" class="btn btn-sm btn-secondary" id="sf_cancel">取消</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="sf_save">保存步骤</button>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-primary">保存</button>
+            <a href="{{ url_for('main.workflow_templates') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// 拖拽式步骤构建器逻辑
+let _steps = [];
+let _editingIndex = -1;
+
+function loadInitialSteps(){
+    try{
+        const raw = document.getElementById('steps_hidden').value || '[]';
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) _steps = parsed;
+    }catch(e){
+        _steps = [];
+    }
+}
+
+function saveStepsToHidden(){
+    document.getElementById('steps_hidden').value = JSON.stringify(_steps);
+}
+
+function renderStepsList(){
+    const list = document.getElementById('steps_list');
+    list.innerHTML = '';
+    _steps.forEach((s, idx)=>{
+        const card = document.createElement('div');
+        card.className = 'py-2 px-3 mb-2';
+        card.style.border = '1px solid #e3e7ee';
+        card.style.borderRadius = '6px';
+        card.style.background = '#fff';
+        card.draggable = true;
+        card.dataset.index = idx;
+
+        card.addEventListener('dragstart', onDragStart);
+        card.addEventListener('dragover', onDragOver);
+        card.addEventListener('drop', onDrop);
+        card.addEventListener('dragend', onDragEnd);
+
+        const title = document.createElement('div');
+        title.style.fontWeight='600';
+        title.innerText = (idx+1)+'. ' + (s.step_name || '未命名步骤');
+        card.appendChild(title);
+
+        const meta = document.createElement('div');
+        meta.style.fontSize='13px'; meta.style.color='#555';
+        let metaText = '角色: ' + (s.approver_role||'-');
+        if(s.approver_dept) metaText += ' • 部门: '+s.approver_dept;
+        if(s.is_parallel) metaText += ' • 并行(需'+(s.required_approvals||1)+'人)';
+        meta.innerText = metaText;
+        card.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'mt-2 text-end';
+        actions.innerHTML = '<button class="btn btn-sm btn-outline-secondary me-1" data-action="edit">编辑</button>'+
+                            '<button class="btn btn-sm btn-outline-danger" data-action="del">删除</button>';
+        actions.querySelector('[data-action="edit"]').addEventListener('click', ()=>{ openStepForm(idx); });
+        actions.querySelector('[data-action="del"]').addEventListener('click', ()=>{ deleteStep(idx); });
+        card.appendChild(actions);
+
+        list.appendChild(card);
+    });
+    renderFlowPreview();
+    saveStepsToHidden();
+}
+
+function onDragStart(e){
+    e.dataTransfer.setData('text/plain', e.currentTarget.dataset.index);
+    e.currentTarget.style.opacity = '0.6';
+}
+function onDragOver(e){ e.preventDefault(); }
+function onDrop(e){
+    e.preventDefault();
+    const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+    const toIdx = parseInt(e.currentTarget.dataset.index);
+    if(isNaN(fromIdx) || isNaN(toIdx)) return;
+    const item = _steps.splice(fromIdx,1)[0];
+    _steps.splice(toIdx,0,item);
+    renderStepsList();
+}
+function onDragEnd(e){ e.currentTarget.style.opacity = ''; }
+
+function addStep(obj){ _steps.push(obj||{}); renderStepsList(); }
+function deleteStep(idx){ if(confirm('确定删除该步骤？')){ _steps.splice(idx,1); renderStepsList(); } }
+
+function openStepForm(idx){
+    _editingIndex = (typeof idx === 'number')? idx : -1;
+    const s = (_editingIndex>=0 && _steps[_editingIndex]) ? _steps[_editingIndex] : {};
+    document.getElementById('sf_step_name').value = s.step_name||'';
+    document.getElementById('sf_approver_role').value = s.approver_role||'';
+    document.getElementById('sf_approver_dept').value = s.approver_dept||'';
+    document.getElementById('sf_is_parallel').value = (s.is_parallel? 'true':'false');
+    document.getElementById('sf_required_approvals').value = s.required_approvals || 1;
+    document.getElementById('sf_timeout_days').value = s.timeout_days || 5;
+    document.getElementById('sf_actions_on_reject').value = s.actions_on_reject || '';
+    document.getElementById('sf_conditions').value = s.conditions || '';
+    document.getElementById('step_form').style.display = 'block';
+}
+
+function closeStepForm(){ document.getElementById('step_form').style.display = 'none'; _editingIndex = -1; }
+
+document.getElementById('add_step_btn').addEventListener('click', ()=>{ openStepForm(); });
+document.getElementById('sf_cancel').addEventListener('click', ()=>{ closeStepForm(); });
+document.getElementById('sf_save').addEventListener('click', ()=>{
+    const obj = {
+        step_name: document.getElementById('sf_step_name').value.trim(),
+        approver_role: document.getElementById('sf_approver_role').value.trim(),
+        approver_dept: document.getElementById('sf_approver_dept').value.trim() || null,
+        is_parallel: document.getElementById('sf_is_parallel').value === 'true',
+        required_approvals: parseInt(document.getElementById('sf_required_approvals').value)||1,
+        timeout_days: parseInt(document.getElementById('sf_timeout_days').value)||0,
+        actions_on_reject: document.getElementById('sf_actions_on_reject').value || null,
+        conditions: document.getElementById('sf_conditions').value || null
+    };
+    if(!_editingIndex || _editingIndex<0){
+        // add
+        addStep(obj);
+    } else {
+        _steps[_editingIndex] = obj;
+        renderStepsList();
+    }
+    closeStepForm();
+});
+
+function renderFlowPreview(){
+    const container = document.getElementById('flow_preview');
+    container.innerHTML = '';
+    const steps = _steps || [];
+    if(!steps.length){ container.innerHTML = '<div class="text-muted">暂无步骤</div>'; return; }
+    const row = document.createElement('div'); row.style.display='flex'; row.style.gap='12px'; row.style.alignItems='center';
+    steps.forEach((s, idx)=>{
+        const box = document.createElement('div');
+        box.style.padding='10px 14px'; box.style.border='1px solid #dfe3e8'; box.style.borderRadius='8px'; box.style.background='#fbfcfe'; box.style.minWidth='160px';
+        const title = document.createElement('div'); title.style.fontWeight='600'; title.innerText = s.step_name || ('步骤 '+(idx+1)); box.appendChild(title);
+        const role = document.createElement('div'); role.style.fontSize='12px'; role.style.color='#555'; role.innerText = '角色: '+(s.approver_role||'-') + (s.approver_dept?('（'+s.approver_dept+'）':''); box.appendChild(role);
+        if(s.is_parallel){ const p = document.createElement('div'); p.style.marginTop='6px'; p.style.fontSize='12px'; p.innerHTML = '<span class="badge bg-warning text-dark">并行</span> 需同意: '+(s.required_approvals||1); box.appendChild(p); }
+        row.appendChild(box);
+        if(idx < steps.length-1){ const arrow = document.createElement('div'); arrow.innerHTML='<i class=\"fas fa-arrow-right\"></i>'; arrow.style.fontSize='20px'; row.appendChild(arrow); }
+    });
+    container.appendChild(row);
+}
+
+document.getElementById('clear_steps_btn').addEventListener('click', ()=>{ if(confirm('清空所有步骤？')){ _steps=[]; renderStepsList(); } });
+
+// 在表单提交前确保 hidden 字段已更新
+document.querySelector('form').addEventListener('submit', function(){ saveStepsToHidden(); });
+
+// 初始化
+loadInitialSteps();
+renderStepsList();
+</script>
+
+{% endblock %}

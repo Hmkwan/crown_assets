@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-history"></i> 资产生命周期报表</h1>
+                <div>
+                    <a href="{{ url_for('main.statistics_dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回总览
+                    </a>
+                    <a href="{{ url_for('main.export_statistics_xlsx', report_type='asset_lifecycle') }}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> 导出 XLSX
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 事件类型统计 -->
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">按事件类型统计</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>事件类型</th>
+                            <th class="text-right">事件数量</th>
+                            <th class="text-right">涉及总成本</th>
+                            <th class="text-right">平均成本</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in event_stats %}
+                        {% set event_name = {
+                            'purchase': '采购',
+                            'deployment': '部署',
+                            'maintenance': '维护',
+                            'repair': '维修',
+                            'upgrade': '升级',
+                            'transfer': '调拨',
+                            'scrap': '报废'
+                        }.get(stat.event_type, stat.event_type) %}
+                        <tr>
+                            <td><strong>{{ event_name }}</strong></td>
+                            <td class="text-right">{{ stat.count }}</td>
+                            <td class="text-right">¥{{ "%.2f"|format(stat.total_cost or 0) }}</td>
+                            <td class="text-right">¥{{ "%.2f"|format((stat.total_cost or 0) / stat.count if stat.count > 0 else 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 按月统计 -->
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">最近12个月生命周期成本</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>年月</th>
+                            <th class="text-right">事件数量</th>
+                            <th class="text-right">总成本</th>
+                            <th class="text-right">平均成本</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in monthly_lifecycle %}
+                        <tr>
+                            <td><strong>{{ row.year|int }}-{{ "%02d"|format(row.month|int) }}</strong></td>
+                            <td class="text-right">{{ row.event_count }}</td>
+                            <td class="text-right">¥{{ "%.2f"|format(row.total_cost or 0) }}</td>
+                            <td class="text-right">¥{{ "%.2f"|format((row.total_cost or 0) / row.event_count if row.event_count > 0 else 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近事件列表 -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="mb-0">最近50条生命周期事件</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>事件ID</th>
+                            <th>设备名称</th>
+                            <th>事件类型</th>
+                            <th>事件日期</th>
+                            <th class="text-right">涉及成本</th>
+                            <th>负责人</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in recent_events %}
+                        {% set event_name = {
+                            'purchase': '采购',
+                            'deployment': '部署',
+                            'maintenance': '维护',
+                            'repair': '维修',
+                            'upgrade': '升级',
+                            'transfer': '调拨',
+                            'scrap': '报废'
+                        }.get(event.event_type, event.event_type) %}
+                        <tr>
+                            <td>{{ event.id }}</td>
+                            <td>
+                                {% if event.equipment %}
+                                <a href="{{ url_for('main.equipment_detail', id=event.equipment.id) }}">
+                                    {{ event.equipment.name }}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if event.event_type == 'purchase' %}
+                                    <span class="badge badge-success">{{ event_name }}</span>
+                                {% elif event.event_type == 'deployment' %}
+                                    <span class="badge badge-info">{{ event_name }}</span>
+                                {% elif event.event_type in ['maintenance', 'repair'] %}
+                                    <span class="badge badge-warning">{{ event_name }}</span>
+                                {% elif event.event_type == 'upgrade' %}
+                                    <span class="badge badge-primary">{{ event_name }}</span>
+                                {% elif event.event_type == 'scrap' %}
+                                    <span class="badge badge-danger">{{ event_name }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ event_name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ event.event_date.strftime('%Y-%m-%d') if event.event_date else '' }}</td>
+                            <td class="text-right">¥{{ "%.2f"|format(event.cost_involved or 0) }}</td>
+                            <td>{{ event.responsible_user.username if event.responsible_user else '' }}</td>
+                            <td>
+                                <span title="{{ event.notes }}">
+                                    {{ event.notes[:40] + '...' if event.notes and event.notes|length > 40 else event.notes }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

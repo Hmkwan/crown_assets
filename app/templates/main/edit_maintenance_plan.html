@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-edit"></i> 编辑保养计划</h2>
+        <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="equipment_id">设备 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="equipment_id" name="equipment_id" required>
+                                {% for eq in equipments %}
+                                <option value="{{ eq.id }}" {% if eq.id == plan.equipment_id %}selected{% endif %}>
+                                    {{ eq.name }} ({{ eq.serial_number or '无编号' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="plan_name">计划名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="plan_name" name="plan_name" required value="{{ plan.plan_name }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maintenance_type">保养类型 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="maintenance_type" name="maintenance_type" required onchange="updateInterval()">
+                                <option value="daily" {% if plan.maintenance_type == 'daily' %}selected{% endif %}>每日</option>
+                                <option value="weekly" {% if plan.maintenance_type == 'weekly' %}selected{% endif %}>每周</option>
+                                <option value="monthly" {% if plan.maintenance_type == 'monthly' %}selected{% endif %}>每月</option>
+                                <option value="quarterly" {% if plan.maintenance_type == 'quarterly' %}selected{% endif %}>每季度</option>
+                                <option value="yearly" {% if plan.maintenance_type == 'yearly' %}selected{% endif %}>每年</option>
+                                <option value="custom" {% if plan.maintenance_type == 'custom' %}selected{% endif %}>自定义</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="interval_days">间隔天数</label>
+                            <input type="number" class="form-control" id="interval_days" name="interval_days" min="1" value="{{ plan.interval_days }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="next_maintenance_date">下次保养日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="next_maintenance_date" name="next_maintenance_date" required value="{{ plan.next_maintenance_date.strftime('%Y-%m-%d') if plan.next_maintenance_date else '' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="responsible_person">负责人 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="responsible_person" name="responsible_person" required>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user.id == plan.responsible_person %}selected{% endif %}>
+                                    {{ user.username }} ({{ user.role | translate_role }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">保养内容描述</label>
+                            <textarea class="form-control" id="description" name="description" rows="5">{{ plan.description or '' }}</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="is_active">计划状态</label>
+                            <select class="form-control" id="is_active" name="is_active">
+                                <option value="1" {% if plan.is_active %}selected{% endif %}>启用</option>
+                                <option value="0" {% if not plan.is_active %}selected{% endif %}>停用</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group text-right">
+                    <a href="{{ url_for('main.maintenance_plans') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateInterval() {
+    var type = document.getElementById('maintenance_type').value;
+    var intervalInput = document.getElementById('interval_days');
+    var intervals = {
+        'daily': 1,
+        'weekly': 7,
+        'monthly': 30,
+        'quarterly': 90,
+        'yearly': 365
+    };
+    if (intervals[type]) {
+        intervalInput.value = intervals[type];
+    }
+}
+</script>
+{% endblock %}

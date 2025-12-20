@@ -1,0 +1,56 @@
+# 审批系统定时任务配置
+# 使用crontab -e编辑,添加以下任务
+
+# 项目路径
+PROJECT_PATH=/path/to/your/TEST
+
+# Python解释器路径
+PYTHON=/path/to/your/python
+
+# ==================== 审批系统定时任务 ====================
+
+# 每5分钟检查一次超时审批
+*/5 * * * * cd $PROJECT_PATH && $PYTHON app/tasks/approval_tasks.py timeout >> logs/approval_timeout.log 2>&1
+
+# 每小时发送一次截止提醒
+0 * * * * cd $PROJECT_PATH && $PYTHON app/tasks/approval_tasks.py reminder >> logs/approval_reminder.log 2>&1
+
+# 每10分钟处理一次自动审批
+*/10 * * * * cd $PROJECT_PATH && $PYTHON app/tasks/approval_tasks.py auto_approve >> logs/approval_auto.log 2>&1
+
+# 每天凌晨2点清理旧通知
+0 2 * * * cd $PROJECT_PATH && $PYTHON app/tasks/approval_tasks.py cleanup >> logs/approval_cleanup.log 2>&1
+
+# 每天凌晨3点生成统计报告
+0 3 * * * cd $PROJECT_PATH && $PYTHON app/tasks/approval_tasks.py stats >> logs/approval_stats.log 2>&1
+
+# ==================== Windows计划任务 (PowerShell) ====================
+# 如果在Windows上,使用任务计划程序或以下PowerShell脚本
+
+# 创建定时任务的PowerShell脚本示例:
+<#
+# 超时检查任务 - 每5分钟
+$action = New-ScheduledTaskAction -Execute "python" -Argument "C:\Path\To\TEST\app\tasks\approval_tasks.py timeout"
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration ([TimeSpan]::MaxValue)
+Register-ScheduledTask -TaskName "ApprovalTimeoutCheck" -Action $action -Trigger $trigger -Description "审批超时检查"
+
+# 截止提醒任务 - 每小时
+$action = New-ScheduledTaskAction -Execute "python" -Argument "C:\Path\To\TEST\app\tasks\approval_tasks.py reminder"
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration ([TimeSpan]::MaxValue)
+Register-ScheduledTask -TaskName "ApprovalReminder" -Action $action -Trigger $trigger -Description "审批截止提醒"
+
+# 自动审批任务 - 每10分钟
+$action = New-ScheduledTaskAction -Execute "python" -Argument "C:\Path\To\TEST\app\tasks\approval_tasks.py auto_approve"
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration ([TimeSpan]::MaxValue)
+Register-ScheduledTask -TaskName "ApprovalAutoApprove" -Action $action -Trigger $trigger -Description "自动审批处理"
+
+# 清理任务 - 每天凌晨2点
+$action = New-ScheduledTaskAction -Execute "python" -Argument "C:\Path\To\TEST\app\tasks\approval_tasks.py cleanup"
+$trigger = New-ScheduledTaskTrigger -Daily -At 2am
+Register-ScheduledTask -TaskName "ApprovalCleanup" -Action $action -Trigger $trigger -Description "清理旧通知"
+
+# 统计任务 - 每天凌晨3点
+$action = New-ScheduledTaskAction -Execute "python" -Argument "C:\Path\To\TEST\app\tasks\approval_tasks.py stats"
+$trigger = New-ScheduledTaskTrigger -Daily -At 3am
+Register-ScheduledTask -TaskName "ApprovalStats" -Action $action -Trigger $trigger -Description "生成统计报告"
+#>

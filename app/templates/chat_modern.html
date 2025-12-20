@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}聊天 - 设备管理系统{% endblock %}
+
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_modern.css') }}?v={{ cache_version }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    <div class="chat-container">
+        <!-- 左侧会话列表 -->
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h4><i class="fas fa-comments"></i> 聊天</h4>
+                <button class="new-chat-btn" onclick="showNewChat()">
+                    <i class="fas fa-plus"></i> 新建会话
+                </button>
+            </div>
+            
+            <div class="chat-search">
+                <input type="text" placeholder="搜索会话..." id="searchInput">
+            </div>
+            
+            <div class="conversation-list" id="conversationList">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p class="mt-2">加载中...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧聊天区域 -->
+        <div class="chat-main" id="chatMain">
+            <!-- 空状态 -->
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <p>选择一个会话开始聊天</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建会话模态框 -->
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> 新建会话</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择用户</label>
+                    <select class="form-control" id="userSelect">
+                        <option value="">正在加载...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createConversation()">
+                    <i class="fas fa-check"></i> 创建
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const currentUserId = {{ current_user.id }};
+let currentConversation = null;
+let conversations = [];
+let messages = [];
+let pollingInterval = null;
+
+// 页面加载
+$(document).ready(function() {
+    console.log('[Chat] 页面初始化, 用户ID:', currentUserId);
+    loadConversations();
+    setInterval(loadConversations, 5000);
+});
+
+// 加载会话列表
+function loadConversations() {
+    console.log('[Chat] 加载会话列表...');
+    $.get('/api/chat/conversations', function(data) {
+        console.log('[Chat] 收到', data.conversations.length, '个会话');
+        conversations = data.conversations || [];
+        renderConversations();
+    }).fail(function(xhr) {
+        console.error('[Chat] 加载失败:', xhr.status);
+        if (xhr.status === 401) {
+            window.location.href = '/auth/login';
+        }
+    });
+}
+
+// 渲染会话列表
+function renderConversations() {
+    const $list = $('#conversationList');
+    
+    if (conversations.length === 0) {
+        $list.html('<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无会话</p></div>');
+        return;
+    }
+    
+    const html = conversations.map(conv => {
+        const isActive = currentConversation && currentConversation.id === conv.id;
+        const avatar = getAvatar(conv);
+        const name = conv.name || '未命名会话';
+        const preview = getPreview(conv);
+        const time = conv.last_message_time ? formatTime(conv.last_message_time) : '';
+        const unread = conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : '';
+        
+        return `
+        <div class="conversation-item ${isActive ? 'active' : ''}" onclick="selectConversation(${conv.id})">
+            <div class="conversation-avatar">${avatar}</div>
+            <div class="conversation-info">
+                <div class="conversation-name">
+                    <span>${escapeHtml(name)}</span>
+                    <span class="conversation-time">${time}</span>
+                </div>
+                <div class="conversation-preview">${escapeHtml(preview)}</div>
+            </div>
+            ${unread}
+        </div>`;
+    }).join('');
+    
+    $list.html(html);
+}
+
+// 获取头像字符
+function getAvatar(conv) {
+    if (conv.type === 'direct' && conv.other_user) {
+        return conv.other_user.real_name ? conv.other_user.real_name[0] : conv.other_user.username[0];
+    }
+    return conv.name ? conv.name[0] : '群';
+}
+
+// 获取预览文本
+function getPreview(conv) {
+    if (conv.last_message) {
+        return conv.last_message.content || '暂无消息';
+    }
+    return '暂无消息';
+}
+
+// 格式化时间
+function formatTime(timeStr) {
+    const date = new Date(timeStr);
+    const now = new Date();
+    const diff = (now - date) / 1000; // 秒
+    
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+    
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
+}
+
+// 选择会话
+function selectConversation(id) {
+    const conv = conversations.find(c => c.id === id);
+    if (!conv) return;
+    
+    // 获取会话详情以便获得参与者角色等信息
+    $.get(`/api/chat/conversations/${id}`, function(resp){
+        const convDetail = resp.conversation || conv;
+        // 标记当前用户是否能编辑群名
+        const selfPart = (convDetail.participants || []).find(p => p.id === currentUserId);
+        convDetail._can_edit_name = (convDetail.type === 'group') && (selfPart && (selfPart.role === 'owner' || selfPart.role === 'admin'));
+
+        currentConversation = convDetail;
+        // 将会话在本地会话列表里更新
+        const idx = conversations.findIndex(c => c.id === id);
+        if (idx !== -1) conversations[idx] = convDetail;
+
+        renderConversations();
+        renderChatArea(convDetail);
+        loadMessages(id);
+    }).fail(function(xhr){
+        console.error('[Chat] 获取会话详情失败:', xhr.status);
+    });
+}
+
+// 渲染聊天区域
+function renderChatArea(conv) {
+    const name = conv.name || '未命名会话';
+    const participants = conv.type === 'group' ? `${conv.participant_count}人` : '';
+    
+    // 编辑群名按钮（仅群聊且有权限时显示: 需要在 selectConversation 时读取当前用户的 role）
+    const editBtn = (conv.type === 'group' && conv._can_edit_name) ? `<button title="编辑群名" onclick="editGroupName()"><i class="fas fa-edit"></i></button>` : '';
+
+    const html = `
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <h5 id="chatTitle">${escapeHtml(name)}</h5>
+                <div class="chat-header-meta">${participants}</div>
+            </div>
+            <div class="chat-actions">
+                <button title="会话信息"><i class="fas fa-info-circle"></i></button>
+                ${editBtn}
+                <button title="更多"><i class="fas fa-ellipsis-v"></i></button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessagesWrapper">
+            <div class="load-more-container text-center"><button id="loadMoreBtn" class="btn btn-sm btn-outline-secondary" onclick="loadOlderMessages()">加载历史</button></div>
+            <div id="chatMessages" class="chat-messages-inner"></div>
+        </div>
+        <div class="chat-input-area">
+            <div class="input-toolbar">
+                <button title="表情"><i class="fas fa-smile"></i></button>
+                <button title="附件" onclick="openFilePicker(false)"><i class="fas fa-paperclip"></i></button>
+                <button title="图片" onclick="openFilePicker(true)"><i class="fas fa-image"></i></button>
+            </div>
+            <div class="attachment-previews" id="attachmentPreviews"></div>
+            <div class="input-wrapper">
+                <textarea id="messageInput" rows="2" placeholder="输入消息... (Ctrl+Enter发送)" onkeydown="handleKeyDown(event)"></textarea>
+                <button class="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> 发送
+                </button>
+            </div>
+        </div>
+
+        <input type="file" id="hiddenFileInput" style="display:none;" multiple />
+    `;
+    
+    $('#chatMain').html(html);
+
+    // 绑定文件选择
+    $('#hiddenFileInput').off('change').on('change', function(e){
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        handleFileUpload(files);
+        // 清空 input
+        $(this).val('');
+    });
+}
+
+// 打开文件选择器
+function openFilePicker(acceptImage){
+    const input = document.getElementById('hiddenFileInput');
+    if (acceptImage) {
+        input.accept = 'image/*';
+    } else {
+        input.accept = '';
+    }
+    input.click();
+}
+
+// 待上传的附件数组
+let pendingAttachments = [];
+
+function handleFileUpload(files){
+    if (!currentConversation) {
+        alert('请先选择会话');
+        return;
+    }
+
+    files.forEach(file => {
+        uploadAttachment(file).then(att => {
+            pendingAttachments.push(att);
+            renderAttachmentPreviews();
+        }).catch(err => {
+            console.error('上传失败', err);
+            alert('上传失败: ' + (err.error || '网络错误'));
+        });
+    });
+}
+
+function renderAttachmentPreviews(){
+    const $p = $('#attachmentPreviews');
+    if (pendingAttachments.length === 0) {
+        $p.html('');
+        return;
+    }
+    const html = pendingAttachments.map(att => {
+        if (att.is_image) {
+            return `<div class="att-preview"><img src='${att.thumbnail_url || att.download_url}' alt='${escapeHtml(att.filename)}'><button class='remove-att' data-id='${att.id}' onclick='removePendingAttachment(${att.id})'>✕</button></div>`
+        }
+        return `<div class="att-preview"><i class='fas fa-file'></i><div class='att-name'>${escapeHtml(att.filename)}</div><button class='remove-att' data-id='${att.id}' onclick='removePendingAttachment(${att.id})'>✕</button></div>`
+    }).join('');
+    $p.html(html);
+}
+
+function removePendingAttachment(id){
+    pendingAttachments = pendingAttachments.filter(a => a.id !== id);
+    renderAttachmentPreviews();
+}
+
+// 编辑群名
+function editGroupName(){
+    if (!currentConversation || currentConversation.type !== 'group') return;
+    const newName = prompt('输入新的群名称', currentConversation.name || '');
+    if (newName === null) return; // 取消
+    if (newName.trim() === '') { alert('群名不能为空'); return; }
+
+    $.ajax({
+        url: `/api/chat/conversations/${currentConversation.id}`,
+        method: 'PATCH',
+        contentType: 'application/json',
+        data: JSON.stringify({ name: newName.trim() }),
+        success: function(resp){
+            currentConversation.name = resp.conversation.name;
+            $('#chatTitle').text(currentConversation.name);
+            // 更新会话列表
+            loadConversations();
+        },
+        error: function(xhr){
+            alert('修改失败: ' + (xhr.responseJSON?.error || '未知错误'));
+        }
+    });
+}
+
+
+// 加载消息
+function loadMessages(conversationId) {
+    console.log('[Chat] 加载会话', conversationId, '的消息');
+    $.get(`/api/chat/conversations/${conversationId}/messages`, function(data) {
+        messages = data.messages || [];
+        console.log('[Chat] 收到', messages.length, '条消息');
+        renderMessages();
+        scrollToBottom();
+    }).fail(function(xhr) {
+        console.error('[Chat] 加载消息失败:', xhr.status);
+    });
+}
+
+// 向上加载更早的消息（分页）
+function loadOlderMessages() {
+    if (!currentConversation || messages.length === 0) return;
+    const firstMessageId = messages[0].id;
+    const convId = currentConversation.id;
+    $.get(`/api/chat/conversations/${convId}/messages`, { before_id: firstMessageId, per_page: 30 }, function(data) {
+        const older = data.messages || [];
+        if (older.length === 0) {
+            $('#loadMoreBtn').prop('disabled', true).text('没有更多消息');
+            return;
+        }
+        // 在前面拼接老消息
+        messages = older.concat(messages);
+        renderMessages(true);
+    }).fail(function(xhr) {
+        console.error('[Chat] 加载历史失败:', xhr.status);
+    });
+}
+
+// 渲染消息
+function renderMessages(prepend=false) {
+    const $messages = $('#chatMessages');
+    if (!$messages.length) return;
+    
+    if (messages.length === 0) {
+        $messages.html('<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无消息</p></div>');
+        return;
+    }
+    
+    const html = messages.map(msg => {
+        const isOwn = msg.sender_id === currentUserId;
+        const avatar = msg.sender_name ? msg.sender_name[0] : '?';
+        const content = msg.is_recalled ? '<i class="text-muted">[消息已撤回]</i>' : escapeHtml(msg.content);
+        const time = formatTime(msg.created_date);
+
+        // 渲染附件
+        let attHtml = '';
+        if (msg.attachments && msg.attachments.length) {
+            attHtml = '<div class="message-attachments">' + msg.attachments.map(att => {
+                if (att.is_image || (att.file_type && att.file_type.startsWith('image/'))) {
+                    const thumb = att.thumbnail_url || att.download_url || `/static/uploads/chat/${att.filename}`;
+                    return `<div class='att-image'><a href='${att.download_url || thumb}' target='_blank'><img src='${thumb}' alt='${escapeHtml(att.filename)}' /></a></div>`;
+                }
+                return `<div class='att-file'><a href='${att.download_url}' target='_blank'><i class='fas fa-file'></i> ${escapeHtml(att.filename)}</a></div>`;
+            }).join('') + '</div>';
+        }
+        
+        return `
+        <div class="message ${isOwn ? 'own' : ''}">
+            <div class="message-avatar">${avatar}</div>
+            <div class="message-content">
+                ${!isOwn ? `<div class="message-sender">${escapeHtml(msg.sender_name)}</div>` : ''}
+                <div class="message-bubble">${content}</div>
+                ${attHtml}
+                <div class="message-time">${time}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    if (prepend) {
+        // 保持滚动位置, 将老消息插到上方
+        const $inner = $('#chatMessages');
+        const prevScrollHeight = $inner.prop('scrollHeight');
+        $inner.html(html);
+        const newScrollHeight = $inner.prop('scrollHeight');
+        $inner.scrollTop(newScrollHeight - prevScrollHeight);
+    } else {
+        $messages.html(html);
+    }
+}
+
+// 上传单个附件, 返回 attachment 对象
+function uploadAttachment(file) {
+    return new Promise(function(resolve, reject){
+        const form = new FormData();
+        form.append('file', file);
+        form.append('conversation_id', currentConversation.id);
+
+        $.ajax({
+            url: '/api/chat/attachments',
+            method: 'POST',
+            data: form,
+            processData: false,
+            contentType: false,
+            success: function(resp){
+                if (resp && resp.attachment) {
+                    // 规范返回字段
+                    const att = resp.attachment;
+                    att.is_image = att.file_type && att.file_type.startsWith('image/');
+                    att.download_url = att.download_url || `/api/chat/attachments/${resp.attachment_id}/download`;
+                    att.thumbnail_url = att.thumbnail_url;
+                    resolve(att);
+                } else {
+                    reject({error: '上传失败'});
+                }
+            },
+            error: function(xhr){
+                reject(xhr.responseJSON || {error: '上传失败'});
+            }
+        });
+    });
+}
+
+// 发送消息
+function sendMessage() {
+    if (!currentConversation) return;
+    
+    const $input = $('#messageInput');
+    const content = $input.val().trim();
+    // 如果没有文字但有附件, 允许发送
+    if (!content && pendingAttachments.length === 0) return;
+    
+    console.log('[Chat] 发送消息:', content);
+    
+    const attachment_ids = pendingAttachments.map(a => a.id);
+
+    $.ajax({
+        url: '/api/chat/messages',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            conversation_id: currentConversation.id,
+            content: content,
+            message_type: 'text',
+            attachment_ids: attachment_ids
+        }),
+        success: function(data) {
+            console.log('[Chat] 消息已发送');
+            $input.val('');
+            pendingAttachments = [];
+            renderAttachmentPreviews();
+            loadMessages(currentConversation.id);
+        },
+        error: function(xhr) {
+            console.error('[Chat] 发送失败:', xhr.status);
+            alert('发送失败: ' + (xhr.responseJSON?.error || '未知错误'));
+        }
+    });
+}
+
+// 键盘事件
+function handleKeyDown(e) {
+    if (e.ctrlKey && e.keyCode === 13) {
+        sendMessage();
+    }
+}
+
+// 显示新建会话
+function showNewChat() {
+    console.log('[Chat] 打开新建会话');
+    $.get('/api/chat/users', function(data) {
+        const options = data.users.map(u => 
+            `<option value="${u.id}">${u.real_name || u.username} (${u.department})</option>`
+        ).join('');
+        $('#userSelect').html(options);
+        $('#newChatModal').modal('show');
+    });
+}
+
+// 创建会话
+function createConversation() {
+    const userId = $('#userSelect').val();
+    if (!userId) {
+        alert('请选择用户');
+        return;
+    }
+    
+    console.log('[Chat] 创建与用户', userId, '的会话');
+    
+    $.ajax({
+        url: '/api/chat/conversations',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            type: 'direct',
+            participant_ids: [parseInt(userId)]
+        }),
+        success: function(data) {
+            console.log('[Chat] 会话已创建:', data.conversation.id);
+            $('#newChatModal').modal('hide');
+            loadConversations();
+            setTimeout(() => selectConversation(data.conversation.id), 500);
+        },
+        error: function(xhr) {
+            alert('创建失败: ' + (xhr.responseJSON?.error || '未知错误'));
+        }
+    });
+}
+
+// 滚动到底部
+function scrollToBottom() {
+    setTimeout(() => {
+        const $messages = $('#chatMessages');
+        if ($messages.length) {
+            $messages.scrollTop($messages[0].scrollHeight);
+        }
+    }, 100);
+}
+
+// HTML转义
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

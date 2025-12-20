@@ -1,0 +1,45 @@
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 日志文件
+*.log
+stdout.txt
+stderr.txt
+
+# 数据库备份（不包含在镜像中）
+*.db.backup
+*.before_restore_*
+backups/
+project_backups/
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 测试
+.pytest_cache/
+htmlcov/
+.coverage
+
+# 用户上传文件（示例）
+Users/
+
+# Git
+.git/
+.gitignore

@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}工作流模板管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-project-diagram"></i> 工作流模板管理
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- 操作栏 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-success" onclick="showCreateModal()">
+                                    <i class="fas fa-plus"></i> 创建模板
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="refreshTemplates()">
+                                    <i class="fas fa-sync-alt"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-filter"></i>
+                                    </span>
+                                </div>
+                                <select class="form-control" id="orderTypeFilter" onchange="refreshTemplates()">
+                                    <option value="">所有工单类型</option>
+                                    <option value="repair_order">维修工单</option>
+                                    <option value="part_request_order">备件领用工单</option>
+                                    <option value="equipment_transfer">设备调拨</option>
+                                    <option value="equipment_scrap">设备报废</option>
+                                    <option value="equipment_loan">设备借用</option>
+                                    <option value="equipment_application">设备申请</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模板列表 -->
+                    <div id="templateList" class="row"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建模板Modal -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> 创建工作流模板
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createTemplateForm">
+                    <div class="form-group">
+                        <label>模板名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="createName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>工单类型 <span class="text-danger">*</span></label>
+                        <select class="form-control" id="createOrderType" required>
+                            <option value="">请选择</option>
+                            <option value="repair_order">维修工单</option>
+                            <option value="part_request_order">备件领用工单</option>
+                            <option value="equipment_transfer">设备调拨</option>
+                            <option value="equipment_scrap">设备报废</option>
+                            <option value="equipment_loan">设备借用</option>
+                            <option value="equipment_application">设备申请</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea class="form-control" id="createDescription" rows="3"></textarea>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="createIsDefault">
+                        <label class="custom-control-label" for="createIsDefault">
+                            设为默认模板
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="createTemplate()">
+                    <i class="fas fa-save"></i> 创建
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑模板Modal -->
+<div class="modal fade" id="editTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit"></i> 编辑模板信息
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editTemplateForm">
+                    <input type="hidden" id="editTemplateId">
+                    <div class="form-group">
+                        <label>模板名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="editIsDefault">
+                        <label class="custom-control-label" for="editIsDefault">
+                            设为默认模板
+                        </label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="editIsActive">
+                        <label class="custom-control-label" for="editIsActive">
+                            激活状态
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="updateTemplate()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看模板详情Modal -->
+<div class="modal fade" id="viewTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye"></i> 模板详情
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="templateDetails">
+                <!-- 动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 工单类型映射
+const orderTypeMap = {
+    'repair_order': '维修工单',
+    'part_request_order': '备件领用工单',
+    'equipment_transfer': '设备调拨',
+    'equipment_scrap': '设备报废',
+    'equipment_loan': '设备借用',
+    'equipment_application': '设备申请'
+};
+
+// 页面加载时获取模板列表
+$(document).ready(function() {
+    refreshTemplates();
+});
+
+// 刷新模板列表
+function refreshTemplates() {
+    const orderType = $('#orderTypeFilter').val();
+    const url = '/admin/api/workflow_templates/list' + (orderType ? `?order_type=${orderType}` : '');
+    
+    $.get(url, function(response) {
+        if (response.success) {
+            renderTemplates(response.templates);
+        } else {
+            alert('加载失败: ' + response.message);
+        }
+    }).fail(function() {
+        alert('加载模板列表失败');
+    });
+}
+
+// 渲染模板卡片
+function renderTemplates(templates) {
+    const container = $('#templateList');
+    container.empty();
+    
+    if (templates.length === 0) {
+        container.html('<div class="col-12"><p class="text-center text-muted">暂无模板</p></div>');
+        return;
+    }
+    
+    templates.forEach(function(template) {
+        const card = `
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card ${template.is_active ? '' : 'border-secondary'}">
+                    <div class="card-header ${template.is_default ? 'bg-success text-white' : 'bg-light'}">
+                        <h6 class="mb-0">
+                            ${template.is_default ? '<i class="fas fa-star"></i> ' : ''}
+                            ${template.name}
+                            ${!template.is_active ? '<span class="badge badge-secondary float-right">已停用</span>' : ''}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <i class="fas fa-tag"></i> ${orderTypeMap[template.order_type] || template.order_type}<br>
+                            <i class="fas fa-list-ol"></i> ${template.node_count} 个节点<br>
+                            <i class="fas fa-calendar"></i> ${template.created_date}
+                        </p>
+                        <p class="card-text text-muted small">
+                            ${template.description || '暂无描述'}
+                        </p>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="btn-group btn-group-sm w-100">
+                            <button class="btn btn-info" onclick="viewTemplate(${template.id})" title="查看详情">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-warning" onclick="editTemplate(${template.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="cloneTemplate(${template.id})" title="克隆">
+                                <i class="fas fa-clone"></i>
+                            </button>
+                            ${!template.is_default ? `
+                                <button class="btn btn-success" onclick="setDefaultTemplate(${template.id})" title="设为默认">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            ` : ''}
+                            ${!template.is_default ? `
+                                <button class="btn btn-danger" onclick="deleteTemplate(${template.id})" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.append(card);
+    });
+}
+
+// 显示创建模板Modal
+function showCreateModal() {
+    $('#createTemplateForm')[0].reset();
+    $('#createTemplateModal').modal('show');
+}
+
+// 创建模板
+function createTemplate() {
+    const data = {
+        name: $('#createName').val(),
+        order_type: $('#createOrderType').val(),
+        description: $('#createDescription').val(),
+        is_default: $('#createIsDefault').is(':checked')
+    };
+    
+    if (!data.name || !data.order_type) {
+        alert('请填写必填项');
+        return;
+    }
+    
+    $.ajax({
+        url: '/admin/api/workflow_templates/create',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#createTemplateModal').modal('hide');
+                alert('创建成功');
+                refreshTemplates();
+            } else {
+                alert('创建失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('创建失败');
+        }
+    });
+}
+
+// 编辑模板
+function editTemplate(templateId) {
+    $.get(`/admin/api/workflow_templates/${templateId}`, function(response) {
+        if (response.success) {
+            const template = response.template;
+            $('#editTemplateId').val(template.id);
+            $('#editName').val(template.name);
+            $('#editDescription').val(template.description);
+            $('#editIsDefault').prop('checked', template.is_default);
+            $('#editIsActive').prop('checked', template.is_active);
+            $('#editTemplateModal').modal('show');
+        } else {
+            alert('加载失败: ' + response.message);
+        }
+    });
+}
+
+// 更新模板
+function updateTemplate() {
+    const templateId = $('#editTemplateId').val();
+    const data = {
+        name: $('#editName').val(),
+        description: $('#editDescription').val(),
+        is_default: $('#editIsDefault').is(':checked'),
+        is_active: $('#editIsActive').is(':checked')
+    };
+    
+    $.ajax({
+        url: `/admin/api/workflow_templates/${templateId}/update`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#editTemplateModal').modal('hide');
+                alert('更新成功');
+                refreshTemplates();
+            } else {
+                alert('更新失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('更新失败');
+        }
+    });
+}
+
+// 查看模板详情
+function viewTemplate(templateId) {
+    $.get(`/admin/api/workflow_templates/${templateId}`, function(response) {
+        if (response.success) {
+            const template = response.template;
+            let html = `
+                <h5>${template.name}</h5>
+                <p><strong>工单类型:</strong> ${orderTypeMap[template.order_type]}</p>
+                <p><strong>描述:</strong> ${template.description || '暂无描述'}</p>
+                <p><strong>状态:</strong> 
+                    ${template.is_default ? '<span class="badge badge-success">默认</span> ' : ''}
+                    ${template.is_active ? '<span class="badge badge-info">激活</span>' : '<span class="badge badge-secondary">停用</span>'}
+                </p>
+                <hr>
+                <h6>审批节点 (共${template.nodes.length}个):</h6>
+                <div class="list-group">
+            `;
+            
+            template.nodes.forEach(function(node) {
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${node.sequence}. ${node.name}</h6>
+                            <small>${node.approval_role_name || '未设置角色'}</small>
+                        </div>
+                        <p class="mb-1">
+                            <span class="badge badge-primary">${node.node_type || 'approval'}</span>
+                            ${node.is_parallel ? '<span class="badge badge-warning">并行审批</span>' : ''}
+                            ${node.amount_threshold ? `<span class="badge badge-info">金额阈值: ¥${node.amount_threshold}</span>` : ''}
+                            ${node.timeout_seconds ? `<span class="badge badge-secondary">超时: ${node.timeout_seconds/3600}小时</span>` : ''}
+                        </p>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            $('#templateDetails').html(html);
+            $('#viewTemplateModal').modal('show');
+        } else {
+            alert('加载失败: ' + response.message);
+        }
+    });
+}
+
+// 克隆模板
+function cloneTemplate(templateId) {
+    const newName = prompt('请输入新模板名称:');
+    if (!newName) return;
+    
+    $.ajax({
+        url: `/admin/api/workflow_templates/${templateId}/clone`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({name: newName}),
+        success: function(response) {
+            if (response.success) {
+                alert('克隆成功');
+                refreshTemplates();
+            } else {
+                alert('克隆失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('克隆失败');
+        }
+    });
+}
+
+// 设为默认模板
+function setDefaultTemplate(templateId) {
+    if (!confirm('确认设为默认模板吗?')) return;
+    
+    $.ajax({
+        url: `/admin/api/workflow_templates/${templateId}/set_default`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('设置成功');
+                refreshTemplates();
+            } else {
+                alert('设置失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('设置失败');
+        }
+    });
+}
+
+// 删除模板
+function deleteTemplate(templateId) {
+    if (!confirm('确认删除该模板吗?')) return;
+    
+    $.ajax({
+        url: `/admin/api/workflow_templates/${templateId}/delete`,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                alert('删除成功');
+                refreshTemplates();
+            } else {
+                alert('删除失败: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('删除失败');
+        }
+    });
+}
+</script>
+{% endblock %}

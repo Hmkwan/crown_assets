@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-user-shield"></i> 权限管理</h2>
+        <a href="{{ url_for('main.create_role') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 创建角色
+        </a>
+    </div>
+
+    {% if roles %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>角色名称</th>
+                            <th>描述</th>
+                            <th>类型</th>
+                            <th>状态</th>
+                            <th>权限数</th>
+                            <th>用户数</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles %}
+                        <tr>
+                            <td><strong>{{ role.name }}</strong></td>
+                            <td>{{ role.description or '-' }}</td>
+                            <td>
+                                {% if role.is_custom %}
+                                <span class="badge bg-info">自定义</span>
+                                {% else %}
+                                <span class="badge bg-secondary">系统内置</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if role.is_active %}
+                                <span class="badge bg-success">启用</span>
+                                {% else %}
+                                <span class="badge bg-secondary">禁用</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ role.permissions|length }}</td>
+                            <td>{{ role.users|length }}</td>
+                            <td>{{ role.created_date.strftime('%Y-%m-%d') if role.created_date else '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('main.edit_role_permissions', role_id=role.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="配置权限">
+                                        <i class="fas fa-key"></i> 权限
+                                    </a>
+                                    <a href="{{ url_for('main.manage_role_users', role_id=role.id) }}" 
+                                       class="btn btn-sm btn-outline-info" title="分配用户">
+                                        <i class="fas fa-users"></i> 用户
+                                    </a>
+                                    <a href="{{ url_for('main.edit_role', role_id=role.id) }}" 
+                                       class="btn btn-sm btn-outline-secondary" title="编辑">
+                                        <i class="fas fa-edit"></i> 编辑
+                                    </a>
+                                    {% if role.is_custom %}
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteRole({{ role.id }}, {{ role.name|tojson }})" 
+                                            title="删除">
+                                        <i class="fas fa-trash"></i> 删除
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 暂无自定义角色。点击"创建角色"开始配置细粒度权限。
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function deleteRole(roleId, roleName) {
+    if (!confirm(`确认删除角色"${roleName}"?\n\n删除后,该角色的所有权限配置和用户关联将被清除。`)) {
+        return;
+    }
+    
+    fetch(`{{ url_for('main.delete_role', role_id=0) }}`.replace('/0/', `/${roleId}/`), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('删除失败: ' + error);
+    });
+}
+</script>
+{% endblock %}

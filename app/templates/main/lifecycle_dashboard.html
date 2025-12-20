@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="page-header mb-4">
+        <h1 class="display-6">🔄 资产生命周期管理</h1>
+        <p class="lead text-muted">全面追踪资产从采购到报废的完整生命周期</p>
+    </div>
+
+    <!-- 生命周期概览 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">在役资产</h6>
+                    <p class="h3 text-primary">{{ lifecycle_dashboard.active_assets }}</p>
+                    <small class="text-muted">正常使用中</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">老化资产</h6>
+                    <p class="h3 text-warning">{{ lifecycle_dashboard.aging_assets }}</p>
+                    <small class="text-muted">需要关注</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">报废候选</h6>
+                    <p class="h3 text-danger">{{ lifecycle_dashboard.retirement_candidates }}</p>
+                    <small class="text-muted">建议报废</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">已报废资产</h6>
+                    <p class="h3 text-success">{{ lifecycle_dashboard.retired_assets }}</p>
+                    <small class="text-muted">已处置</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用年限分布 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📊 资产使用年限分布</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3 mb-3">
+                            <p class="text-muted small">0-2年</p>
+                            <p class="h5">{{ lifecycle_dashboard.age_distribution['0-2'] }}</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <p class="text-muted small">2-5年</p>
+                            <p class="h5">{{ lifecycle_dashboard.age_distribution['2-5'] }}</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <p class="text-muted small">5-7年</p>
+                            <p class="h5">{{ lifecycle_dashboard.age_distribution['5-7'] }}</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <p class="text-muted small">7年+</p>
+                            <p class="h5">{{ lifecycle_dashboard.age_distribution['7+'] }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">💰 生命周期成本统计</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">生命周期平均成本</p>
+                    <div class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted">采购成本</small>
+                                <p class="h6"><span class="badge bg-primary text-white">¥{{ "%.0f"|format(lifecycle_dashboard.avg_lifecycle_cost.purchase) }}</span></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">维护成本</small>
+                                <p class="h6"><span class="badge bg-danger text-white">¥{{ "%.0f"|format(lifecycle_dashboard.avg_lifecycle_cost.maintenance) }}</span></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">升级成本</small>
+                                <p class="h6"><span class="badge bg-info text-white">¥{{ "%.0f"|format(lifecycle_dashboard.avg_lifecycle_cost.upgrade) }}</span></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">年均成本</small>
+                                <p class="h6"><span class="badge bg-success text-white">¥{{ "%.0f"|format(lifecycle_dashboard.avg_lifecycle_cost.annual) }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报废候选资产 -->
+    {% if lifecycle_dashboard.candidates %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🚨 报废候选资产 ({{ lifecycle_dashboard.candidates|length }})</h5>
+                <a href="{{ url_for('main.lifecycle_retirement_analysis') }}" class="btn btn-sm btn-outline-light">
+                    详细分析
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>资产编号</th>
+                            <th>资产名称</th>
+                            <th class="text-center">使用年限</th>
+                            <th class="text-end">维护成本占比</th>
+                            <th class="text-end">预计残值</th>
+                            <th class="text-center">风险评分</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in lifecycle_dashboard.candidates[:20] %}
+                        <tr class="table-danger">
+                            <td><code>{{ item.asset_no }}</code></td>
+                            <td>{{ item.equipment_name }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-warning">{{ item.usage_years }} 年</span>
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(item.maintenance_cost_ratio * 100) }}%</td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.0f"|format(item.residual_value) }}</span></td>
+                            <td class="text-center">
+                                <span class="badge {% if item.risk_score >= 70 %}bg-danger{% elif item.risk_score >= 50 %}bg-warning{% else %}bg-info{% endif %}">
+                                    {{ item.risk_score }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('main.asset_lifecycle', asset_id=item.equipment_id) }}" class="btn btn-sm btn-outline-primary">
+                                    查看
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if lifecycle_dashboard.candidates|length > 20 %}
+            <p class="text-muted mt-2">还有 {{ lifecycle_dashboard.candidates|length - 20 }} 个报废候选资产...</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success mb-4">
+        <strong>✓ 很好！</strong> 没有需要立即报废的资产，所有资产使用状况良好。
+    </div>
+    {% endif %}
+
+    <!-- 老化资产预警 -->
+    {% if lifecycle_dashboard.aging_assets > 0 %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">⚠️ 老化资产（5年以上）</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">以下资产已使用5年以上，建议加强维护或计划更新</p>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>资产编号</th>
+                            <th>资产名称</th>
+                            <th class="text-center">使用年限</th>
+                            <th class="text-end">采购价格</th>
+                            <th class="text-center">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in lifecycle_dashboard.aging_assets_list[:10] %}
+                        <tr>
+                            <td><code>{{ item.asset_no }}</code></td>
+                            <td>{{ item.equipment_name }}</td>
+                            <td class="text-center">{{ item.usage_years }} 年</td>
+                            <td class="text-end"><span class="text-primary fw-bold">¥{{ "%.0f"|format(item.purchase_price) }}</span></td>
+                            <td class="text-center">
+                                <span class="badge bg-warning">老化</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 最近的生命周期事件 -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📅 最近的生命周期事件</h5>
+        </div>
+        <div class="card-body">
+            {% if lifecycle_dashboard.recent_events %}
+            <div class="list-group list-group-flush">
+                {% for event in lifecycle_dashboard.recent_events[:15] %}
+                <div class="list-group-item">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="badge {% if event.event_type == 'purchase' %}bg-success{% elif event.event_type == 'deployment' %}bg-info{% elif event.event_type == 'maintenance' %}bg-warning{% elif event.event_type == 'upgrade' %}bg-primary{% else %}bg-danger{% endif %}">
+                                {% if event.event_type == 'purchase' %}📦 采购
+                                {% elif event.event_type == 'deployment' %}📍 部署
+                                {% elif event.event_type == 'maintenance' %}🔧 维护
+                                {% elif event.event_type == 'upgrade' %}⬆️ 升级
+                                {% else %}🗑️ 报废
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col">
+                            <p class="mb-1"><strong>{{ event.equipment_name }}</strong></p>
+                            <p class="small text-muted mb-0">{{ event.description }}</p>
+                        </div>
+                        <div class="col-auto text-end">
+                            <p class="small text-muted mb-1">{{ event.event_date.strftime('%Y-%m-%d') }}</p>
+                            {% if event.cost %}
+                            <p class="small">¥{{ "%.0f"|format(event.cost) }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-4">暂无生命周期事件</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

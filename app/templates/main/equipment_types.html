@@ -9,9 +9,17 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">设备类型列表</h5>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#addTypeModal">
-                        <i class="fas fa-plus"></i> 添加类型
-                    </button>
+                    <div>
+                        <a href="{{ url_for('main.export_equipment_types') }}" class="btn btn-success">
+                            <i class="fas fa-download"></i> 导出
+                        </a>
+                        <button class="btn btn-info" data-toggle="modal" data-target="#importTypeModal">
+                            <i class="fas fa-upload"></i> 导入
+                        </button>
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#addTypeModal">
+                            <i class="fas fa-plus"></i> 添加类型
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -82,6 +90,39 @@
         </div>
     </div>
 </div>
+
+<!-- 导入类型模态框 -->
+<div class="modal fade" id="importTypeModal" tabindex="-1" aria-labelledby="importTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="importTypeForm" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importTypeModalLabel">导入设备类型</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <p><strong>CSV文件格式说明：</strong></p>
+                        <ul class="mb-0">
+                            <li>第一列：类型名称（必填）</li>
+                            <li>第二列：描述（可选）</li>
+                            <li>第一行为表头，将被跳过</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label for="file" class="form-label">选择CSV文件</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -107,6 +148,29 @@
         })
         .catch(error => {
             alert('添加失败: ' + error);
+        });
+    });
+    
+    // 导入设备类型表单提交
+    document.getElementById('importTypeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        
+        fetch('{{ url_for("main.import_equipment_types") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('导入失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('导入失败: ' + error);
         });
     });
     

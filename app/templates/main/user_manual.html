@@ -1,0 +1,751 @@
+{% extends "base.html" %}
+
+{% block title %}操作手册 - {{ role_name }}{% endblock %}
+
+{% block content %}
+<style>
+    /* 引入专业字体 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+    
+    /* 全局字体设置 */
+    .manual-wrapper,
+    .manual-wrapper * {
+        font-family: 'Noto Sans SC', 'Microsoft YaHei', '微软雅黑', 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    /* 主容器 */
+    .manual-wrapper {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    
+    /* 内容区域 */
+    .manual-content {
+        background: #ffffff;
+        padding: 3.5rem 4rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        line-height: 1.9;
+        font-size: 16px;
+        font-weight: 400;
+        color: #333;
+    }
+    
+    /* 标题编号计数器 */
+    .manual-content {
+        counter-reset: h2-counter;
+    }
+    
+    .manual-content h2 {
+        counter-reset: h3-counter;
+        counter-increment: h2-counter;
+    }
+    
+    .manual-content h3 {
+        counter-reset: h4-counter;
+        counter-increment: h3-counter;
+    }
+    
+    .manual-content h4 {
+        counter-increment: h4-counter;
+    }
+    
+    /* H1 大标题 */
+    .manual-content h1 {
+        color: #1a1a1a;
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 3rem 0 2rem 0;
+        padding-bottom: 1.2rem;
+        border-bottom: 2px solid #e8e8e8;
+        letter-spacing: 0.5px;
+    }
+    
+    .manual-content h1:first-child {
+        margin-top: 0;
+    }
+    
+    /* H2 章节标题 - 添加自动编号 */
+    .manual-content h2 {
+        color: #2c3e50;
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 2.8rem 0 1.5rem 0;
+        padding: 1rem 1.2rem;
+        background: linear-gradient(135deg, #f6f9fc 0%, #ffffff 100%);
+        border-left: 5px solid #4a90e2;
+        border-radius: 4px;
+        letter-spacing: 0.3px;
+    }
+    
+    .manual-content h2::before {
+        content: counter(h2-counter) ". ";
+        color: #4a90e2;
+        font-weight: 700;
+        margin-right: 8px;
+    }
+    
+    /* H3 小节标题 - 添加自动编号 */
+    .manual-content h3 {
+        color: #34495e;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 2.2rem 0 1.2rem 0;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid #e8e8e8;
+        letter-spacing: 0.2px;
+    }
+    
+    .manual-content h3::before {
+        content: counter(h2-counter) "." counter(h3-counter) " ";
+        color: #4a90e2;
+        font-weight: 600;
+        margin-right: 6px;
+    }
+    
+    /* H4 子标题 - 添加自动编号 */
+    .manual-content h4 {
+        color: #5a6c7d;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 1.8rem 0 1rem 0;
+        letter-spacing: 0.1px;
+    }
+    
+    .manual-content h4::before {
+        content: counter(h2-counter) "." counter(h3-counter) "." counter(h4-counter) " ";
+        color: #6c757d;
+        margin-right: 6px;
+    }
+    
+    /* 段落和文本 */
+    .manual-content p {
+        line-height: 2;
+        margin-bottom: 1.3rem;
+        color: #4a4a4a;
+        text-align: justify;
+        font-weight: 400;
+    }
+    
+    .manual-content strong,
+    .manual-content b {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    /* 列表样式 - 使用数字编号 */
+    .manual-content ul {
+        list-style: none;
+        margin: 1.5rem 0;
+        padding-left: 0;
+        counter-reset: list-counter;
+    }
+    
+    .manual-content ul > li {
+        counter-increment: list-counter;
+        margin-bottom: 1rem;
+        line-height: 2;
+        color: #4a4a4a;
+        padding-left: 2.5rem;
+        position: relative;
+    }
+    
+    .manual-content ul > li::before {
+        content: counter(list-counter) ".";
+        position: absolute;
+        left: 0;
+        color: #4a90e2;
+        font-weight: 600;
+        min-width: 1.8rem;
+    }
+    
+    /* 有序列表 */
+    .manual-content ol {
+        margin: 1.5rem 0;
+        padding-left: 2.5rem;
+        counter-reset: ol-counter;
+    }
+    
+    .manual-content ol > li {
+        counter-increment: ol-counter;
+        margin-bottom: 1rem;
+        line-height: 2;
+        color: #4a4a4a;
+        list-style: none;
+        position: relative;
+    }
+    
+    .manual-content ol > li::before {
+        content: counter(ol-counter) ".";
+        position: absolute;
+        left: -2rem;
+        color: #4a90e2;
+        font-weight: 600;
+    }
+    
+    /* 代码样式 */
+    .manual-content code {
+        background: #f8f9fa;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        color: #d63031;
+        font-size: 0.92em;
+        border: 1px solid #e8e8e8;
+        font-weight: 500;
+    }
+    
+    .manual-content pre {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1.8rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 1.8rem 0;
+        border: 1px solid #1a202c;
+        font-size: 0.95em;
+    }
+    
+    .manual-content pre code {
+        background: transparent;
+        color: #e2e8f0;
+        padding: 0;
+        border: none;
+    }
+    
+    /* 表格样式 */
+    .manual-content table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 2rem 0;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        border: 1px solid #e8e8e8;
+    }
+    
+    .manual-content table th,
+    .manual-content table td {
+        padding: 1.2rem 1.5rem;
+        text-align: left;
+        border-bottom: 1px solid #e8e8e8;
+    }
+    
+    .manual-content table th {
+        background: #f8f9fa;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 0.95em;
+        letter-spacing: 0.3px;
+        border-bottom: 2px solid #4a90e2;
+    }
+    
+    .manual-content table tbody tr {
+        transition: background-color 0.2s;
+    }
+    
+    .manual-content table tbody tr:nth-child(even) {
+        background: #fafbfc;
+    }
+    
+    .manual-content table tbody tr:hover {
+        background: #f0f7ff;
+    }
+    
+    .manual-content table td {
+        color: #4a4a4a;
+    }
+    
+    /* 引用块 */
+    .manual-content blockquote {
+        border-left: 4px solid #4a90e2;
+        margin: 2rem 0;
+        padding: 1.2rem 1.8rem;
+        background: #f8f9fa;
+        border-radius: 0 6px 6px 0;
+        color: #5a6c7d;
+        font-style: normal;
+        line-height: 1.9;
+    }
+    
+    /* 分隔线 */
+    .manual-content hr {
+        border: none;
+        height: 1px;
+        background: #e8e8e8;
+        margin: 3.5rem 0;
+    }
+    
+    /* 链接样式 */
+    .manual-content a {
+        color: #4a90e2;
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .manual-content a:hover {
+        color: #357abd;
+        border-bottom-color: #357abd;
+    }
+    
+    /* 头部横幅 */
+    .manual-header {
+        background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2);
+    }
+    
+    .manual-header h1 {
+        margin: 0;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .manual-header h1::before {
+        display: none;
+    }
+    
+    .manual-header p {
+        margin: 0.8rem 0 0 0;
+        opacity: 0.95;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+    
+    /* 导航栏 */
+    .manual-nav {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 6px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e8e8e8;
+    }
+    
+    .manual-nav h5 {
+        color: #2c3e50;
+        margin-bottom: 1.2rem;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .manual-nav .btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+    }
+    
+    .manual-nav .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    }
+    
+    /* 侧边栏目录 - 移到左侧 */
+    .manual-toc {
+        position: sticky;
+        top: 90px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        background: white;
+        padding: 2rem 1.5rem;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e8e8e8;
+    }
+    
+    .manual-toc h5 {
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        padding-bottom: 0.8rem;
+        border-bottom: 2px solid #e8e8e8;
+    }
+    
+    .manual-toc ul {
+        list-style: none;
+        padding-left: 0;
+    }
+    
+    .manual-toc ul ul {
+        padding-left: 1.5rem;
+        margin-top: 0.4rem;
+    }
+    
+    .manual-toc a {
+        color: #5a6c7d;
+        text-decoration: none;
+        display: block;
+        padding: 0.6rem 0.8rem;
+        transition: all 0.2s;
+        border-radius: 4px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        font-weight: 400;
+    }
+    
+    .manual-toc a:hover {
+        color: #4a90e2;
+        background: #f0f7ff;
+        padding-left: 1.2rem;
+    }
+    
+    .manual-toc .active {
+        color: #4a90e2;
+        font-weight: 600;
+        background: #e8f4fd;
+        border-left: 3px solid #4a90e2;
+        padding-left: 1rem;
+    }
+    
+    /* 滚动条样式 */
+    .manual-toc::-webkit-scrollbar {
+        width: 5px;
+    }
+    
+    .manual-toc::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 3px;
+    }
+    
+    .manual-toc::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 3px;
+    }
+    
+    .manual-toc::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
+    }
+    
+    /* 返回顶部按钮 */
+    .back-to-top {
+        position: fixed;
+        bottom: 2.5rem;
+        right: 2.5rem;
+        display: none;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #4a90e2;
+        color: white;
+        text-align: center;
+        line-height: 48px;
+        font-size: 18px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+        transition: all 0.3s;
+        z-index: 1000;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .back-to-top:hover {
+        transform: translateY(-3px);
+        background: #357abd;
+        box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+    }
+    
+    /* 技术支持信息框 */
+    .support-box {
+        background: #f8f9fa;
+        padding: 2.5rem;
+        border-radius: 6px;
+        margin: 3rem 0;
+        border: 1px solid #e8e8e8;
+        border-left: 4px solid #4a90e2;
+    }
+    
+    .support-box h2,
+    .support-box h3 {
+        border: none !important;
+        margin-top: 0;
+        color: #2c3e50;
+    }
+    
+    .support-box h2::before,
+    .support-box h3::before {
+        display: none !important;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 1200px) {
+        .manual-content {
+            padding: 2.5rem 3rem;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .manual-content {
+            padding: 2rem;
+            font-size: 15px;
+        }
+        
+        .manual-content h1 {
+            font-size: 1.9rem;
+        }
+        
+        .manual-content h2 {
+            font-size: 1.5rem;
+        }
+        
+        .manual-content h3 {
+            font-size: 1.2rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .manual-content {
+            padding: 1.5rem;
+        }
+        
+        .manual-toc {
+            display: none;
+        }
+    }
+    
+    /* 打印样式 */
+    @media print {
+        .manual-header,
+        .manual-nav,
+        .manual-toc,
+        .back-to-top,
+        nav,
+        footer {
+            display: none !important;
+        }
+        
+        .manual-content {
+            box-shadow: none;
+            padding: 0;
+        }
+        
+        .manual-content h1,
+        .manual-content h2,
+        .manual-content h3 {
+            page-break-after: avoid;
+        }
+        
+        .manual-content h2::before,
+        .manual-content h3::before,
+        .manual-content h4::before {
+            color: #000;
+        }
+    }
+</style>
+
+<div class="manual-wrapper">
+    <div class="manual-header">
+        <h1>皇冠新材 IT 资产管理系统 - {{ role_name }}操作手册</h1>
+        <p>专业、高效、智能的企业级IT资产管理解决方案</p>
+    </div>
+
+    {% if current_user.role == 'admin' %}
+    <div class="manual-nav">
+        <h5>切换角色手册</h5>
+        <a href="{{ url_for('main.view_manual', role_type='user') }}" class="btn btn-sm btn-outline-primary">普通员工</a>
+        <a href="{{ url_for('main.view_manual', role_type='department_head') }}" class="btn btn-sm btn-outline-success">部门主管</a>
+        <a href="{{ url_for('main.view_manual', role_type='technician') }}" class="btn btn-sm btn-outline-info">技术员</a>
+        <a href="{{ url_for('main.view_manual', role_type='admin') }}" class="btn btn-sm btn-outline-danger">系统管理员</a>
+        <button onclick="window.print()" class="btn btn-sm btn-secondary float-right">打印手册</button>
+    </div>
+    {% else %}
+    <div class="manual-nav">
+        <button onclick="window.print()" class="btn btn-sm btn-secondary">打印手册</button>
+        <a href="{{ url_for('main.index') }}" class="btn btn-sm btn-primary float-right">返回首页</a>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- 左侧目录导航 -->
+        <div class="col-lg-3 d-none d-lg-block order-lg-1">
+            <div class="manual-toc">
+                <h5>目录导航</h5>
+                <div id="tocContent"></div>
+            </div>
+        </div>
+        <!-- 右侧主要内容 -->
+        <div class="col-lg-9 col-md-12 order-lg-2">
+            <div class="manual-content">
+                {{ content|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 返回顶部按钮 -->
+<button class="back-to-top" id="backToTop" title="返回顶部">↑</button>
+
+<script>
+// 生成目录
+document.addEventListener('DOMContentLoaded', function() {
+    generateTOC();
+    setupBackToTop();
+    cleanupContent();
+});
+
+// 生成目录
+function generateTOC() {
+    var content = document.querySelector('.manual-content');
+    var tocContent = document.getElementById('tocContent');
+    
+    if (!content || !tocContent) return;
+    
+    var headings = content.querySelectorAll('h2, h3');
+    var tocHTML = '<ul>';
+    var currentLevel = 2;
+    
+    headings.forEach(function(heading, index) {
+        var level = parseInt(heading.tagName.substring(1));
+        var text = heading.textContent;
+        var id = 'heading-' + index;
+        
+        // 为标题添加ID
+        heading.id = id;
+        
+        // 构建目录
+        if (level > currentLevel) {
+            tocHTML += '<ul>';
+        } else if (level < currentLevel) {
+            tocHTML += '</ul>';
+        }
+        
+        tocHTML += '<li><a href="#' + id + '">' + text + '</a></li>';
+        currentLevel = level;
+    });
+    
+    tocHTML += '</ul>';
+    tocContent.innerHTML = tocHTML;
+    
+    // 目录点击平滑滚动
+    tocContent.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            var target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                window.scrollTo({
+                    top: target.offsetTop - 100,
+                    behavior: 'smooth'
+                });
+                
+                // 高亮当前项
+                tocContent.querySelectorAll('a').forEach(function(a) {
+                    a.classList.remove('active');
+                });
+                this.classList.add('active');
+            }
+        });
+    });
+}
+
+// 返回顶部功能
+function setupBackToTop() {
+    var backToTop = document.getElementById('backToTop');
+    
+    if (!backToTop) return;
+    
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            backToTop.style.display = 'block';
+        } else {
+            backToTop.style.display = 'none';
+        }
+    });
+    
+    backToTop.addEventListener('click', function() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+}
+
+// 清理内容中的特殊符号
+function cleanupContent() {
+    var content = document.querySelector('.manual-content');
+    if (!content) return;
+    
+    // 移除markdown中常见的emoji和特殊符号
+    var elementsToClean = content.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, th, td');
+    
+    elementsToClean.forEach(function(element) {
+        var text = element.innerHTML;
+        
+        // 移除常见的emoji
+        text = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
+        text = text.replace(/[\u{2600}-\u{26FF}]/gu, '');
+        text = text.replace(/[\u{2700}-\u{27BF}]/gu, '');
+        
+        // 移除特殊的标记符号（但保留重要的）
+        text = text.replace(/🏠|📦|📝|✅|📊|🔔|⚙️|👤|🔐/g, '');
+        text = text.replace(/💻|🔧|📋|🏷️|🔨|➕|🔩|🤝|📲/g, '');
+        text = text.replace(/📬|🔄|🗑️|🔍|📈|💰|👥|🏢/g, '');
+        text = text.replace(/📞|📧|📱|📄|📚|💡|🎯|🚀|✨|🐛/g, '');
+        
+        // 特殊处理：保留复选框符号
+        // text = text.replace(/✅/g, '√');
+        // text = text.replace(/❌/g, '×');
+        
+        element.innerHTML = text.trim();
+    });
+    
+    // 处理技术支持部分，添加样式
+    var supportSection = Array.from(content.querySelectorAll('h2')).find(function(h2) {
+        return h2.textContent.includes('技术支持');
+    });
+    
+    if (supportSection) {
+        var supportDiv = document.createElement('div');
+        supportDiv.className = 'support-box';
+        
+        var nextElement = supportSection.nextElementSibling;
+        var elementsToWrap = [supportSection];
+        
+        while (nextElement && nextElement.tagName !== 'H2') {
+            elementsToWrap.push(nextElement);
+            nextElement = nextElement.nextElementSibling;
+        }
+        
+        supportSection.parentNode.insertBefore(supportDiv, supportSection);
+        elementsToWrap.forEach(function(el) {
+            supportDiv.appendChild(el);
+        });
+    }
+}
+
+// 监听滚动，高亮当前目录项
+window.addEventListener('scroll', function() {
+    var headings = document.querySelectorAll('.manual-content h2, .manual-content h3');
+    var tocLinks = document.querySelectorAll('.manual-toc a');
+    
+    var current = '';
+    
+    headings.forEach(function(heading) {
+        var rect = heading.getBoundingClientRect();
+        if (rect.top <= 150) {
+            current = heading.id;
+        }
+    });
+    
+    tocLinks.forEach(function(link) {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+});
+</script>
+{% endblock %}

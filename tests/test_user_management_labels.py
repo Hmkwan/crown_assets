@@ -43,3 +43,8 @@ def test_user_management_contains_workflow_label_and_help_link(client, app):
 
     # check help link to approval role assign page exists
     assert '/admin/approval_roles/assign' in html
+
+    # verify the approval roles assign page is accessible for admin
+    rv2 = client.get('/admin/approval_roles/assign')
+    assert rv2.status_code == 200
+    assert '审批角色分配' in rv2.get_data(as_text=True)

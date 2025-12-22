@@ -62,7 +62,7 @@
                                     <th width="100">所属部门</th>
                                     <th width="150">自定义角色</th>
                                     <th width="180">模块权限</th>
-                                    <th width="180">审批流角色</th>
+                                    <th width="180">审批流角色 <a href="/admin/approval_roles/assign" class="small text-muted" title="分配业务审批角色">(管理业务审批角色)</a></th>
                                     <th width="320">操作</th>
                                 </tr>
                             </thead>
@@ -135,7 +135,7 @@
                                                 data-username="{{ user.username }}"
                                                 data-workflow-roles="{{ user.workflow_roles or '' }}"
                                                 title="管理审批流角色">
-                                            <i class="fas fa-user-tag"></i> 审批角色
+                                            <i class="fas fa-user-tag"></i> 审批流角色
                                         </button>
                                         <button class="btn btn-sm btn-info me-1 mb-1 manage-permissions"
                                                 data-toggle="modal" 

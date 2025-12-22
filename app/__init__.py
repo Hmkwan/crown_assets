@@ -677,6 +677,33 @@ def create_app(config_class=Config):
                     print('Patched database: added workflow_node.approver_user_ids')
                 except Exception as e:
                     print('Warning: failed to add workflow_node.approver_user_ids automatically:', e)
+            # 兼容性修补：为 workflow_node 添加 role_required_name 列（用于兼容旧库）
+            try:
+                conn.execute('SELECT role_required_name FROM workflow_node LIMIT 1')
+            except Exception:
+                try:
+                    conn.execute("ALTER TABLE workflow_node ADD COLUMN role_required_name VARCHAR(64)")
+                    print('Patched database: added workflow_node.role_required_name')
+                except Exception as e:
+                    print('Warning: failed to add workflow_node.role_required_name automatically:', e)
+            # 兼容性修补：为 chat_attachment 添加 upload_user_id 列（上传者），避免缺失导致 500
+            try:
+                conn.execute('SELECT upload_user_id FROM chat_attachment LIMIT 1')
+            except Exception:
+                try:
+                    conn.execute("ALTER TABLE chat_attachment ADD COLUMN upload_user_id INTEGER")
+                    print('Patched database: added chat_attachment.upload_user_id')
+                except Exception as e:
+                    print('Warning: failed to add chat_attachment.upload_user_id automatically:', e)
+
+            # 兼容性修补：允许 chat_attachment.message_id 为 NULL（上传时不强制关联消息），Postgres 需要 DROP NOT NULL
+            try:
+                # Try an ALTER that will succeed on Postgres
+                conn.execute("ALTER TABLE chat_attachment ALTER COLUMN message_id DROP NOT NULL")
+                print('Patched database: chat_attachment.message_id is now nullable')
+            except Exception as e:
+                # Not fatal; may already be nullable or running on DB that doesn't support this syntax
+                print('Notice: could not ensure chat_attachment.message_id nullable automatically:', e)
             # 兼容性修补:为 user 表添加新的工作流权限列
             try:
                 conn.execute('SELECT can_edit_workflow FROM app_user LIMIT 1')

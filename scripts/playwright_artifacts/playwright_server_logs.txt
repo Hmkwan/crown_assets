@@ -1,0 +1,183 @@
+time="2025-12-22T09:22:03+08:00" level=warning msg="C:\\Users\\it03.GD\\Desktop\\TEST\\docker-compose.yml: `version` is obsolete"
+equipment-management-system  | [2025-12-22 09:01:49 +0800] [1] [INFO] Starting gunicorn 23.0.0
+equipment-management-system  | [2025-12-22 09:01:49 +0800] [1] [INFO] Listening at: http://0.0.0.0:5020 (1)
+equipment-management-system  | [2025-12-22 09:01:49 +0800] [1] [INFO] Using worker: sync
+equipment-management-system  | [2025-12-22 09:01:49 +0800] [7] [INFO] Booting worker with pid: 7
+equipment-management-system  | SKIP_SOCKETIO_INIT=1，跳过 SocketIO 初始化
+equipment-management-system  | ✓ 聊天API路由已注册
+equipment-management-system  | [2025-12-22 09:01:50,654] INFO in scheduler: [调度器] 定时任务调度器已启动
+equipment-management-system  | Patched database: chat_attachment.message_id is now nullable
+equipment-management-system  | [2025-12-22 09:01:50,728] WARNING in redis_utils: ⚠ Redis连接失败(尝试 1/6): maximum recursion depth exceeded. 1s 后重试...
+equipment-management-system  | [2025-12-22 09:01:51,729] WARNING in redis_utils: ⚠ Redis连接失败(尝试 2/6): maximum recursion depth exceeded. 2s 后重试...
+equipment-management-system  | [2025-12-22 09:01:53,730] WARNING in redis_utils: ⚠ Redis连接失败(尝试 3/6): maximum recursion depth exceeded. 4s 后重试...
+equipment-management-system  | [2025-12-22 09:01:57,731] WARNING in redis_utils: ⚠ Redis连接失败(尝试 4/6): maximum recursion depth exceeded. 8s 后重试...
+equipment-management-system  | [2025-12-22 09:02:05,731] WARNING in redis_utils: ⚠ Redis连接失败(尝试 5/6): maximum recursion depth exceeded. 16s 后重试...
+equipment-management-system  | [2025-12-22 09:02:21,732] WARNING in redis_utils: ⚠ Redis连接失败(尝试 6/6): maximum recursion depth exceeded. 30s 后重试...
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:02:51 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:02:51 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:02:51 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:03:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:03:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:04:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:04:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:05:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:05:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:06:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:06:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:07:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:07:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:08:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:08:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:09:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:09:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:10:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:10:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:11:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:11:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:12:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:12:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:13:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:13:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:14:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:14:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:15:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:15:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:16:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:16:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:17:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:17:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:18:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:27 +0800] "GET / HTTP/1.1" 200 49132 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:27 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:27 +0800] "GET /favicon.ico HTTP/1.1" 404 232 "http://10.168.93.93:5020/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:28 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:30 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:31 +0800] "GET /chat/admin HTTP/1.1" 200 36750 "http://10.168.93.93:5020/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:31 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:31 +0800] "GET /api/chat/admin/conversations?page=1&per_page=20 HTTP/1.1" 200 690 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:31 +0800] "GET /api/chat/admin/users/chat-active HTTP/1.1" 200 472 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:31 +0800] "GET /api/chat/admin/statistics HTTP/1.1" 200 654 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:32 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:34 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:18:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:37 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:42 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:44 +0800] "GET /api/chat/admin/messages?page=1&per_page=50 HTTP/1.1" 200 14514 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:47 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:56 +0800] "GET /chat?conversation_id=3 HTTP/1.1" 200 34250 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:56 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1178 "http://10.168.93.93:5020/chat?conversation_id=3" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:56 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:56 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:56 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:57 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:57 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 14203 "http://10.168.93.93:5020/chat?conversation_id=3" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:59 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:18:59 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:03 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:19:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:07 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:10 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:16 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:21 +0800] "GET /statistics HTTP/1.1" 200 43419 "http://10.168.93.93:5020/chat?conversation_id=3" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:23 +0800] "GET /statistics/equipment HTTP/1.1" 200 34828 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:26 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:29 +0800] "GET /statistics HTTP/1.1" 200 43419 "http://10.168.93.93:5020/statistics/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 09:19:30 +0800] [7] [ERROR] Error handling request /statistics/export/equipment
+equipment-management-system  | Traceback (most recent call last):
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+equipment-management-system  |     self.handle_request(listener, req, client, addr)
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+equipment-management-system  |     respiter = self.wsgi(environ, resp.start_response)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2091, in __call__
+equipment-management-system  |     return self.wsgi_app(environ, start_response)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2076, in wsgi_app
+equipment-management-system  |     response = self.handle_exception(e)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2073, in wsgi_app
+equipment-management-system  |     response = self.full_dispatch_request()
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1518, in full_dispatch_request
+equipment-management-system  |     rv = self.handle_user_exception(e)
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1516, in full_dispatch_request
+equipment-management-system  |     rv = self.dispatch_request()
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:30 +0800] "GET /statistics/export/equipment HTTP/1.1" 500 0 "-" "-"
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1502, in dispatch_request
+equipment-management-system  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**req.view_args)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 272, in decorated_view
+equipment-management-system  |     return func(*args, **kwargs)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/app/app/main/statistics_routes.py", line 746, in export_statistics_xlsx
+equipment-management-system  |     eq.department.name if eq.department else '',
+equipment-management-system  |     ^^^^^^^^^^^^^^^^^^
+equipment-management-system  | AttributeError: 'str' object has no attribute 'name'
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:19:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:19:54 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:00 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:06 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:20:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:15 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:25 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:20:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /chat HTTP/1.1" 302 318 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /auth/login?next=http%3A%2F%2F10.168.93.93%3A5020%2Fchat HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "POST /auth/login HTTP/1.1" 302 218 "http://10.168.93.93:5020/auth/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /index HTTP/1.1" 200 49132 "http://10.168.93.93:5020/auth/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /chat HTTP/1.1" 200 34250 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1178 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:20:53 +0800] "GET /socket.io/?transport=websocket&EIO=4&t=1766366453.418252 HTTP/1.1" 404 232 "-" "-"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:21:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:09:21:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "GET /chat HTTP/1.1" 302 318 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "GET /auth/login?next=http%3A%2F%2F10.168.93.93%3A5020%2Fchat HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "POST /auth/login HTTP/1.1" 302 218 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "GET /index HTTP/1.1" 200 49132 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:48 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1178 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /chat HTTP/1.1" 200 34250 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/css/site.css?v=20251201-6 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/css/chat_modern.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/images/CROWN_Logo.jpg HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/vendor/moment-timezone/moment-timezone-with-data.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/vendor/polyfills/es6-promise.auto.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /static/js/realtime-notifications.js?v=20251206-3 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:49 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1178 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:50 +0800] "GET /favicon.ico HTTP/1.1" 404 232 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:50 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:52 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:21:56 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1178 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 09:22:00,353] WARNING in chat_routes: 广播 new_message 事件失败: 'NoneType' object has no attribute 'emit'
+equipment-management-system  | [2025-12-22 09:22:00,355] WARNING in socketio_handler: SocketIO未初始化,无法发送通知
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "POST /api/chat/messages HTTP/1.1" 200 208 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/workflow_templates HTTP/1.1" 200 230 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 09:22:00,395] WARNING in chat_routes: 广播审批系统消息失败: 'NoneType' object has no attribute 'emit'
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "POST /api/chat/start_workflow HTTP/1.1" 201 91 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 14987 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 09:22:00,445] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=playwright_test_file.txt, file_path=/app/app/uploads/chat/429ca0a94bea4e9eab68b7f030865f0f.txt
+equipment-management-system  | [2025-12-22 09:22:00,452] INFO in chat_routes: Attachment saved: id=15, message_id=None, file_path=/app/app/uploads/chat/429ca0a94bea4e9eab68b7f030865f0f.txt
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "POST /api/chat/attachments HTTP/1.1" 201 272 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 09:22:00,471] WARNING in chat_routes: 广播 new_message 事件失败: 'NoneType' object has no attribute 'emit'
+equipment-management-system  | [2025-12-22 09:22:00,472] WARNING in socketio_handler: SocketIO未初始化,无法发送通知
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "POST /api/chat/messages HTTP/1.1" 200 475 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 15629 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 09:22:00,587] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=test_img.png, file_path=/app/app/uploads/chat/6be98ab77f494f998f03068fa2561e9a.png
+equipment-management-system  | [2025-12-22 09:22:00,591] INFO in chat_routes: Attachment saved: id=16, message_id=None, file_path=/app/app/uploads/chat/6be98ab77f494f998f03068fa2561e9a.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "POST /api/chat/attachments HTTP/1.1" 201 291 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 09:22:00,598] INFO in chat_routes: get_thumbnail called for id=16
+equipment-management-system  | [2025-12-22 09:22:00,600] INFO in chat_routes: attachment.file_path=/app/app/uploads/chat/6be98ab77f494f998f03068fa2561e9a.png, thumbnail_path=/app/app/uploads/chat/thumb_6be98ab77f494f998f03068fa2561e9a.png, file_type=image/png
+equipment-management-system  | [2025-12-22 09:22:00,603] INFO in chat_routes: Thumbnail exists on disk: /app/app/uploads/chat/thumb_6be98ab77f494f998f03068fa2561e9a.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/attachments/16/thumbnail HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 09:22:00,614] DEBUG in chat_routes: download requested for attachment=16, path=/app/app/uploads/chat/6be98ab77f494f998f03068fa2561e9a.png
+equipment-management-system  | [2025-12-22 09:22:00,617] INFO in chat_routes: Serving file from resolved path: /app/app/uploads/chat/6be98ab77f494f998f03068fa2561e9a.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/attachments/16/download HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:00 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 15629 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:09:22:01 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"

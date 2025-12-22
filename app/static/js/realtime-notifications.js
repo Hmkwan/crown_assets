@@ -70,6 +70,26 @@
             console.log('收到通知:', data);
             handleNotification(data);
         });
+
+        // 接收聊天新消息事件, 格式: { message: {...}, conversation_id: 123 }
+        socket.on('new_message', function(data) {
+            console.log('收到新消息事件:', data);
+            try {
+                // 刷新会话列表
+                if (typeof loadConversations === 'function') { loadConversations(); }
+                // 如果当前正在查看该会话, 则刷新消息
+                if (window.currentConversation && window.currentConversation.id === data.conversation_id) {
+                    if (typeof loadMessages === 'function') { loadMessages(window.currentConversation.id); }
+                }
+
+                // 显示桌面/Toast 并播放声音
+                showToast((data.message && data.message.content) || '新消息', 'info', '新聊天消息');
+                playNotificationSound();
+                showDesktopNotification('新聊天消息', (data.message && data.message.content) || '新消息', `/chat?conversation_id=${data.conversation_id}`);
+            } catch (e) {
+                console.warn('处理 new_message 事件失败', e);
+            }
+        });
         
         // 用户上线
         socket.on('user_online', function(data) {
@@ -102,22 +122,40 @@
     // 处理通知
     function handleNotification(data) {
         const { title, message, type, link, timestamp } = data;
-        
-        // 显示Toast通知
+
+        // 如果是聊天消息, 给聊天模块机会更新会话列表和消息
+        if (type === 'new_message' && data.data && data.data.conversation_id) {
+            // 优先刷新会话列表
+            if (typeof loadConversations === 'function') {
+                try { loadConversations(); } catch (e) { console.warn('刷新会话列表失败', e); }
+            }
+            // 如果当前正在查看该会话则刷新消息
+            try {
+                if (window.currentConversation && window.currentConversation.id === data.data.conversation_id) {
+                    if (typeof loadMessages === 'function') { loadMessages(window.currentConversation.id); }
+                }
+            } catch (e) { console.warn('加载消息失败', e); }
+
+            // 显示 Toast 与 桌面通知并播放声音
+            showToast(message, 'info', title);
+            playNotificationSound();
+            showDesktopNotification(title, message, link);
+            return;
+        }
+
+        // 通用通知处理
         showToast(message, type || 'info', title);
-        
         // 播放声音
         playNotificationSound();
-        
         // 显示桌面通知
         showDesktopNotification(title, message, link);
-        
+
         // 如果有链接,可以添加点击事件
         if (link) {
             console.log('通知链接:', link);
         }
-        
-        // 更新未读消息数
+
+        // 更新未读消息数 (导航栏徽章)
         updateUnreadCount();
     }
     

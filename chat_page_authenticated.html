@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>实时聊天  皇冠新材IT资产管理系统</title>
+    <!--[if lt IE 9]>
+    <script src="/static/vendor/polyfills/html5shiv.min.js"></script>
+    <script src="/static/vendor/polyfills/respond.min.js"></script>
+    <![endif]-->
+    
+    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/site.css?v=20251201-6">
+    
+    <meta name="csrf-token" content="IjExMGE2YTBlOTg5N2MxM2Q1YTc0MDAwNTkwNGJkMDYzMmUyNzQ0ZGQi.aUZtsA.yr1ChLmvsfqRnVzyaUrvTRbuuaI">
+    <style>
+        /* 导航栏Logo样式 - 铺满左侧区域 */
+        .navbar-logo {
+            height: 48px;
+            width: auto;
+            margin-right: 12px;
+            object-fit: contain;
+        }
+        
+        /* 仪表板网格样式：等高卡片、占位样式 - 兼容旧浏览器 */
+        .dashboard-grid .card { 
+            min-height: 180px; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .card-body { 
+            -ms-flex: 1 1 auto;
+            -webkit-flex: 1 1 auto;
+            flex: 1 1 auto; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .mt-auto { margin-top: auto; }
+        .dashboard-grid .placeholder { visibility: hidden; }
+        
+        /* 页面标题样式 - 提升对比度与可读性 */
+        .page-header {
+            /* 使用 CSS 变量以便统一主题色 */
+            background: var(--header-grad-start);
+            background: -webkit-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -o-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -moz-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            color: var(--header-text);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+            /* 微妙的文字阴影让白色文字在浅色区域更清晰 */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.18);
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .page-header .lead {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+    
+<link rel="stylesheet" href="/static/css/chat_modern.css">
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-modern sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/index">
+                <img src="/static/images/CROWN_Logo.jpg" alt="Crown Logo" class="navbar-logo">
+                <span class="brand-text">皇冠新材IT资产管理系统</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-label="切换导航">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                
+                <ul class="navbar-nav me-auto">
+                    <!-- 首页 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/index">
+                            <i class="fas fa-home"></i> 首页
+                        </a>
+                    </li>
+                    
+                    
+                    <!-- 管理面板 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-tachometer-alt"></i> 管理面板
+                        </a>
+                    </li>
+                    
+                    
+                    <!-- 资产管理 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-box"></i> 资产管理
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/equipment"><i class="fas fa-laptop"></i> 设备列表</a></li>
+                            <li><a class="dropdown-item" href="/spare_parts"><i class="fas fa-cogs"></i> 配件列表</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/equipment/types"><i class="fas fa-tags"></i> 设备类型管理</a></li>
+                            
+                            
+                            <li><a class="dropdown-item" href="/spare_parts/types"><i class="fas fa-list"></i> 配件类型管理</a></li>
+                            
+                        </ul>
+                    </li>
+                    
+                    <!-- 工单管理 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-clipboard-list"></i> 工单管理
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">维修工单</h6></li>
+                            <li><a class="dropdown-item" href="/repair_orders"><i class="fas fa-wrench"></i> 维修工单列表</a></li>
+                            
+                            <li><a class="dropdown-item" href="/create_repair_order"><i class="fas fa-plus-circle"></i> 提交维修申请</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">配件申请</h6></li>
+                            <li><a class="dropdown-item" href="/part_request_orders"><i class="fas fa-toolbox"></i> 配件申请列表</a></li>
+                            
+                            <li><a class="dropdown-item" href="/create_part_request_order"><i class="fas fa-plus-circle"></i> 提交配件申请</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">其他申请</h6></li>
+                            <li><a class="dropdown-item" href="/create_loan_request"><i class="fas fa-hand-holding"></i> 设备借用申请</a></li>
+                            <li><a class="dropdown-item" href="/create_equipment_application"><i class="fas fa-file-alt"></i> 设备采购申请</a></li>
+                            <li><a class="dropdown-item" href="/create_scrap"><i class="fas fa-trash-alt"></i> 设备报废申请</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- 审批流程 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-check-circle"></i> 审批流程
+                        </a>
+                        <ul class="dropdown-menu">
+                            
+                            <li><a class="dropdown-item bg-gradient text-white" href="/simple_approvals" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><i class="fas fa-bolt"></i> <strong>快速审批</strong></a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            
+                            <li><h6 class="dropdown-header">审批工作台</h6></li>
+                            <li><a class="dropdown-item" href="/approvals"><i class="fas fa-tasks"></i> 待我审批</a></li>
+                            <li><a class="dropdown-item" href="/approval_history"><i class="fas fa-history"></i> 审批历史</a></li>
+                            <li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#workflowQueryModal"><i class="fas fa-search"></i> 流程查询</a></li>
+                            <li><a class="dropdown-item" href="/my_loans"><i class="fas fa-exchange-alt"></i> 我的借用</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">配置与治理</h6></li>
+                            <li><a class="dropdown-item" href="/admin/approval_flows"><i class="fas fa-stream"></i> 审批流程管理</a></li>
+                            <li><a class="dropdown-item" href="/admin/approval_roles"><i class="fas fa-user-shield"></i> 审批角色</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">运营工具</h6></li>
+                            <li><a class="dropdown-item" href="/admin/transfers"><i class="fas fa-dolly"></i> 调拨管理</a></li>
+                            <li><a class="dropdown-item" href="/admin/scraps"><i class="fas fa-trash-alt"></i> 报废管理</a></li>
+                            <li><a class="dropdown-item" href="/admin/approval_roles/assign"><i class="fas fa-users-cog"></i> 角色分配</a></li>
+                            
+                        </ul>
+                    </li>
+                    
+                    <!-- 报表分析 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-chart-bar"></i> 报表分析
+                        </a>
+                        <ul class="dropdown-menu">
+                            
+                            <li><a class="dropdown-item" href="/statistics"><i class="fas fa-chart-pie"></i> 统计报表中心</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/statistics/equipment"><i class="fas fa-desktop"></i> 设备统计</a></li>
+                            <li><a class="dropdown-item" href="/statistics/spare-parts"><i class="fas fa-boxes"></i> 配件统计</a></li>
+                            <li><a class="dropdown-item" href="/statistics/repair-orders"><i class="fas fa-wrench"></i> 维修工单统计</a></li>
+                            <li><a class="dropdown-item" href="/statistics/cost-analysis"><i class="fas fa-dollar-sign"></i> 成本分析</a></li>
+                            <li><a class="dropdown-item" href="/statistics/asset-lifecycle"><i class="fas fa-history"></i> 资产生命周期</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/cost-analysis"><i class="fas fa-calculator"></i> 维修成本分析</a></li>
+                            <li><a class="dropdown-item" href="/reports/approval-statistics"><i class="fas fa-chart-line"></i> 审批流程统计</a></li>
+                            <li><a class="dropdown-item" href="/reports"><i class="fas fa-file-alt"></i> 旧版报表</a></li>
+                            
+                        </ul>
+                    </li>
+                    
+                    <!-- 协作沟通 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/chat">
+                            <i class="fas fa-comments"></i> 聊天
+                            <span id="chatUnreadBadge" class="badge badge-danger" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <!-- 系统设置 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="fas fa-cog"></i> 系统设置
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/admin/users"><i class="fas fa-users"></i> 用户管理</a></li>
+                            <li><a class="dropdown-item" href="/admin/departments"><i class="fas fa-building"></i> 部门管理</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/chat/admin"><i class="fas fa-comments-dollar"></i> 聊天管理</a></li>
+                            <li><a class="dropdown-item" href="/admin/scheduler/status"><i class="fas fa-clock"></i> 定时任务管理</a></li>
+                            <li><a class="dropdown-item" href="/manual"><i class="fas fa-book"></i> 操作手册</a></li>
+                        </ul>
+                    </li>
+                    
+                </ul>
+                
+                <!-- 右侧菜单 -->
+                <ul class="navbar-nav ms-auto">
+                    
+                    
+                    <!-- 通知 -->
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="/notifications">
+                            <i class="fas fa-bell"></i> 通知
+                            
+                        </a>
+                    </li>
+                    
+                    <!-- 用户菜单 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle user-menu" href="#" data-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> admin
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-header"><i class="fas fa-id-badge"></i> 管理员</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/auth/logout"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                
+            </div>
+        </div>
+    </nav>
+
+    <!-- 流程状态查询模态框 -->
+    <div class="modal fade" id="workflowQueryModal" tabindex="-1" aria-labelledby="workflowQueryLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="workflowQueryLabel">流程状态查询</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">流程类型</label>
+              <select class="form-control" id="wfType">
+                <option value="">请选择流程类型</option>
+                <option value="repair_order">维修工单</option>
+                <option value="part_request_order">配件申请</option>
+                <option value="equipment_transfer">设备调拨</option>
+                <option value="equipment_scrap">设备报废</option>
+                <option value="equipment_loan">设备借用</option>
+                <option value="equipment_application">设备申请</option>
+              </select>
+            </div>
+            <div class="mb-3" id="wfOrderSelectGroup" style="display: none;">
+              <label class="form-label">选择工单</label>
+              <select class="form-control" id="wfOrderSelect" size="10">
+                <option value="">请先选择流程类型</option>
+              </select>
+              <small class="form-text text-muted">
+                显示您创建的工单和待您审批的工单(最近50条)
+              </small>
+            </div>
+            <div class="text-center" id="wfLoadingIndicator" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">加载中...</span>
+              </div>
+              <p class="mt-2">正在加载工单列表...</p>
+            </div>
+            <div class="alert alert-info" id="wfEmptyMessage" style="display: none;">
+              暂无相关工单
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="wfGo" disabled>查看</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main role="main" class="container-lg py-5">
+        
+        
+        
+
+        
+<div class="container-fluid mt-2">
+    <div class="chat-container">
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h4><i class="fas fa-comments"></i> 实时聊天</h4>
+                <button class="new-chat-btn" id="newChatBtn"><i class="fas fa-plus"></i> 新建会话</button>
+            </div>
+            <div class="chat-search">
+                <input type="text" placeholder="搜索会话..." id="searchInput">
+            </div>
+            <div class="conversation-list" id="conversationList">
+                <div class="loading-spinner"><div class="spinner"></div><p>连接中...</p></div>
+            </div>
+            <div class="online-status" id="onlineStatus" style="padding:12px 20px;border-top:1px solid #e4e7ed;font-size:13px;color:#909399;">
+                <i class="fas fa-circle" style="font-size:8px;color:#909399;"></i> 连接中...
+            </div>
+        </div>
+        <div class="chat-main" id="chatMain">
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <p>选择一个会话开始实时聊天</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> 新建会话</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择用户</label>
+                    <select class="form-control" id="userSelect"><option>加载中...</option></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="createBtn"><i class="fas fa-check"></i> 创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4">
+        <div class="container">
+            <p class="mb-0 footer-small">© 2025 皇冠新材料科技股份有限公司. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
+    <script src="/static/vendor/moment-timezone/moment-timezone-with-data.min.js"></script>
+    
+    
+
+    
+    <script src="/static/vendor/polyfills/es6-promise.auto.min.js"></script>
+    <script>
+        // fetch polyfill for IE11
+        if (!window.fetch) {
+            // 使用双引号包裹 Jinja 表达式，避免与外层单引号冲突
+            document.write('<script src="/static/vendor/polyfills/fetch.min.js"><\/script>');
+        }
+    </script>
+
+    
+    <script>
+        (function() {
+            // fallback for jQuery
+            if (typeof jQuery === 'undefined') {
+                var s = document.createElement('script');
+                s.src = "/static/vendor/jquery/jquery-1.12.4.min.js";
+                document.head.appendChild(s);
+            }
+            // fallback for bootstrap bundle
+            if (typeof bootstrap === 'undefined' && typeof $.fn.modal === 'undefined') {
+                var s2 = document.createElement('script');
+                s2.src = "/static/vendor/bootstrap/js/bootstrap.bundle.min.js";
+                document.head.appendChild(s2);
+            }
+            // moment fallback
+            if (typeof moment === 'undefined') {
+                var s3 = document.createElement('script');
+                s3.src = "/static/vendor/moment-timezone/moment-timezone-with-data.min.js";
+                document.head.appendChild(s3);
+            }
+        })();
+    </script>
+    <script>
+        // 将 CSRF token 暴露到全局并为 jQuery/fetch 请求自动注入 header
+        (function() {
+            try {
+                window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            } catch (e) {
+                window.CSRF_TOKEN = '';
+            }
+
+            if (window.jQuery) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                            xhr.setRequestHeader('X-CSRFToken', window.CSRF_TOKEN);
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                        }
+                    }
+                });
+            }
+
+            // 包装 fetch，自动在非安全方法中注入 CSRF header
+            if (window.fetch) {
+                const _oldFetch = window.fetch.bind(window);
+                window.fetch = function(input, init) {
+                    init = init || {};
+                    init.headers = init.headers || {};
+                    const method = (init.method || 'GET').toUpperCase();
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+                        init.headers['X-CSRFToken'] = window.CSRF_TOKEN;
+                        init.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+                    }
+                    return _oldFetch(input, init);
+                };
+            }
+        })();
+    </script>
+    <script>
+        // 设置中文与中国时区
+        (function(){
+            if (typeof moment !== 'undefined') {
+                moment.locale('zh-cn');
+                if (moment.tz) {
+                    moment.tz.setDefault('Asia/Shanghai');
+                }
+            }
+        })();
+    </script>
+    <script>
+      // 流程查询功能
+      (function(){
+        const typeSelect = document.getElementById('wfType');
+        const orderSelect = document.getElementById('wfOrderSelect');
+        const orderSelectGroup = document.getElementById('wfOrderSelectGroup');
+        const loadingIndicator = document.getElementById('wfLoadingIndicator');
+        const emptyMessage = document.getElementById('wfEmptyMessage');
+        const goBtn = document.getElementById('wfGo');
+        
+        // 监听流程类型变化
+        if(typeSelect){
+          typeSelect.addEventListener('change', function(){
+            const type = this.value;
+            
+            // 重置
+            orderSelect.innerHTML = '<option value="">加载中...</option>';
+            orderSelectGroup.style.display = 'none';
+            loadingIndicator.style.display = 'none';
+            emptyMessage.style.display = 'none';
+            goBtn.disabled = true;
+            
+            if(!type){
+              orderSelect.innerHTML = '<option value="">请先选择流程类型</option>';
+              return;
+            }
+            
+            // 显示加载指示器
+            loadingIndicator.style.display = 'block';
+            
+            // 获取工单列表
+            fetch('/api/my-workflow-orders?type=' + type)
+              .then(function(response){ return response.json(); })
+              .then(function(data){
+                loadingIndicator.style.display = 'none';
+                
+                if(data.success && data.data && data.data.length > 0){
+                  orderSelect.innerHTML = '';
+                  data.data.forEach(function(order){
+                    const option = document.createElement('option');
+                    option.value = order.id;
+                    option.textContent = order.label;
+                    if(order.is_my_approval){
+                      option.style.fontWeight = 'bold';
+                      option.style.color = '#dc3545';
+                    }
+                    orderSelect.appendChild(option);
+                  });
+                  orderSelectGroup.style.display = 'block';
+                } else {
+                  orderSelect.innerHTML = '<option value="">暂无相关工单</option>';
+                  emptyMessage.style.display = 'block';
+                }
+              })
+              .catch(function(error){
+                loadingIndicator.style.display = 'none';
+                orderSelect.innerHTML = '<option value="">加载失败,请重试</option>';
+                console.error('加载工单列表失败:', error);
+              });
+          });
+        }
+        
+        // 监听工单选择变化
+        if(orderSelect){
+          orderSelect.addEventListener('change', function(){
+            goBtn.disabled = !this.value;
+          });
+        }
+        
+        // 查看按钮点击
+        if(goBtn){
+          goBtn.addEventListener('click', function(){
+            const type = typeSelect.value;
+            const id = orderSelect.value;
+            
+            if(!type){
+              alert('请选择流程类型');
+              return;
+            }
+            if(!id){
+              alert('请选择工单');
+              return;
+            }
+            
+            window.location.href = '/workflow/status/' + type + '/' + id;
+          });
+        }
+      })();
+    </script>
+    
+    <!-- Socket.IO 实时通知：仅在已登录用户页面加载，避免未认证客户端频繁尝试连接造成噪音 -->
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/realtime-notifications.js?v=20251206-3"></script>
+    
+    
+    
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+const UID=1,UNAME="admin";
+let socket,curConv,convs=[],msgs=[],typingT;
+
+$(function(){
+  $('#newChatBtn').click(showNewChat);
+  $('#createBtn').click(createConv);
+  initWS();
+  loadConvs();
+});
+
+function initWS(){
+  console.log('[WS] 连接...');
+  socket=io({transports:['websocket','polling'],reconnection:true,reconnectionAttempts:10});
+  
+  socket.on('connect',()=>{
+    console.log('[WS] ✓ 连接成功');
+    $('#onlineStatus').html('<i class="fas fa-circle" style="font-size:8px;color:#67c23a;"></i> 在线');
+  });
+  
+  socket.on('disconnect',()=>{
+    console.log('[WS] ✗ 断开');
+    $('#onlineStatus').html('<i class="fas fa-circle" style="font-size:8px;color:#f56c6c;"></i> 离线');
+  });
+  
+  socket.on('new_message',(msg)=>{
+    console.log('[WS] 📨 新消息',msg);
+    if(curConv&&msg.conversation_id===curConv.id){
+      msgs.push(msg);
+      renderMsgs();
+      scrollBot();
+    }
+    loadConvs();
+  });
+  
+  socket.on('user_typing',(d)=>{
+    if(curConv&&d.user_id!==UID){
+      $('#typingInd').html(d.is_typing?`<i class="fas fa-circle" style="font-size:8px;animation:pulse 1s infinite;"></i> ${d.username} 正在输入...`:'');
+    }
+  });
+}
+
+function loadConvs(){
+  console.log('[API] 加载会话列表...');
+  $.get('/api/chat/conversations')
+    .done(d=>{
+      console.log('[API] ✓ 会话数据:', d);
+      convs=d.conversations||[];
+      renderConvs();
+    })
+    .fail((xhr,status,error)=>{
+      console.error('[API] ✗ 加载会话失败:', status, error, xhr.responseJSON);
+      if(xhr.status===401){
+        $('#conversationList').html('<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>未登录,请先<a href="/auth/login">登录</a></p></div>');
+      }else{
+        $('#conversationList').html(`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败: ${error}</p></div>`);
+      }
+    });
+}
+
+function renderConvs(){
+  let h='';
+  if(!convs.length){
+    h='<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无会话</p></div>';
+  }else{
+    convs.forEach(c=>{
+      const act=curConv&&curConv.id===c.id?'active':'';
+      const av=c.type==='direct'&&c.other_user?(c.other_user.real_name||c.other_user.username)[0]:(c.name||'群')[0];
+      const nm=c.name||'未命名';
+      const pv=c.last_message?c.last_message.content:'暂无消息';
+      const tm=c.last_message_time?fmtTime(c.last_message_time):'';
+      h+=`<div class="conversation-item ${act}" onclick="selConv(${c.id})">
+        <div class="conversation-avatar">${av}</div>
+        <div class="conversation-info">
+          <div class="conversation-name"><span>${esc(nm)}</span><span class="conversation-time">${tm}</span></div>
+          <div class="conversation-preview">${esc(pv)}</div>
+        </div>
+      </div>`;
+    });
+  }
+  $('#conversationList').html(h);
+}
+
+function selConv(id){
+  const c=convs.find(x=>x.id===id);
+  if(!c)return;
+  if(curConv&&socket)socket.emit('leave_conversation',{conversation_id:curConv.id});
+  curConv=c;
+  renderConvs();
+  renderChat(c);
+  loadMsgs(id);
+  if(socket)socket.emit('join_conversation',{conversation_id:id});
+}
+
+function renderChat(c){
+  const h=`
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <h5><i class="fas fa-${c.type==='group'?'users':'user'}"></i> ${esc(c.name||'未命名')}</h5>
+        <div class="chat-header-meta">
+          ${c.type==='group'?c.participant_count+'人':''}
+          <span id="typingInd" style="color:#67c23a;margin-left:10px;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMsgs"></div>
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <textarea id="msgInp" rows="2" placeholder="Enter发送" onkeydown="kd(event)" oninput="typing()"></textarea>
+        <button class="send-btn" onclick="send()"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  `;
+  $('#chatMain').html(h);
+}
+
+function loadMsgs(cid){
+  $.get(`/api/chat/conversations/${cid}/messages`,d=>{
+    msgs=d.messages||[];
+    renderMsgs();
+    scrollBot();
+  });
+}
+
+function renderMsgs(){
+  let h='';
+  if(!msgs.length){
+    h='<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无消息</p></div>';
+  }else{
+    msgs.forEach(m=>{
+      const own=m.sender_id===UID?'own':'';
+      const av=(m.sender_name||'?')[0];
+      const cnt=m.is_recalled?'<i>[已撤回]</i>':esc(m.content);
+      const tm=fmtTime(m.created_date);
+      h+=`<div class="message ${own}">
+        <div class="message-avatar">${av}</div>
+        <div class="message-content">
+          ${!own?`<div class="message-sender">${esc(m.sender_name)}</div>`:''}
+          <div class="message-bubble">${cnt}</div>
+          <div class="message-time">${tm}</div>
+        </div>
+      </div>`;
+    });
+  }
+  $('#chatMsgs').html(h);
+}
+
+function send(){
+  if(!curConv||!socket||!socket.connected)return alert('未连接');
+  const v=$('#msgInp').val().trim();
+  if(!v)return;
+  socket.emit('send_message',{conversation_id:curConv.id,content:v,message_type:'text'});
+  $('#msgInp').val('');
+  $('#typingInd').text('');
+}
+
+function typing(){
+  if(!curConv||!socket)return;
+  if(typingT)clearTimeout(typingT);
+  socket.emit('typing',{conversation_id:curConv.id,is_typing:true});
+  typingT=setTimeout(()=>socket.emit('typing',{conversation_id:curConv.id,is_typing:false}),3000);
+}
+
+function kd(e){
+  if(e.keyCode===13&&!e.shiftKey){e.preventDefault();send();}
+}
+
+function showNewChat(){
+  console.log('[UI] 打开新建会话对话框...');
+  $.get('/api/chat/users')
+    .done(d=>{
+      console.log('[API] ✓ 用户列表:', d);
+      $('#userSelect').html(d.users.map(u=>`<option value="${u.id}">${u.real_name||u.username} (${u.department||'无部门'})</option>`).join(''));
+      $('#newChatModal').modal('show');
+    })
+    .fail((xhr,status,error)=>{
+      console.error('[API] ✗ 加载用户失败:', status, error);
+      alert('加载用户列表失败: '+error);
+    });
+}
+
+function createConv(){
+  const uid=$('#userSelect').val();
+  if(!uid)return alert('请选择用户');
+  $.ajax({
+    url:'/api/chat/conversations',
+    method:'POST',
+    contentType:'application/json',
+    data:JSON.stringify({type:'direct',participant_ids:[parseInt(uid)]}),
+    success:(d)=>{
+      $('#newChatModal').modal('hide');
+      loadConvs();
+      setTimeout(()=>selConv(d.conversation.id),500);
+    }
+  });
+}
+
+function fmtTime(t){
+  const d=new Date(t),n=new Date(),df=(n-d)/1000;
+  if(df<60)return'刚刚';
+  if(df<3600)return Math.floor(df/60)+'分钟前';
+  if(df<86400)return Math.floor(df/3600)+'小时前';
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function scrollBot(){
+  setTimeout(()=>{
+    const $m=$('#chatMsgs');
+    if($m.length)$m.scrollTop($m[0].scrollHeight);
+  },100);
+}
+
+function esc(t){
+  if(!t)return'';
+  const d=document.createElement('div');
+  d.textContent=t;
+  return d.innerHTML;
+}
+</script>
+<style>
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+</style>
+
+</body>
+</html>

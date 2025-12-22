@@ -39,5 +39,5 @@ EXPOSE 5020
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5020/auth/login')" || exit 1
 
-# 启动命令(使用Gunicorn + eventlet worker支持WebSocket)
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:5020", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+# 启动命令(临时使用 sync worker 以避免 eventlet 导致的镜像启动失败，长期应修复 eventlet 依赖)
+CMD ["gunicorn", "-k", "sync", "-w", "1", "-b", "0.0.0.0:5020", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]

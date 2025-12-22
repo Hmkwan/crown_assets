@@ -1,0 +1,10 @@
+Logged in as admin (session set)
+/chat HTML status: 200
+Wrote HTML snapshot to C:\Users\it03.GD\Desktop\TEST\chat_page_authenticated.html
+Create conv status: 201 json: {'conversation': {'avatar': None, 'created_date': '2025-12-20 17:34:40', 'description': None, 'id': 1, 'is_active': True, 'last_message_time': None, 'name': 'Acceptance Group', 'participant_count': 2, 'type': 'group', 'unread_count': 0}}
+Upload attachment status: 201 json: {'attachment': {'download_url': '/api/chat/attachments/1/download', 'file_size': 20, 'file_type': 'text/plain', 'filename': 'accept.txt', 'id': 1, 'is_image': False, 'thumbnail_url': None}, 'attachment_id': 1}
+SocketIO test client unavailable or failed: 'SocketIO' object has no attribute 'test_client'
+Send message (attach) status: 200 json: {'message': {'attachments': [{'download_url': '/api/chat/attachments/1/download', 'file_size': 20, 'file_type': 'text/plain', 'filename': 'accept.txt', 'id': 1, 'is_image': False, 'thumbnail_url': None}], 'content': 'Here is a file', 'created_date': '2025-12-20T17:34:40.070979', 'id': 1, 'message_type': 'text'}, 'success': True}
+Get messages status: 200 count: 1
+Messages sample: {'has_more': False, 'messages': [{'attachments': [{'download_url': '/api/chat/attachments/1/download', 'file_size': 20, 'file_type': 'text/plain', 'filename': 'accept.txt', 'id': 1, 'is_image': False, 'thumbnail_url': None}], 'content': 'Here is a file', 'conversation_id': 1, 'created_date': '2025-12-20 17:34:40', 'id': 1, 'is_recalled': False, 'message_type': 'text', 'reply_to': None, 'sender_id': 1, 'sender_name': 'admin', 'sender_real_name': 'admin'}], 'page': 1, 'per_page': 50, 'total': 1}
+Patch conv status: 200 json: {'conversation': {'avatar': None, 'created_date': '2025-12-20 17:34:40', 'description': None, 'id': 1, 'is_active': True, 'last_message_time': '2025-12-20 17:34:40', 'name': 'Renamed By Acceptance', 'participant_count': 2, 'type': 'group', 'unread_count': 0}}

@@ -1,0 +1,75 @@
+name: Playwright Smoke Tests
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+      - master
+  pull_request: {}
+
+jobs:
+  playwright-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services: {}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m pip install playwright
+          python -m playwright install --with-deps
+
+      - name: Start services (docker-compose)
+        run: |
+          docker-compose up -d --build
+          # Wait for web to respond
+          for i in {1..30}; do
+            if curl -sS --fail http://localhost:5020/auth/login >/dev/null 2>&1; then
+              echo 'web is up'; break
+            fi
+            echo 'waiting for web...'; sleep 2
+          done
+
+      - name: Run unit tests for chat attachments
+        run: |
+          pytest -q tests/test_chat_thumbnail_and_download.py -q || true
+
+      - name: Run normalization dry-run
+        run: |
+          python scripts/normalize_attachment_paths.py --dry-run || true
+
+      - name: Run Playwright smoke script
+        run: |
+          python scripts/validate_chat_playwright.py --headless --save-screenshots
+
+      - name: Collect server logs
+        run: |
+          mkdir -p scripts/playwright_artifacts
+          docker-compose logs --tail=500 web > scripts/playwright_artifacts/playwright_server_logs.txt || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            scripts/playwright_artifacts/**
+            scripts/playwright_thumb_*.png
+            scripts/playwright_chat.png

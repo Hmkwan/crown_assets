@@ -113,7 +113,12 @@ function renderConversations() {
     const html = conversations.map(conv => {
         const isActive = currentConversation && currentConversation.id === conv.id;
         const avatar = getAvatar(conv);
-        const name = conv.name || '未命名会话';
+        // 对 direct 会话做后备显示名：优先显示会话名，其次显示对方 real_name/username
+        let name = conv.name || '';
+        if (!name && conv.type === 'direct' && conv.other_user) {
+            name = conv.other_user.real_name || conv.other_user.username;
+        }
+        if (!name) name = '未命名会话';
         const preview = getPreview(conv);
         const time = conv.last_message_time ? formatTime(conv.last_message_time) : '';
         const unread = conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : '';
@@ -167,10 +172,18 @@ function formatTime(timeStr) {
 }
 
 // 选择会话
+let joinedConversationId = null;
 function selectConversation(id) {
     const conv = conversations.find(c => c.id === id);
     if (!conv) return;
-    
+
+    // 如果之前已加入另一个会话房间，先离开
+    try {
+        if (joinedConversationId && window.RealtimeNotification) {
+            window.RealtimeNotification.send('leave_conversation', { conversation_id: joinedConversationId });
+        }
+    } catch (e) { console.warn('leave_conversation failed', e); }
+
     // 获取会话详情以便获得参与者角色等信息
     $.get(`/api/chat/conversations/${id}`, function(resp){
         const convDetail = resp.conversation || conv;
@@ -179,6 +192,7 @@ function selectConversation(id) {
         convDetail._can_edit_name = (convDetail.type === 'group') && (selfPart && (selfPart.role === 'owner' || selfPart.role === 'admin'));
 
         currentConversation = convDetail;
+        window.currentConversation = currentConversation; // expose to global for realtime handlers
         // 将会话在本地会话列表里更新
         const idx = conversations.findIndex(c => c.id === id);
         if (idx !== -1) conversations[idx] = convDetail;
@@ -186,6 +200,14 @@ function selectConversation(id) {
         renderConversations();
         renderChatArea(convDetail);
         loadMessages(id);
+
+        // 加入会话房间以接收实时消息
+        try {
+            if (window.RealtimeNotification) {
+                window.RealtimeNotification.send('join_conversation', { conversation_id: id });
+                joinedConversationId = id;
+            }
+        } catch (e) { console.warn('join_conversation failed', e); }
     }).fail(function(xhr){
         console.error('[Chat] 获取会话详情失败:', xhr.status);
     });
@@ -193,6 +215,7 @@ function selectConversation(id) {
 
 // 渲染聊天区域
 function renderChatArea(conv) {
+    window.currentConversation = conv || window.currentConversation; // ensure global reference
     const name = conv.name || '未命名会话';
     const participants = conv.type === 'group' ? `${conv.participant_count}人` : '';
     
@@ -220,6 +243,31 @@ function renderChatArea(conv) {
                 <button title="表情"><i class="fas fa-smile"></i></button>
                 <button title="附件" onclick="openFilePicker(false)"><i class="fas fa-paperclip"></i></button>
                 <button title="图片" onclick="openFilePicker(true)"><i class="fas fa-image"></i></button>
+                <button title="发送流程" onclick="openWorkflowModal()"><i class="fas fa-tasks"></i></button>
+            </div>
+
+            <!-- 流程模态框 -->
+            <div class="modal fade" id="workflowModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-tasks"></i> 选择审批模板</h5>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>模板</label>
+                                <select class="form-control" id="workflowTemplateSelect">
+                                    <option value="">正在加载...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="sendWorkflowFromChat()">发送流程</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="attachment-previews" id="attachmentPreviews"></div>
             <div class="input-wrapper">
@@ -490,6 +538,43 @@ function showNewChat() {
         ).join('');
         $('#userSelect').html(options);
         $('#newChatModal').modal('show');
+    });
+}
+
+// 打开流程选择模态
+function openWorkflowModal(){
+    if (!currentConversation) { alert('请先选择会话'); return; }
+    $('#workflowTemplateSelect').html('<option value="">加载中...</option>');
+    $.get('/api/chat/workflow_templates', function(resp){
+        const opts = (resp.templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        $('#workflowTemplateSelect').html(opts || '<option value="">无可用模板</option>');
+        $('#workflowModal').modal('show');
+    }).fail(function(xhr){
+        alert('加载模板失败');
+    });
+}
+
+// 从会话中发送流程请求
+function sendWorkflowFromChat(){
+    const tid = $('#workflowTemplateSelect').val();
+    if (!tid) { alert('请选择模板'); return; }
+    if (!currentConversation) { alert('请先选择会话'); return; }
+
+    $.ajax({
+        url: '/api/chat/start_workflow',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ conversation_id: currentConversation.id, template_id: parseInt(tid) }),
+        success: function(resp){
+            $('#workflowModal').modal('hide');
+            // 已在后端生成系统消息并广播; 刷新消息列表
+            loadMessages(currentConversation.id);
+            loadConversations();
+            alert('流程已发起');
+        },
+        error: function(xhr){
+            alert('发起失败: ' + (xhr.responseJSON?.message || '未知错误'));
+        }
     });
 }
 

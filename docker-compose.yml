@@ -76,7 +76,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - TZ=Asia/Shanghai
       # Docker容器内连接PostgreSQL数据库容器(使用服务名)
-      - DATABASE_URL=postgresql://postgres:difyai123456@postgres:15432/it_asset
+      - DATABASE_URL=postgresql://postgres:difyai123456@postgres:5432/it_asset
       # Redis配置 - 使用服务名以在 Docker 网络内解析
       - REDIS_HOST=equipment-redis
       - REDIS_PORT=6379

@@ -17,6 +17,47 @@ import os
 import uuid
 import mimetypes
 
+
+def _resolve_existing_path(path: str):
+    """尝试解析可能存在的不同路径变体并返回第一个存在的路径或 None"""
+    if not path:
+        return None
+    # 直接存在 (返回绝对路径)
+    if os.path.exists(path):
+        return os.path.abspath(path)
+    # 相对路径 -> 以 app.root_path 为基准
+    try:
+        app_root = current_app.root_path
+    except Exception:
+        app_root = None
+    if app_root:
+        candidate = os.path.join(app_root, path.lstrip(os.sep))
+        if os.path.exists(candidate):
+            return os.path.abspath(candidate)
+        # 直接在 uploads 下查找 basename
+        basename = os.path.basename(path)
+        for base in (os.path.join(app_root, 'uploads'), os.path.join(os.path.dirname(app_root), 'uploads')):
+            cand = os.path.join(base, basename)
+            if os.path.exists(cand):
+                return os.path.abspath(cand)
+        # 常见容器路径差异: 尝试替换 /app/app 与 /app
+        try:
+            if path.startswith(app_root):
+                alt = path.replace(app_root, os.path.dirname(app_root))
+                if os.path.exists(alt):
+                    return os.path.abspath(alt)
+            alt2 = path.replace(os.path.join(os.path.dirname(app_root), ''), app_root)
+            if os.path.exists(alt2):
+                return os.path.abspath(alt2)
+        except Exception:
+            pass
+    # 最后尝试 basename 在根路径下
+    basename = os.path.basename(path)
+    cand = os.path.join('/', 'uploads', 'chat', basename)
+    if os.path.exists(cand):
+        return os.path.abspath(cand)
+    return None
+
 chat_bp = Blueprint('chat', __name__, url_prefix='/api/chat')
 
 
@@ -376,6 +417,45 @@ def send_message():
         
         db.session.commit()
         
+        # 发送实时通知与更新未读计数
+        try:
+            from app.socketio_handler import socketio, send_notification_to_user
+            # 准备消息数据
+            msg_dict = message.to_dict()
+            room_name = f"conversation_{conversation_id}"
+            # 向会话房间广播新消息事件
+            try:
+                socketio.emit('new_message', {'message': msg_dict, 'conversation_id': conversation_id}, room=room_name)
+            except Exception as e:
+                current_app.logger.warning(f'广播 new_message 事件失败: {e}')
+
+            # 增加其他参与者的未读数并发送个人通知
+            others = ChatParticipant.query.filter(
+                ChatParticipant.conversation_id == conversation_id,
+                ChatParticipant.user_id != current_user.id,
+                ChatParticipant.is_left == False
+            ).all()
+            for p in others:
+                try:
+                    p.unread_count = (p.unread_count or 0) + 1
+                    db.session.add(p)
+                    send_notification_to_user(p.user_id, {
+                        'title': '新聊天消息',
+                        'message': (message.content or '')[:200],
+                        'type': 'new_message',
+                        'link': f'/chat?conversation_id={conversation_id}',
+                        'data': {
+                            'conversation_id': conversation_id,
+                            'message_id': message.id
+                        }
+                    })
+                except Exception as e:
+                    current_app.logger.error(f'通知用户 {p.user_id} 失败: {e}')
+            # 提交未读数更新
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f'发送实时通知失败: {e}')
+
         # 准备响应数据, 包含附件信息
         return jsonify({
             'success': True,
@@ -432,8 +512,11 @@ def upload_attachment():
         file_ext = os.path.splitext(filename)[1].lower()
         stored_filename = f"{uuid.uuid4().hex}{file_ext}"
         
-        # 创建上传目录
-        upload_folder = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'chat')
+        # 创建上传目录（确保为绝对路径）
+        base_upload = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        if not os.path.isabs(base_upload):
+            base_upload = os.path.join(current_app.root_path, base_upload)
+        upload_folder = os.path.join(base_upload, 'chat')
         os.makedirs(upload_folder, exist_ok=True)
         
         file_path = os.path.join(upload_folder, stored_filename)
@@ -445,9 +528,9 @@ def upload_attachment():
         # 获取MIME类型
         file_type, _ = mimetypes.guess_type(filename)
         
-        # 创建附件记录(暂不关联消息)，记录上传用户
+        # 创建附件记录(暂不关联消息)，记录上传用户；使用 None 以兼容 Postgres 的外键约束
         attachment = ChatAttachment(
-            message_id=0,  # 临时值,发送消息时更新
+            message_id=None,  # 暂不关联消息，发送消息时会在 send_message 中更新
             filename=filename,
             stored_filename=stored_filename,
             file_path=file_path,
@@ -470,8 +553,11 @@ def upload_attachment():
             except Exception as e:
                 current_app.logger.warning(f"生成缩略图失败: {e}")
         
+        # Log attachment state before commit for debugging
+        current_app.logger.info(f'Preparing to save attachment: message_id={attachment.message_id!r}, filename={attachment.filename}, file_path={file_path}')
         db.session.add(attachment)
         db.session.commit()
+        current_app.logger.info(f'Attachment saved: id={attachment.id}, message_id={attachment.message_id!r}, file_path={attachment.file_path}')
         
         return jsonify({
             'attachment': attachment.to_dict(),
@@ -490,6 +576,7 @@ def download_attachment(attachment_id):
     """下载聊天附件"""
     try:
         attachment = ChatAttachment.query.get_or_404(attachment_id)
+        current_app.logger.debug(f'download requested for attachment={attachment_id}, path={attachment.file_path}')
         
         # 检查权限(确保用户是会话参与者)
         message = attachment.message
@@ -503,8 +590,14 @@ def download_attachment(attachment_id):
             if not participant:
                 return jsonify({'error': '无权下载此文件'}), 403
         
+        resolved = _resolve_existing_path(attachment.file_path)
+        if not resolved:
+            current_app.logger.error(f'附件文件不存在: {attachment.file_path}')
+            return jsonify({'error': '文件不存在'}), 404
+
+        current_app.logger.info(f'Serving file from resolved path: {resolved}')
         return send_file(
-            attachment.file_path,
+            resolved,
             as_attachment=True,
             download_name=attachment.filename
         )
@@ -517,33 +610,148 @@ def download_attachment(attachment_id):
 @chat_bp.route('/attachments/<int:attachment_id>/thumbnail', methods=['GET'])
 @login_required
 def get_thumbnail(attachment_id):
-    """获取附件缩略图"""
+    """获取附件缩略图：
+    - 若已有缩略图文件，直接返回
+    - 若为图片但无缩略图，尝试生成并保存，然后返回
+    - 若非图片或生成失败，退回到返回原文件或返回404
+    """
     try:
+        current_app.logger.info(f'get_thumbnail called for id={attachment_id}')
         attachment = ChatAttachment.query.get_or_404(attachment_id)
-        
-        if not attachment.thumbnail_path:
-            return jsonify({'error': '该文件没有缩略图'}), 404
-        
-        # 检查权限
-        message = attachment.message
-        if message:
-            participant = ChatParticipant.query.filter_by(
-                conversation_id=message.conversation_id,
-                user_id=current_user.id,
-                is_left=False
-            ).first()
-            
-            if not participant:
-                return jsonify({'error': '无权访问此文件'}), 403
-        
-        return send_file(
-            attachment.thumbnail_path,
-            mimetype=attachment.file_type
-        )
-        
+
+        current_app.logger.info(f'attachment.file_path={attachment.file_path}, thumbnail_path={attachment.thumbnail_path}, file_type={attachment.file_type}')
+
+        # 如果已有缩略图路径并且文件存在，直接返回（支持路径变体）
+        if attachment.thumbnail_path:
+            resolved_thumb = _resolve_existing_path(attachment.thumbnail_path)
+            if resolved_thumb:
+                current_app.logger.info(f'Thumbnail exists on disk: {resolved_thumb}')
+                return send_file(resolved_thumb, mimetype=attachment.file_type)
+
+        # 解析原始文件路径的实际位置
+        resolved_orig = _resolve_existing_path(attachment.file_path)
+
+        # 如果是图片但原文件不存在，返回 404
+        if attachment.file_type and attachment.file_type.startswith('image/') and not resolved_orig:
+            current_app.logger.error(f'原始图片不存在: {attachment.file_path} for attachment {attachment_id}')
+            return jsonify({'error': '原始文件不存在'}), 404
+
+        # 如果是图片且原文件存在，尝试生成缩略图
+        if attachment.file_type and attachment.file_type.startswith('image/') and resolved_orig:
+            try:
+                upload_folder = os.path.dirname(resolved_orig)
+                thumb_name = f"thumb_{attachment.stored_filename}"
+                thumb_path = os.path.join(upload_folder, thumb_name)
+
+                with Image.open(resolved_orig) as img:
+                    img.thumbnail((300, 300), Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.ANTIALIAS)
+                    img.save(thumb_path, quality=85, optimize=True)
+
+                # 保存缩略图路径到模型（保存为绝对路径）
+                attachment.thumbnail_path = thumb_path
+                db.session.add(attachment)
+                db.session.commit()
+
+                current_app.logger.info(f'Generated thumbnail for attachment {attachment_id}: {thumb_path}')
+                return send_file(thumb_path, mimetype=attachment.file_type)
+            except Exception as e:
+                current_app.logger.error(f'生成缩略图失败 for {attachment_id}: {e}')
+                # 如果生成失败，尝试返回原文件
+                try:
+                    return send_file(resolved_orig, mimetype=attachment.file_type)
+                except Exception as e2:
+                    current_app.logger.error(f'返回原图失败 for {attachment_id}: {e2}')
+                    return jsonify({'error': '无法生成或返回缩略图'}), 500
+
+        # 如果不是图片，返回 404 表示没有缩略图
+        current_app.logger.debug(f'Attachment {attachment_id} is not an image or has no thumbnail')
+        return jsonify({'error': '该文件没有缩略图'}), 404
+
     except Exception as e:
         current_app.logger.error(f"获取缩略图失败: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ==================== 工作流相关 (Chat)
+
+@chat_bp.route('/workflow_templates', methods=['GET'])
+@login_required
+def list_workflow_templates_for_chat():
+    """返回可供聊天内发起的审批模板列表"""
+    try:
+        from app.models import WorkflowTemplate
+        # 只返回激活模板
+        templates = WorkflowTemplate.query.filter_by(is_active=True).order_by(WorkflowTemplate.created_date.desc()).all()
+        result = [{'id': t.id, 'name': t.name, 'description': t.description} for t in templates]
+        return jsonify({'success': True, 'templates': result}), 200
+    except Exception as e:
+        current_app.logger.error(f'获取聊天用工作流模板失败: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@chat_bp.route('/start_workflow', methods=['POST'])
+@login_required
+def start_workflow_from_chat():
+    """在会话中发起审批并发送系统消息通知会话成员"""
+    try:
+        data = request.get_json() or {}
+        template_id = data.get('template_id')
+        conversation_id = data.get('conversation_id')
+        if not template_id or not conversation_id:
+            return jsonify({'success': False, 'message': '缺少 template_id 或 conversation_id'}), 400
+
+        # 验证用户是会话参与者
+        part = ChatParticipant.query.filter_by(conversation_id=conversation_id, user_id=current_user.id, is_left=False).first()
+        if not part:
+            return jsonify({'success': False, 'message': '您不是该会话的参与者'}), 403
+
+        # 启动工作流 (使用 /api/approval/start 的逻辑)
+        from app.approval_models import WorkflowTemplate
+        from app.approval_engine import ApprovalEngine
+
+        template = WorkflowTemplate.query.get(template_id)
+        if not template or not template.is_active:
+            return jsonify({'success': False, 'message': '模板不可用'}), 404
+
+        # 使用会话ID作为 order_id, order_type 指定为 'chat'
+        instance = ApprovalEngine.start_workflow(
+            order_type='chat',
+            order_id=conversation_id,
+            requester_id=current_user.id,
+            template_id=template.id
+        )
+
+        # 创建系统消息通知会话成员
+        sys_message = ChatMessage(
+            conversation_id=conversation_id,
+            sender_id=current_user.id,
+            content=f'已发起审批流程: {template.name} (实例ID: {instance.id})',
+            message_type='system'
+        )
+        db.session.add(sys_message)
+        db.session.flush()
+
+        # 更新会话最后消息并广播
+        conv = ChatConversation.query.get(conversation_id)
+        if conv:
+            conv.last_message_id = sys_message.id
+            conv.last_message_time = sys_message.created_date
+
+        db.session.commit()
+
+        # 广播 new_message
+        try:
+            from app.socketio_handler import socketio
+            socketio.emit('new_message', {'message': sys_message.to_dict(), 'conversation_id': conversation_id}, room=f'conversation_{conversation_id}')
+        except Exception as e:
+            current_app.logger.warning(f'广播审批系统消息失败: {e}')
+
+        return jsonify({'success': True, 'message': '流程已发起', 'instance_id': instance.id}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'从聊天发起流程失败: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # ==================== 会话操作 ====================

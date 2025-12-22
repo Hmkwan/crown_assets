@@ -1,0 +1,400 @@
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:26:32 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:27:02 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:27:32 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:28:02 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:28:32 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:29:02 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:29:32 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:30:02 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:30:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:31:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:31:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:32:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:32:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:33:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:33:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:34:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:34:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:35:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:35:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:36:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:36:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:37:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:37:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:38:03 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:38:33 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:39:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:39:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:40:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:40:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:41:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:41:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:42:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:42:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:43:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:43:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:44:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:44:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:45:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:45:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:46:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:46:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:47:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:47:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:48:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:48:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:49:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:49:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:50:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:50:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:51:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:51:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:52:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:52:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:53:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:53:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:54:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:54:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:55:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:55:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:56:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:56:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:57:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:57:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:58:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:58:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:59:04 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:22 +0800] "GET /chat HTTP/1.1" 200 34250 "http://10.168.93.93:5020/index" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:23,117] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: GP0N6HUUd-8ZZtohAAAB)
+equipment-management-system  | [2025-12-22 07:59:23,122] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: EtQSTc3JHUb48K5cAAAD)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:23 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:26,730] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_2
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:26 +0800] "GET /api/chat/conversations/2/messages HTTP/1.1" 200 421 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:30,098] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_2
+equipment-management-system  | [2025-12-22 07:59:30,100] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_3
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:30 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 11022 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:07:59:34 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | [2025-12-22 07:59:53,516] INFO in socketio_handler: ✗ 用户断开: admin (ID: 7)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:53 +0800] "GET /chat/admin HTTP/1.1" 200 36750 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:53 +0800] "GET /api/chat/admin/users/chat-active HTTP/1.1" 200 472 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:53,626] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: ODkkLVfe9u5GNZcBAAAF)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:53 +0800] "GET /api/chat/admin/conversations?page=1&per_page=20 HTTP/1.1" 200 690 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:53 +0800] "GET /api/chat/admin/statistics HTTP/1.1" 200 653 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:56 +0800] "GET /index HTTP/1.1" 200 49164 "http://10.168.93.93:5020/chat/admin" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:56,401] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: vwvceCObtVYSR21PAAAH)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:57 +0800] "GET /chat HTTP/1.1" 200 34250 "http://10.168.93.93:5020/index" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:57,990] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: VyoZhFr2pzoM332EAAAK)
+equipment-management-system  | [2025-12-22 07:59:58,004] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: RY4dmZ_-376vACCwAAAL)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:58 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 07:59:58,784] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_3
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:07:59:58 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 11022 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:00:00,003] INFO in scheduler: [定时任务] 保养提醒检查完成,无即将到期保养 (2025-12-22 08:00)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:00:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:00:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:01:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:01:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:02:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:02:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:03:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:03:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:04:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:04:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:05:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:05:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:06:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:06:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | [2025-12-22 08:06:43,184] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_3
+equipment-management-system  | [2025-12-22 08:06:43,186] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_2
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:43 +0800] "GET /api/chat/conversations/2/messages HTTP/1.1" 200 421 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:06:44,177] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_2
+equipment-management-system  | [2025-12-22 08:06:44,178] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_2
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:44 +0800] "GET /api/chat/conversations/2/messages HTTP/1.1" 200 421 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:06:44,386] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_2
+equipment-management-system  | [2025-12-22 08:06:44,388] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_2
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:44 +0800] "GET /api/chat/conversations/2/messages HTTP/1.1" 200 421 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:06:44,839] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_2
+equipment-management-system  | [2025-12-22 08:06:44,840] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_2
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:44 +0800] "GET /api/chat/conversations/2/messages HTTP/1.1" 200 421 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:06:48,444] INFO in socketio_handler: 用户 admin 离开会话房间: conversation_2
+equipment-management-system  | [2025-12-22 08:06:48,446] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_3
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:48 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 11022 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "POST /auth/login HTTP/1.1" 302 228 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/6/thumbnail HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/6/download HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/8/thumbnail HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/8/download HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/9/thumbnail HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/9/download HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/10/thumbnail HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:06:59 +0800] "GET /api/chat/attachments/10/download HTTP/1.1" 401 72 "-" "python-requests/2.32.5"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:07:05 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | [2025-12-22 08:07:25,316] INFO in socketio_handler: ✗ 用户断开: admin (ID: 7)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:25 +0800] "GET /index HTTP/1.1" 200 49164 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:07:25,443] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: 1ELh8NgfjOOOrxOhAAAN)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:30 +0800] "GET /repair_orders HTTP/1.1" 200 28135 "http://10.168.93.93:5020/index" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:07:30,320] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: Rz8Y0cwqijZo3Yg2AAAP)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:07:35 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:36 +0800] "GET /reports HTTP/1.1" 200 39122 "http://10.168.93.93:5020/repair_orders" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:07:36,557] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: mq1tEvPiUpgH3zLYAAAR)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:38 +0800] "GET /statistics HTTP/1.1" 200 43419 "http://10.168.93.93:5020/reports" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:07:38,787] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: d1S4IPpMgs8CJerHAAAT)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:41 +0800] "GET /statistics/export/part_requests HTTP/1.1" 200 5206 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:43 +0800] "GET /statistics/export/spare_parts HTTP/1.1" 200 5476 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:44 +0800] "GET /statistics/export/transfers HTTP/1.1" 200 5193 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:45 +0800] "GET /statistics/export/loans HTTP/1.1" 200 5232 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:45 +0800] "GET /statistics/export/asset_lifecycle HTTP/1.1" 200 5164 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:46 +0800] "GET /statistics/export/cost_analysis HTTP/1.1" 200 5889 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:07:47 +0800] [7] [ERROR] Error handling request /statistics/export/equipment
+equipment-management-system  | Traceback (most recent call last):
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base_async.py", line 54, in handle
+equipment-management-system  |     self.handle_request(listener_name, req, client, addr)
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base_async.py", line 107, in handle_request
+equipment-management-system  |     respiter = self.wsgi(environ, resp.start_response)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2091, in __call__
+equipment-management-system  |     return self.wsgi_app(environ, start_response)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask_socketio/__init__.py", line 43, in __call__
+equipment-management-system  |     return super(_SocketIOMiddleware, self).__call__(environ,
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/engineio/middleware.py", line 74, in __call__
+equipment-management-system  |     return self.wsgi_app(environ, start_response)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2076, in wsgi_app
+equipment-management-system  |     response = self.handle_exception(e)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2073, in wsgi_app
+equipment-management-system  |     response = self.full_dispatch_request()
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1518, in full_dispatch_request
+equipment-management-system  |     rv = self.handle_user_exception(e)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:47 +0800] "GET /statistics/export/equipment HTTP/1.1" 500 0 "-" "-"
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1516, in full_dispatch_request
+equipment-management-system  |     rv = self.dispatch_request()
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1502, in dispatch_request
+equipment-management-system  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**req.view_args)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 272, in decorated_view
+equipment-management-system  |     return func(*args, **kwargs)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/app/app/main/statistics_routes.py", line 746, in export_statistics_xlsx
+equipment-management-system  |     eq.department.name if eq.department else '',
+equipment-management-system  |     ^^^^^^^^^^^^^^^^^^
+equipment-management-system  | AttributeError: 'str' object has no attribute 'name'
+equipment-management-system  | [2025-12-22 08:07:50 +0800] [7] [ERROR] Error handling request /statistics/export/equipment
+equipment-management-system  | Traceback (most recent call last):
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base_async.py", line 54, in handle
+equipment-management-system  |     self.handle_request(listener_name, req, client, addr)
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base_async.py", line 107, in handle_request
+equipment-management-system  |     respiter = self.wsgi(environ, resp.start_response)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2091, in __call__
+equipment-management-system  |     return self.wsgi_app(environ, start_response)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask_socketio/__init__.py", line 43, in __call__
+equipment-management-system  |     return super(_SocketIOMiddleware, self).__call__(environ,
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/engineio/middleware.py", line 74, in __call__
+equipment-management-system  |     return self.wsgi_app(environ, start_response)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2076, in wsgi_app
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:07:50 +0800] "GET /statistics/export/equipment HTTP/1.1" 500 0 "-" "-"
+equipment-management-system  |     response = self.handle_exception(e)
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 2073, in wsgi_app
+equipment-management-system  |     response = self.full_dispatch_request()
+equipment-management-system  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1518, in full_dispatch_request
+equipment-management-system  |     rv = self.handle_user_exception(e)
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1516, in full_dispatch_request
+equipment-management-system  |     rv = self.dispatch_request()
+equipment-management-system  |          ^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1502, in dispatch_request
+equipment-management-system  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**req.view_args)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 272, in decorated_view
+equipment-management-system  |     return func(*args, **kwargs)
+equipment-management-system  |            ^^^^^^^^^^^^^^^^^^^^^
+equipment-management-system  |   File "/app/app/main/statistics_routes.py", line 746, in export_statistics_xlsx
+equipment-management-system  |     eq.department.name if eq.department else '',
+equipment-management-system  |     ^^^^^^^^^^^^^^^^^^
+equipment-management-system  | AttributeError: 'str' object has no attribute 'name'
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:08:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:18 +0800] "GET /statistics/equipment HTTP/1.1" 200 34819 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:18,753] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: 7X89qtR72X0R170CAAAV)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:25 +0800] "GET /equipment HTTP/1.1" 200 47632 "http://10.168.93.93:5020/statistics/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:25,237] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: gQg7nY4vxC2IgvpkAAAX)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:08:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:36 +0800] "GET /index HTTP/1.1" 200 49152 "http://10.168.93.93:5020/statistics/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:36,389] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: yjr43DgG3l48ff3bAAAZ)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:39 +0800] "GET /equipment HTTP/1.1" 200 47632 "http://10.168.93.93:5020/index" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:39,999] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: yf1ZcMZ4g-Uu4lvDAAAb)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:42 +0800] "GET /equipment/edit/2 HTTP/1.1" 200 33692 "http://10.168.93.93:5020/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:42,957] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: w3_6LvhFyXik7-iFAAAd)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:54 +0800] "POST /equipment/edit/2 HTTP/1.1" 302 226 "http://10.168.93.93:5020/equipment/edit/2" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:08:54 +0800] "GET /equipment HTTP/1.1" 200 47968 "http://10.168.93.93:5020/equipment/edit/2" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:08:54,143] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: T9PxxTrAB5I8QsiBAAAf)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:09:00 +0800] "GET /statistics HTTP/1.1" 200 43419 "http://10.168.93.93:5020/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:09:00,606] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: _WooTIs8Vpjft9ZfAAAh)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:09:01 +0800] "GET /statistics/equipment HTTP/1.1" 200 34828 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:09:01,617] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: VVb3lyuAomGbX5O7AAAj)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:09:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:09:32 +0800] "GET /statistics HTTP/1.1" 200 43419 "http://10.168.93.93:5020/statistics/equipment" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:09:32,248] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: KokKAu4epyPS9BlrAAAl)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:09:34 +0800] "GET /statistics/repair-orders HTTP/1.1" 200 32651 "http://10.168.93.93:5020/statistics" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:09:34,150] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: Q_T4UdxArUOJYddBAAAn)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:09:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:09:39 +0800] "GET /statistics/repair-orders HTTP/1.1" 200 32651 "http://10.168.93.93:5020/statistics/repair-orders" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:09:40,035] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: AgIHAc_xQvEqXCvMAAAp)
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:10:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:10:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:11:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:11:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:12:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:12:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:13:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:13:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:14:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:14:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:15:06 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:15:36 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:16:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:16:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:17:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:17:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:18:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:18:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:19:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:19:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:20:07 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:20:37 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:21:08 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:21:38 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /chat HTTP/1.1" 302 318 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /auth/login?next=http%3A%2F%2F10.168.93.93%3A5020%2Fchat HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "POST /auth/login HTTP/1.1" 302 218 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /index HTTP/1.1" 200 49132 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /chat HTTP/1.1" 200 34250 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /static/images/CROWN_Logo.jpg HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /static/css/chat_modern.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /static/css/site.css?v=20251201-6 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:02 +0800] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:03 +0800] "GET /static/vendor/moment-timezone/moment-timezone-with-data.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:03 +0800] "GET /static/vendor/polyfills/es6-promise.auto.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:03 +0800] "GET /static/js/realtime-notifications.js?v=20251206-3 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:03 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:22:03,467] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: 4B39emXtsujNqQApAAAr)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:03 +0800] "GET /favicon.ico HTTP/1.1" 404 232 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:22:08 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:22:13,791] INFO in socketio_handler: ✓ 通知已发送给用户 8: 新聊天消息
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "POST /api/chat/messages HTTP/1.1" 200 208 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "GET /api/chat/workflow_templates HTTP/1.1" 200 230 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "POST /api/chat/start_workflow HTTP/1.1" 201 91 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:22:13,847] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_3
+equipment-management-system  | [2025-12-22 08:22:13,872] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=playwright_test_file.txt, file_path=/app/app/uploads/chat/c704390cb9044dbb975083f8b8071069.txt
+equipment-management-system  | [2025-12-22 08:22:13,879] INFO in chat_routes: Attachment saved: id=11, message_id=None, file_path=/app/app/uploads/chat/c704390cb9044dbb975083f8b8071069.txt
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "POST /api/chat/attachments HTTP/1.1" 201 272 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 11806 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:22:13,898] INFO in socketio_handler: ✓ 通知已发送给用户 8: 新聊天消息
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "POST /api/chat/messages HTTP/1.1" 200 475 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:13 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 12448 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:22:14,017] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=test_img.png, file_path=/app/app/uploads/chat/bf8b3c5c69a543288c150b7ac3415e43.png
+equipment-management-system  | [2025-12-22 08:22:14,022] INFO in chat_routes: Attachment saved: id=12, message_id=None, file_path=/app/app/uploads/chat/bf8b3c5c69a543288c150b7ac3415e43.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:14 +0800] "POST /api/chat/attachments HTTP/1.1" 201 291 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 08:22:14,029] INFO in chat_routes: get_thumbnail called for id=12
+equipment-management-system  | [2025-12-22 08:22:14,031] INFO in chat_routes: attachment.file_path=/app/app/uploads/chat/bf8b3c5c69a543288c150b7ac3415e43.png, thumbnail_path=/app/app/uploads/chat/thumb_bf8b3c5c69a543288c150b7ac3415e43.png, file_type=image/png
+equipment-management-system  | [2025-12-22 08:22:14,033] INFO in chat_routes: Thumbnail exists on disk: /app/app/uploads/chat/thumb_bf8b3c5c69a543288c150b7ac3415e43.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:14 +0800] "GET /api/chat/attachments/12/thumbnail HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 08:22:14,044] DEBUG in chat_routes: download requested for attachment=12, path=/app/app/uploads/chat/bf8b3c5c69a543288c150b7ac3415e43.png
+equipment-management-system  | [2025-12-22 08:22:14,046] INFO in chat_routes: Serving file from resolved path: /app/app/uploads/chat/bf8b3c5c69a543288c150b7ac3415e43.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:14 +0800] "GET /api/chat/attachments/12/download HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:22:14 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 12448 "-" "python-requests/2.32.5"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:22:38 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:23:08 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:23:38 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:24:08 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:24:38 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:25:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:25:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:26:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:26:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:27:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:27:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:28:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:28:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:29:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:29:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:30:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:30:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:31:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:31:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:32:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:32:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:33:09 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:33:39 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:34:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:34:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:35:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:35:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:36:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:36:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:37:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:37:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:38:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:38:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:39:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /chat HTTP/1.1" 302 318 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /auth/login?next=http%3A%2F%2F10.168.93.93%3A5020%2Fchat HTTP/1.1" 200 16564 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "POST /auth/login HTTP/1.1" 302 218 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /index HTTP/1.1" 200 49132 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /chat HTTP/1.1" 200 34250 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /static/css/site.css?v=20251201-6 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /static/css/chat_modern.css HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /static/images/CROWN_Logo.jpg HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:22 +0800] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:23 +0800] "GET /static/vendor/moment-timezone/moment-timezone-with-data.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:23 +0800] "GET /static/js/realtime-notifications.js?v=20251206-3 HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:23 +0800] "GET /static/vendor/polyfills/es6-promise.auto.min.js HTTP/1.1" 200 0 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:39:23,772] INFO in socketio_handler: ✓ 用户连接: admin (ID: 7, SID: lhbC_ecxSSWRVazBAAAt)
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:23 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:23 +0800] "GET /favicon.ico HTTP/1.1" 404 232 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:39:33,902] INFO in socketio_handler: ✓ 通知已发送给用户 8: 新聊天消息
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "POST /api/chat/messages HTTP/1.1" 200 208 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "GET /api/chat/workflow_templates HTTP/1.1" 200 230 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "POST /api/chat/start_workflow HTTP/1.1" 201 91 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:39:33,948] INFO in socketio_handler: 用户 admin 加入会话房间: conversation_3
+equipment-management-system  | [2025-12-22 08:39:33,974] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=playwright_test_file.txt, file_path=/app/app/uploads/chat/6af977e2de934a38a51809c95f26c193.txt
+equipment-management-system  | [2025-12-22 08:39:33,980] INFO in chat_routes: Attachment saved: id=13, message_id=None, file_path=/app/app/uploads/chat/6af977e2de934a38a51809c95f26c193.txt
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "POST /api/chat/attachments HTTP/1.1" 201 272 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:33 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 13232 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:39:34,002] INFO in socketio_handler: ✓ 通知已发送给用户 8: 新聊天消息
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "POST /api/chat/messages HTTP/1.1" 200 475 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 13874 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 08:39:34,098] INFO in chat_routes: Preparing to save attachment: message_id=None, filename=test_img.png, file_path=/app/app/uploads/chat/154b48c87c4a47cdb598fbd5c9c700bb.png
+equipment-management-system  | [2025-12-22 08:39:34,101] INFO in chat_routes: Attachment saved: id=14, message_id=None, file_path=/app/app/uploads/chat/154b48c87c4a47cdb598fbd5c9c700bb.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "POST /api/chat/attachments HTTP/1.1" 201 291 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 08:39:34,108] INFO in chat_routes: get_thumbnail called for id=14
+equipment-management-system  | [2025-12-22 08:39:34,109] INFO in chat_routes: attachment.file_path=/app/app/uploads/chat/154b48c87c4a47cdb598fbd5c9c700bb.png, thumbnail_path=/app/app/uploads/chat/thumb_154b48c87c4a47cdb598fbd5c9c700bb.png, file_type=image/png
+equipment-management-system  | [2025-12-22 08:39:34,111] INFO in chat_routes: Thumbnail exists on disk: /app/app/uploads/chat/thumb_154b48c87c4a47cdb598fbd5c9c700bb.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "GET /api/chat/attachments/14/thumbnail HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | [2025-12-22 08:39:34,123] DEBUG in chat_routes: download requested for attachment=14, path=/app/app/uploads/chat/154b48c87c4a47cdb598fbd5c9c700bb.png
+equipment-management-system  | [2025-12-22 08:39:34,125] INFO in chat_routes: Serving file from resolved path: /app/app/uploads/chat/154b48c87c4a47cdb598fbd5c9c700bb.png
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "GET /api/chat/attachments/14/download HTTP/1.1" 200 0 "-" "python-requests/2.32.5"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:08:39:34 +0800] "GET /api/chat/conversations/3/messages HTTP/1.1" 200 13874 "-" "python-requests/2.32.5"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:39:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:40:10 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:08:40:40 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"

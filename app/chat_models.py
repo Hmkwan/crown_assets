@@ -78,6 +78,9 @@ class ChatConversation(db.Model):
                     'real_name': getattr(other_participant.user, 'real_name', other_participant.user.username),
                     'avatar': getattr(other_participant.user, 'avatar', None)
                 }
+                # 如果会话名称为空，则使用对方用户名/真实名作为显示名（避免前端显示“未命名”）
+                if not data.get('name'):
+                    data['name'] = data['other_user'].get('real_name') or data['other_user'].get('username')
         
         # 未读消息数(如果提供了current_user_id)
         if current_user_id:
@@ -187,7 +190,8 @@ class ChatAttachment(db.Model):
     __tablename__ = 'chat_attachment'
     
     id = db.Column(db.Integer, primary_key=True)
-    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=False)
+    # 允许在上传时暂不关联消息（message_id 可为空），发送消息时再关联
+    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=True)
     
     # 文件信息
     filename = db.Column(db.String(255), nullable=False)

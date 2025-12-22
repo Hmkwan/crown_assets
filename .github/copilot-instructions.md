@@ -58,6 +58,8 @@
 - 路由/新 API：在 `scripts/print_routes.py` 或 `python app.py`（FLASK_DEBUG=True）下验证路由已注册
 - 数据库：为每个 schema 改动提交 `migrations/` SQL，并在 tests 中使用 in-memory sqlite 验证行为
 - SocketIO：若修改 socket 事件，添加对应的单元/集成测试（参照 `tests/test_chat_auto.py`）
+- Playwright / 烟雾测试：如新增 Playwright 验证脚本，请新增 CI workflow（` .github/workflows/playwright-smoke.yml`）并将 artifacts（截图、服务日志）保存到 `scripts/playwright_artifacts/`。
+- 规范化脚本：如添加 `scripts/normalize_attachment_paths.py`，在部署流程加入 dry-run 检查与 `scripts/deploy_normalize_check.py`，并在 staging 先执行 `--apply` 验证。
 
 ---
 如需我把这些要点精简为易核查的 PR Checklist 或补充某个子模块（审批/聊天/调度/迁移）快速入门片段，我可以继续把该部分展开为 10–15 条操作步骤供 CI/Reviewer 使用。请告诉我你想先改进哪一块。✅

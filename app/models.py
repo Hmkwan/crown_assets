@@ -1119,3 +1119,18 @@ class AnnouncementAttachment(db.Model):
     def __repr__(self):
         return f'<AnnouncementAttachment {self.filename}>'
 
+
+# Backwards compatibility: chat models live in app.chat_models (split file).
+# Expose Chat* symbols through app.models for tests / older imports.
+try:
+    from app.chat_models import (
+        ChatConversation,
+        ChatParticipant,
+        ChatMessage,
+        ChatAttachment,
+        ChatPermission,
+    )
+except Exception:
+    # If import fails during early app import (e.g., circular), silently ignore.
+    pass
+

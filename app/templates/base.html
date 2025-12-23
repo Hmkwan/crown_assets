@@ -13,6 +13,11 @@
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     {# Font Awesome 图标库 #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Local fallback: if CDN is blocked this will ensure icons still load (loaded with media=print & onload to avoid blocking the critical render) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    </noscript>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}?v=20251201-6">
     {# CSRF token meta，供前端 JS（fetch/ajax）使用 #}
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -528,6 +533,7 @@
     {% if current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/realtime-notifications.js') }}?v=20251206-3"></script>
+    <script src="{{ url_for('static', filename='js/realtime-notifications-fallback.js') }}?v={{ cache_version }}"></script>
     {% endif %}
     
     {% block scripts %}{% endblock %}

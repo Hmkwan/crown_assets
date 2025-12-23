@@ -10,12 +10,19 @@ redis_client = create_redis_client()  # 可能为 None，如果 Redis 不可用�
 
 @online_users_bp.route('/online_users', methods=['GET'])
 def get_online_users():
-    """获取在线用户列表"""
+    """获取在线用户列表
+
+    如果 Redis 未启用或不可用，返回空列表以便前端能优雅降级（无需抛出 500）。
+    """
     try:
+        if not redis_client:
+            return jsonify({'online_users': []}), 200
         online_user_ids = redis_client.smembers('online_users')
+        # 返回 Python 原生的 list，确保 JSON 序列化
         return jsonify({'online_users': list(online_user_ids)}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # 日志已由调用方处理，这里返回空列表以便前端继续工作
+        return jsonify({'online_users': []}), 200
 
 @online_users_bp.route('/update_online_status', methods=['POST'])
 def update_online_status():

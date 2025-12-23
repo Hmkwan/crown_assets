@@ -19,16 +19,23 @@ class ChatSystem {
         
         // 绑定事件
         this.bindEvents();
+        // 检查并显示 toolbar 图标的回退文字（当 font-awesome 被阻止或未加载时）
+        this.updateToolbarIconFallbacks();
+        // 自动加载在线用户面板内容以提升可用性
+        this.fetchOnlineUsers();
     }
     
     initSocket() {
-        // 使用已有的realtime-notifications.js中的socket
+        // 优先使用全局 socket，若不可用则尝试 RealtimeNotification 的 socket() 接口
         if (window.socket) {
             this.socket = window.socket;
-            this.registerChatEvents();
+        } else if (window.RealtimeNotification && typeof window.RealtimeNotification.socket === 'function' && window.RealtimeNotification.socket()) {
+            this.socket = window.RealtimeNotification.socket();
         } else {
             console.error('Socket.IO未初始化');
+            return;
         }
+        this.registerChatEvents();
     }
     
     registerChatEvents() {
@@ -97,6 +104,59 @@ class ChatSystem {
         document.getElementById('fileInput')?.addEventListener('change', (e) => {
             this.handleFileUpload(e.target.files);
         });
+
+        // 在线用户相关按钮
+        document.getElementById('fetch-online-users-btn')?.addEventListener('click', () => {
+            this.fetchOnlineUsers();
+        });
+
+        document.getElementById('create-conversation-btn')?.addEventListener('click', () => {
+            this.showNewChatModal();
+        });
+
+        // 键盘快捷键：Ctrl+K 或 / 聚焦会话搜索
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey && e.key.toLowerCase() === 'k') || e.key === '/') {
+                const s = document.getElementById('conversationSearch');
+                if (s) {
+                    e.preventDefault();
+                    s.focus();
+                    s.select();
+                }
+            }
+            // ESC 清除搜索焦点
+            if (e.key === 'Escape') {
+                const s = document.getElementById('conversationSearch');
+                if (s && document.activeElement === s) s.blur();
+            }
+        });
+
+        // 在窗口尺寸变化时，重新检查 icon 回退显示
+        window.addEventListener('resize', this.updateToolbarIconFallbacks.bind(this));
+
+        // 定期刷新在线用户（每60秒）
+        this._onlineRefreshInterval = setInterval(() => this.fetchOnlineUsers(), 60000);
+    }
+
+    // 检测 icon 字体是否加载，若被阻止则显示文字回退
+    updateToolbarIconFallbacks() {
+        try {
+            document.querySelectorAll('.toolbar-btn').forEach(btn => {
+                const icon = btn.querySelector('i');
+                const label = btn.querySelector('.btn-label');
+                if (!icon) return;
+                const rect = icon.getBoundingClientRect ? icon.getBoundingClientRect() : { width: 0, height: 0 };
+                if ((rect.width === 0 && rect.height === 0) && label) {
+                    label.style.display = 'inline';
+                    icon.style.display = 'none';
+                } else if (label) {
+                    label.style.display = 'none';
+                    icon.style.display = '';
+                }
+            });
+        } catch (e) {
+            console.warn('更新 toolbar 图标回退失败', e);
+        }
     }
     
     // ==================== 会话管理 ====================
@@ -104,8 +164,17 @@ class ChatSystem {
     async loadConversations() {
         console.log('[Chat] 开始加载会话列表...');
         try {
-            // 提取 CSRF 令牌
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            // 提取 CSRF 令牌（容错：若页面没有隐藏 input 则尝试从 cookie 读取或为空）
+            const csrfElem = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfElem ? csrfElem.value : (function(){
+                const name = 'csrf_token=';
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    const c = ca[i].trim();
+                    if (c.indexOf(name) === 0) return c.substring(name.length);
+                }
+                return '';
+            })();
 
             const response = await fetch('/api/chat/conversations', {
                 method: 'GET',
@@ -132,8 +201,14 @@ class ChatSystem {
             }
 
             const data = await response.json();
-            this.conversations = data.conversations;
+            this.conversations = data.conversations || [];
             console.log('[Chat] 会话列表加载成功:', this.conversations);
+
+            // 渲染会话列表并自动选中第一个会话（提升首屏可用性）
+            this.renderConversations();
+            if (!this.currentConversation && this.conversations.length > 0) {
+                setTimeout(() => this.selectConversation(this.conversations[0].id), 100);
+            }
         } catch (error) {
             console.error('[Chat] 加载会话列表失败:', error);
             this.showToast('加载会话列表失败: ' + error.message, 'error');
@@ -159,7 +234,7 @@ class ChatSystem {
         
         container.innerHTML = this.conversations.map(conv => `
             <div class="conversation-item ${conv.is_pinned ? 'pinned' : ''} ${this.currentConversation?.id === conv.id ? 'active' : ''}"
-                 data-id="${conv.id}"
+                 role="listitem" tabindex="0" data-id="${conv.id}"
                  onclick="chatSystem.selectConversation(${conv.id})">
                 <div class="conversation-avatar">
                     ${this.getConversationAvatar(conv)}
@@ -176,6 +251,16 @@ class ChatSystem {
                 </div>
             </div>
         `).join('');
+
+        // 添加键盘交互支持（Enter 键选择会话）
+        container.querySelectorAll('.conversation-item').forEach(item => {
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const id = item.dataset.id;
+                    if (id) chatSystem.selectConversation(parseInt(id));
+                }
+            });
+        });
     }
     
     getConversationName(conv) {
@@ -256,6 +341,9 @@ class ChatSystem {
                 </button>
                 <button class="chat-action-btn" onclick="chatSystem.toggleMute()">
                     <i class="fas fa-bell-slash"></i>
+                </button>
+                <button class="chat-action-btn" onclick="chatSystem.toggleOnlineUsers()" title="在线用户">
+                    <i class="fas fa-users"></i>
                 </button>
                 <button class="chat-action-btn" onclick="chatSystem.showConversationInfo()">
                     <i class="fas fa-info-circle"></i>
@@ -653,6 +741,70 @@ class ChatSystem {
     
     downloadFile(attachmentId) {
         window.location.href = `/api/chat/attachments/${attachmentId}/download`;
+    }
+
+    // 切换在线用户面板显示
+    toggleOnlineUsers() {
+        const pane = document.querySelector('.online-users-container');
+        if (!pane) return;
+        pane.classList.toggle('hidden');
+    }
+
+    // 拉取在线用户并渲染
+    async fetchOnlineUsers() {
+        try {
+            const ul = document.getElementById('online-users-list');
+            if (!ul) return;
+            // 显示加载指示
+            ul.innerHTML = `
+                <li class="list-group-item text-center py-4">
+                    <div class="spinner-border text-primary" role="status"><span class="sr-only">加载中...</span></div>
+                </li>
+            `;
+
+            // 首先获取在线用户ID列表
+            const response = await fetch('/api/online_users');
+            if (!response.ok) {
+                ul.innerHTML = '<li class="list-group-item text-muted">无法获取在线用户</li>';
+                return;
+            }
+            const data = await response.json();
+            const ids = data.online_users || [];
+
+            if (ids.length === 0) {
+                ul.innerHTML = '<li class="list-group-item text-muted">暂无在线用户</li>';
+                return;
+            }
+
+            // 获取用户详情并按在线顺序渲染
+            const usersResp = await fetch('/api/chat/users');
+            if (!usersResp.ok) {
+                // 回退到只显示ID的模式
+                ul.innerHTML = ids.map(id => `<li class="list-group-item">用户ID: ${id}</li>`).join('');
+                return;
+            }
+            const usersData = await usersResp.json();
+            const users = usersData.users || [];
+            const userMap = {};
+            users.forEach(u => { userMap[u.id] = u; });
+
+            ul.innerHTML = ids.map(id => {
+                const u = userMap[id];
+                if (u) {
+                    return `
+                        <li class="list-group-item d-flex align-items-center">
+                            <div class="avatar-sm me-2" style="width:32px;height:32px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${this.escapeHtml((u.real_name||u.username||'').charAt(0).toUpperCase())}</div>
+                            <div>${this.escapeHtml(u.real_name || u.username)}</div>
+                        </li>
+                    `;
+                }
+                return `<li class="list-group-item">用户ID: ${id}</li>`;
+            }).join('');
+        } catch (error) {
+            console.error('获取在线用户失败:', error);
+            const ul = document.getElementById('online-users-list');
+            if (ul) ul.innerHTML = '<li class="list-group-item text-muted">加载在线用户时出错</li>';
+        }
     }
     
     async showNewChatModal() {

@@ -19,10 +19,10 @@
             </div>
             
             <div class="conversation-search">
-                <input type="text" id="conversationSearch" placeholder="搜索会话..." class="form-control">
+                <input type="text" id="conversationSearch" placeholder="搜索会话..." aria-label="搜索会话" class="form-control">
             </div>
             
-            <div id="conversationItems" class="conversation-items">
+            <div id="conversationItems" class="conversation-items" role="list" aria-label="会话列表">
                 <!-- 会话列表将通过JavaScript动态加载 -->
                 <div class="text-center p-4">
                     <div class="spinner-border text-primary" role="status">
@@ -42,7 +42,7 @@
                 </div>
             </div>
             
-            <div id="chatMessages" class="chat-messages">
+            <div id="chatMessages" class="chat-messages" role="log" aria-live="polite" aria-atomic="false" tabindex="0">
                 <!-- 消息列表将通过JavaScript动态渲染 -->
             </div>
             
@@ -51,15 +51,18 @@
             </div>
             
             <div class="chat-input-area">
-                <div class="chat-toolbar">
-                    <button class="toolbar-btn" id="emojiBtn" title="表情">
-                        <i class="fas fa-smile"></i>
+                <div class="chat-toolbar" role="toolbar" aria-label="聊天工具栏">
+                    <button class="toolbar-btn" id="emojiBtn" title="表情" data-fallback="表情" aria-label="表情" tabindex="0">
+                        <i class="fas fa-smile" aria-hidden="true"></i>
+                        <span class="btn-label" style="display:none">表情</span>
                     </button>
-                    <button class="toolbar-btn" id="fileUploadBtn" title="上传文件">
-                        <i class="fas fa-paperclip"></i>
+                    <button class="toolbar-btn" id="fileUploadBtn" title="上传文件" data-fallback="附件" aria-label="上传文件" tabindex="0">
+                        <i class="fas fa-paperclip" aria-hidden="true"></i>
+                        <span class="btn-label" style="display:none">附件</span>
                     </button>
-                    <button class="toolbar-btn" id="imageUploadBtn" title="上传图片">
-                        <i class="fas fa-image"></i>
+                    <button class="toolbar-btn" id="imageUploadBtn" title="上传图片" data-fallback="图片" aria-label="上传图片" tabindex="0">
+                        <i class="fas fa-image" aria-hidden="true"></i>
+                        <span class="btn-label" style="display:none">图片</span>
                     </button>
                     <input type="file" id="fileInput" style="display: none;" accept="*/*">
                 </div>
@@ -74,7 +77,16 @@
                     </button>
                 </div>
             </div>
-        </div>
+        <!-- 右侧在线用户列表（已迁入主布局） -->
+        <div class="online-users-container">
+            <h3>在线用户</h3>
+            <button id="fetch-online-users-btn" class="btn btn-primary">刷新在线用户</button>
+            <ul id="online-users-list" class="list-group mt-2">
+                <!-- 在线用户列表将通过JavaScript动态加载 -->
+            </ul>
+            <button id="create-conversation-btn" class="btn btn-success mt-2">
+                <i class="fas fa-comments"></i> 创建会话
+            </button>        </div>
     </div>
 </div>
 
@@ -117,22 +129,15 @@
     </div>
 </div>
 
-<!-- 在线用户列表 -->
-<div class="online-users-container">
-    <h3>在线用户</h3>
-    <button id="fetch-online-users-btn" class="btn btn-primary">刷新在线用户</button>
-    <ul id="online-users-list" class="list-group mt-2">
-        <!-- 在线用户列表将通过JavaScript动态加载 -->
-    </ul>
-    <button id="create-conversation-btn" class="btn btn-success mt-2">
-        <i class="fas fa-comments"></i> 创建会话
-    </button>
-</div>
 
 <script>
 // 设置当前用户ID(用于判断消息是否为自己发送)
 window.currentUserId = {{ current_user.id }};
 </script>
+
+<!-- Hidden CSRF token for legacy scripts that read it directly -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 {% endblock %}
 
 {% block scripts %}

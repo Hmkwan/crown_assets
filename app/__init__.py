@@ -742,6 +742,20 @@ def create_app(config_class=Config):
     from app.routes.announcement_routes import announcement_bp
     app.register_blueprint(announcement_bp, url_prefix='/api')
 
+    # 开发辅助: 在调试模式或设置 DEV_ALLOW_DEV_ROUTE=1 时提供一个免登录的本地预览路由 `/ _dev/chat`。
+    # 仅允许本地回环地址访问，避免在远程环境中暴露此路由。
+    if app.debug or os.environ.get('DEV_ALLOW_DEV_ROUTE') == '1':
+        from types import SimpleNamespace
+        from flask import request, abort, render_template
+
+        @app.route('/_dev/chat')
+        def _dev_chat():
+            if request.remote_addr not in ('127.0.0.1', '::1', 'localhost'):
+                abort(403)
+            fake_user = SimpleNamespace(id=1, is_authenticated=True)
+            # 直接渲染 chat.html，传入一个伪造的 current_user 用于本地UI调试
+            return render_template('chat.html', current_user=fake_user)
+
     return app
 
 

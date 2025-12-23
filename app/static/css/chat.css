@@ -1,22 +1,102 @@
 /* 聊天系统样式 */
 
-.chat-container {
-    display: flex;
-    height: calc(100vh - 120px);
-    background: #f5f7fa;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+/* Modern layout using CSS Grid (preferred) */
+@supports (display: grid) {
+    .chat-container {
+        display: grid;
+        grid-template-columns: 320px 1fr 260px;
+        gap: 20px;
+        height: calc(100vh - 120px);
+        max-width: 1200px;
+        margin: 0 auto;
+        align-items: stretch;
+    }
+
+    .conversation-list {
+        background: white;
+        border-radius: 8px;
+        border-right: 1px solid #e4e7ed;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-window {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .online-users-container {
+        background: white;
+        border-radius: 8px;
+        padding: 12px 16px;
+        border-left: 1px solid #e4e7ed;
+        overflow: auto;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .online-users-container h3 { margin: 0 0 8px 0; font-size: 16px; }
+    .online-users-container .list-group { flex: 1; overflow: auto; }
+    .online-users-container .list-group-item { display: flex; align-items: center; gap: 10px; }
+    .avatar-sm { width: 32px; height: 32px; border-radius: 50%; font-size: 14px; }
+}
+
+/* Modern layout using flexbox (preferred) */
+@supports (display: flex) {
+    .chat-container {
+        display: flex;
+        max-width: 1200px;
+        margin: 0 auto;
+        height: calc(100vh - 120px);
+        background: #f5f7fa;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    /* 会话列表 */
+    .conversation-list {
+        width: 320px;
+        background: white;
+        border-right: 1px solid #e4e7ed;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+} 
+
+/* Legacy fallback when flexbox isn't available (or CSS failed to parse) */
+@supports not (display: flex) {
+    .chat-container {
+        display: block;
+        overflow: hidden;
+        background: #f5f7fa;
+    }
+    .conversation-list {
+        float: left;
+        width: 300px;
+        background: white;
+        border-right: 1px solid #e4e7ed;
+        box-sizing: border-box;
+    }
+    .chat-window {
+        margin-left: 300px;
+        box-sizing: border-box;
+        min-height: calc(100vh - 120px);
+    }
+    /* 清理浮动，避免布局被破坏 */
+    .chat-container::after { content: ""; display: table; clear: both; }
+    .chat-messages { min-height: calc(100vh - 240px); overflow-y: auto; }
 }
 
 /* 会话列表 */
-.conversation-list {
-    width: 300px;
-    background: white;
-    border-right: 1px solid #e4e7ed;
-    display: flex;
-    flex-direction: column;
-}
+/* (flex version continues below for common rules) */
 
 .conversation-list-header {
     padding: 20px;
@@ -65,16 +145,45 @@
 }
 
 .conversation-item {
-    padding: 15px;
+    padding: 16px 18px;
     border-bottom: 1px solid #f0f0f0;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.06s;
     display: flex;
     align-items: flex-start;
+    gap: 12px;
+    min-height: 64px; /* larger touch targets */
 }
 
 .conversation-item:hover {
     background: #f5f7fa;
+    transform: translateY(-1px);
+}
+
+/* Focus styles for keyboard navigation */
+.conversation-item:focus {
+    outline: 3px solid rgba(64,158,255,0.25);
+    outline-offset: 2px;
+    background: #f0f8ff;
+}
+
+.toolbar-btn:focus,
+.send-btn:focus,
+.new-chat-btn:focus {
+    outline: 3px solid rgba(64,158,255,0.25);
+    outline-offset: 2px;
+}
+
+/* Ensure chat input is more accessible */
+.chat-input {
+    min-height: 80px;
+    padding: 10px;
+    font-size: 15px;
+}
+
+/* Make buttons slightly larger on touch devices */
+@media (pointer: coarse) {
+    .toolbar-btn, .send-btn, .new-chat-btn { padding: 10px 14px; font-size: 16px; }
 }
 
 .conversation-item.active {
@@ -444,16 +553,38 @@
 }
 
 /* 响应式 */
+.online-users-container.hidden { display: none !important; }
+
 @media (max-width: 768px) {
     .conversation-list {
         width: 100%;
         position: absolute;
-        z-index: 10;
+        z-index: 20;
         height: 100%;
+        left: 0;
+        top: 0;
+        background: white;
     }
     
     .conversation-list.hidden {
         display: none;
+    }
+
+    .online-users-container {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 80%;
+        z-index: 20;
+        background: white;
+        height: 100%;
+        padding: 20px;
+        box-shadow: -2px 0 6px rgba(0,0,0,0.08);
+    }
+
+    .online-users-container.visible {
+        display: block;
     }
     
     .message-content {

@@ -106,6 +106,7 @@ def create_conversation():
     """创建新会话"""
     try:
         data = request.get_json()
+        current_app.logger.debug(f'create_conversation payload: {data}, user: {getattr(current_user, "id", None)}')
         conversation_type = data.get('type', 'direct')  # direct 或 group
         participant_ids = data.get('participant_ids', [])  # 参与者ID列表
         name = data.get('name')
@@ -309,6 +310,8 @@ def update_conversation(conversation_id):
         current_app.logger.error(f"更新会话失败: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+# duplicate leave_conversation route removed (kept the later implementation that sets left_date).
 
 # ==================== 消息管理 ====================
 
@@ -960,24 +963,44 @@ def delete_conversation_admin(conversation_id):
     """管理员删除会话"""
     try:
         conversation = ChatConversation.query.get_or_404(conversation_id)
-        
-        # 删除所有消息
-        ChatMessage.query.filter_by(conversation_id=conversation_id).delete()
-        
+
+        # 删除所有消息 - 分步处理以便定位可能的异常
+        try:
+            msg_q = ChatMessage.query.filter_by(conversation_id=conversation_id)
+            msg_count = msg_q.count()
+            if msg_count:
+                msg_q.delete(synchronize_session=False)
+        except Exception as ex_msg:
+            current_app.logger.error(f'删除消息失败: {ex_msg}')
+            db.session.rollback()
+            return jsonify({'error': '删除会话失败(删除消息)'}), 500
+
         # 删除所有参与者
-        ChatParticipant.query.filter_by(conversation_id=conversation_id).delete()
-        
+        try:
+            part_q = ChatParticipant.query.filter_by(conversation_id=conversation_id)
+            part_count = part_q.count()
+            if part_count:
+                part_q.delete(synchronize_session=False)
+        except Exception as ex_part:
+            current_app.logger.error(f'删除参与者失败: {ex_part}')
+            db.session.rollback()
+            return jsonify({'error': '删除会话失败(删除参与者)'}), 500
+
         # 删除会话
-        db.session.delete(conversation)
-        db.session.commit()
-        
+        try:
+            db.session.delete(conversation)
+            db.session.commit()
+        except Exception as ex_conv:
+            db.session.rollback()
+            current_app.logger.error(f'删除会话记录失败: {ex_conv}')
+            return jsonify({'error': '删除会话失败(删除记录)'}), 500
+
         return jsonify({'success': True}), 200
-        
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'删除会话失败: {str(e)}')
         return jsonify({'error': '删除会话失败'}), 500
-
 
 @chat_bp.route('/admin/messages', methods=['GET'])
 @login_required

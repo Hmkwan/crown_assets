@@ -622,14 +622,15 @@ function createConversation() {
     
     console.log('[Chat] 创建与用户', userId, '的会话');
     
+    const payload = { type: 'direct', participant_ids: [parseInt(userId)] };
+    console.debug('[Chat] 创建会话 payload:', payload);
+    // 防止重复点击
+    $('#createBtn').prop('disabled', true).text('创建中...');
     $.ajax({
         url: '/api/chat/conversations',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({
-            type: 'direct',
-            participant_ids: [parseInt(userId)]
-        }),
+        data: JSON.stringify(payload),
         success: function(data) {
             console.log('[Chat] 会话已创建:', data.conversation.id);
             $('#newChatModal').modal('hide');
@@ -637,7 +638,16 @@ function createConversation() {
             setTimeout(() => selectConversation(data.conversation.id), 500);
         },
         error: function(xhr) {
-            alert('创建失败: ' + (xhr.responseJSON?.error || '未知错误'));
+            console.error('[Chat] 创建会话失败', xhr.status, xhr.responseText);
+            let errMsg = '未知错误';
+            try {
+                const j = JSON.parse(xhr.responseText || '{}');
+                errMsg = j.error || j.message || errMsg;
+            } catch(e) {}
+            alert('创建失败: ' + errMsg + ' (状态:' + xhr.status + ')');
+        },
+        complete: function() {
+            $('#createBtn').prop('disabled', false).text('创建');
         }
     });
 }

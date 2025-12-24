@@ -2,10 +2,7 @@
 
 {% block title %}聊天 - 设备管理系统{% endblock %}
 
-{% block head %}
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+{% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_modern.css') }}?v={{ cache_version }}">
 {% endblock %}
 
@@ -16,16 +13,17 @@
         <div class="chat-sidebar">
             <div class="chat-sidebar-header">
                 <h4><i class="fas fa-comments"></i> 聊天</h4>
-                <button class="new-chat-btn" onclick="showNewChat()">
-                    <i class="fas fa-plus"></i> 新建会话
+                <button id="newChatBtn" class="new-chat-btn toolbar-btn" title="新建会话" onclick="showNewChat()">
+                    <i class="fas fa-plus"></i><span class="btn-label" style="display:none">新建</span>
                 </button>
             </div>
             
             <div class="chat-search">
-                <input type="text" placeholder="搜索会话..." id="searchInput">
+                <!-- 为兼容旧脚本与 chat.js 统一为 conversationSearch -->
+                <input type="text" placeholder="搜索会话..." id="conversationSearch">
             </div>
             
-            <div class="conversation-list" id="conversationList">
+            <div class="conversation-list" id="conversationItems">
                 <div class="loading-spinner">
                     <div class="spinner"></div>
                     <p class="mt-2">加载中...</p>
@@ -35,11 +33,83 @@
         
         <!-- 右侧聊天区域 -->
         <div class="chat-main" id="chatMain">
-            <!-- 空状态 -->
-            <div class="empty-state">
-                <i class="fas fa-comments"></i>
-                <p>选择一个会话开始聊天</p>
+            <div class="chat-header" id="chatHeader">
+                <!-- 动态渲染会话标题和操作按钮 -->
+                <div class="chat-title">请选择会话</div>
+                <div class="chat-actions">
+                    <button class="chat-action-btn toolbar-btn" id="emojiBtn" title="表情">
+                        <i class="fas fa-smile"></i><span class="btn-label" style="display:none">表情</span>
+                    </button>
+                    <button class="chat-action-btn toolbar-btn" id="fileUploadBtn" title="上传文件">
+                        <i class="fas fa-paperclip"></i><span class="btn-label" style="display:none">附件</span>
+                    </button>
+                    <input type="file" id="fileInput" style="display:none">
+                    <button class="chat-action-btn toolbar-btn" id="toggleOnlineUsersBtn" title="在线用户">
+                        <i class="fas fa-users"></i><span class="btn-label" style="display:none">在线</span>
+                    </button>
+                    <button class="chat-action-btn toolbar-btn" id="showInfoBtn" title="会话信息">
+                        <i class="fas fa-info-circle"></i><span class="btn-label" style="display:none">信息</span>
+                    </button>
+                </div>
             </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-empty">
+                    <i class="fas fa-comments"></i>
+                    <p>选择一个会话开始聊天</p>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <textarea id="chatInput" class="form-control" rows="2" placeholder="输入消息后按 Enter 发送"></textarea>
+                <button id="sendBtn" class="send-btn btn btn-primary">发送</button>
+            </div>
+        </div>
+
+        <!-- 会话信息模态框 -->
+        <div class="modal fade" id="conversationInfoModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">会话信息</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body" id="conversationInfoBody">
+                        <!-- 通过 JS 填充 -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="endConversationBtn">结束会话</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除确认模态框 -->
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">确认删除会话</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">删除会话将同时删除所有消息，且不可恢复，确定继续吗？</div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧在线用户面板 -->
+        <div class="online-users-container">
+            <h5>在线用户</h5>
+            <button id="fetch-online-users-btn" class="btn btn-sm btn-primary">刷新</button>
+            <ul id="online-users-list" class="list-group mt-2">
+                <!-- 在线用户动态加载 -->
+            </ul>
+            <button id="create-conversation-btn" class="btn btn-success btn-sm mt-2">创建会话</button>
         </div>
     </div>
 </div>
@@ -72,73 +142,37 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Socket.IO 客户端 -->
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
-const currentUserId = {{ current_user.id }};
-let currentConversation = null;
-let conversations = [];
-let messages = [];
-let pollingInterval = null;
-
-// 页面加载
-$(document).ready(function() {
-    console.log('[Chat] 页面初始化, 用户ID:', currentUserId);
-    loadConversations();
-    setInterval(loadConversations, 5000);
-});
-
-// 加载会话列表
-function loadConversations() {
-    console.log('[Chat] 加载会话列表...');
-    $.get('/api/chat/conversations', function(data) {
-        console.log('[Chat] 收到', data.conversations.length, '个会话');
-        conversations = data.conversations || [];
-        renderConversations();
-    }).fail(function(xhr) {
-        console.error('[Chat] 加载失败:', xhr.status);
-        if (xhr.status === 401) {
-            window.location.href = '/auth/login';
+    // 如果 CDN 未能加载 socket.io 客户端（或被浏览器策略阻止），尝试加载本地副本（如果项目有提供）
+    (function(){
+        function ensureSocketLoaded(){
+            if (typeof io === 'undefined'){
+                console.warn('socket.io client 未定义，尝试加载本地静态副本');
+                var s = document.createElement('script');
+                s.src = "{{ url_for('static', filename='vendor/socket.io/socket.io.min.js') }}";
+                s.onerror = function(){ console.warn('加载本地 socket.io 失败'); };
+                document.head.appendChild(s);
+            }
         }
-    });
-}
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureSocketLoaded);
+        } else { ensureSocketLoaded(); }
 
-// 渲染会话列表
-function renderConversations() {
-    const $list = $('#conversationList');
-    
-    if (conversations.length === 0) {
-        $list.html('<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无会话</p></div>');
-        return;
-    }
-    
-    const html = conversations.map(conv => {
-        const isActive = currentConversation && currentConversation.id === conv.id;
-        const avatar = getAvatar(conv);
-        // 对 direct 会话做后备显示名：优先显示会话名，其次显示对方 real_name/username
-        let name = conv.name || '';
-        if (!name && conv.type === 'direct' && conv.other_user) {
-            name = conv.other_user.real_name || conv.other_user.username;
-        }
-        if (!name) name = '未命名会话';
-        const preview = getPreview(conv);
-        const time = conv.last_message_time ? formatTime(conv.last_message_time) : '';
-        const unread = conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : '';
-        
-        return `
-        <div class="conversation-item ${isActive ? 'active' : ''}" onclick="selectConversation(${conv.id})">
-            <div class="conversation-avatar">${avatar}</div>
-            <div class="conversation-info">
-                <div class="conversation-name">
-                    <span>${escapeHtml(name)}</span>
-                    <span class="conversation-time">${time}</span>
-                </div>
-                <div class="conversation-preview">${escapeHtml(preview)}</div>
-            </div>
-            ${unread}
-        </div>`;
-    }).join('');
-    
-    $list.html(html);
-}
+        // 在短等待后如果仍然没有 io，则设置标识，让后续初始化能提示用户
+        setTimeout(function(){ if (typeof io === 'undefined') { window.__socket_client_missing = true; console.warn('socket.io 客户端未能加载 (CDN & 本地均失败)'); } }, 1500);
+    })();
+</script>
+<!-- 实时通知封装 -->
+<script src="{{ url_for('static', filename='js/realtime-notifications.js') }}?v={{ cache_version }}"></script>
+<script src="{{ url_for('static', filename='js/online-users.js') }}"></script>
+<!-- 新的 Chat 前端（基于 app/static/js/chat.js） -->
+<script>window.currentUserIsAdmin = {{ 'true' if current_user.is_admin() else 'false' }};</script>
+<script src="{{ url_for('static', filename='js/chat.js') }}?v={{ cache_version }}"></script>
+<script>
+    // Legacy inline fragment removed — rendering handled by `app/static/js/chat.js`
+
 
 // 获取头像字符
 function getAvatar(conv) {

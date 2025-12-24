@@ -116,6 +116,16 @@ $(document).ready(function() {
     loadConversations();
     // 每5秒刷新一次会话列表
     setInterval(loadConversations, 5000);
+
+    // 兼容性包装：若使用了新的 chatSystem 类，则将全局函数映射到其实例方法
+    (function(){
+        if (window.chatSystem) {
+            window.loadConversations = window.loadConversations || function(){ return window.chatSystem.loadConversations(); };
+            window.selectConversation = window.selectConversation || function(id){ return window.chatSystem.selectConversation(id); };
+            window.loadMessages = window.loadMessages || function(id){ return window.chatSystem.loadMessages(id); };
+            window.showNewChat = window.showNewChat || function(){ return window.chatSystem.showNewChatModal(); };
+        }
+    })();
 });
 
 // 加载会话列表

@@ -166,6 +166,28 @@
 </script>
 <!-- 实时通知封装 -->
 <script src="{{ url_for('static', filename='js/realtime-notifications.js') }}?v={{ cache_version }}"></script>
+<script>
+// 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。
+(function(){
+    function wrap(name, fnName) {
+        if (typeof window[name] === 'undefined') {
+            window[name] = function(){
+                try {
+                    if (window.chatSystem && typeof window.chatSystem[fnName] === 'function') {
+                        return window.chatSystem[fnName].apply(window.chatSystem, arguments);
+                    } else {
+                        console.warn(`${name} called but chatSystem not ready`);
+                    }
+                } catch(e) { console.warn(`${name} wrapper error`, e); }
+            };
+        }
+    }
+    wrap('loadConversations', 'loadConversations');
+    wrap('selectConversation', 'selectConversation');
+    wrap('loadMessages', 'loadMessages');
+    wrap('showNewChat', 'showNewChatModal');
+})();
+</script>
 <script src="{{ url_for('static', filename='js/online-users.js') }}"></script>
 <!-- 新的 Chat 前端（基于 app/static/js/chat.js） -->
 <script>window.currentUserIsAdmin = {{ 'true' if current_user.is_admin() else 'false' }};</script>

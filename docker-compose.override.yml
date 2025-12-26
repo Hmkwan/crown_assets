@@ -1,0 +1,9 @@
+version: '3.7'
+services:
+  web:
+    environment:
+      - REDIS_DISABLED=1
+      - DEV_ALLOW_DEV_ROUTE=1
+    # 如果你希望容器使用本地代码热替换（开发用），可以打开下面的 volumes
+    # volumes:
+    #   - ./:/app

@@ -736,6 +736,14 @@ def export_statistics_xlsx(report_type):
         # 获取数据
         equipments = Equipment.query.order_by(Equipment.id).all()
         for eq in equipments:
+            # department may be a string (legacy) or a relationship object; handle both
+            dept_name = ''
+            if eq.department:
+                if isinstance(eq.department, str):
+                    dept_name = eq.department
+                else:
+                    dept_name = getattr(eq.department, 'name', '')
+
             ws.append([
                 eq.id,
                 eq.name,
@@ -743,7 +751,7 @@ def export_statistics_xlsx(report_type):
                 eq.brand or '',
                 eq.model or '',
                 eq.serial_number,
-                eq.department.name if eq.department else '',
+                dept_name,
                 eq.location or '',
                 eq.status,
                 float(eq.price or 0),
@@ -781,7 +789,8 @@ def export_statistics_xlsx(report_type):
             ws.append([
                 ro.id,
                 ro.equipment.name if ro.equipment else '',
-                ro.equipment.department.name if ro.equipment and ro.equipment.department else '',
+                # department may be a string (legacy) or a relationship object; handle both
+                (ro.equipment.department if isinstance(ro.equipment.department, str) else getattr(ro.equipment.department, 'name', '')) if ro.equipment and ro.equipment.department else '',
                 ro.description or '',
                 ro.requester.real_name or ro.requester.username if ro.requester else '',
                 ro.technician.real_name or ro.technician.username if ro.technician else '',
@@ -1046,7 +1055,7 @@ def export_statistics_xlsx(report_type):
                 s.equipment.name if s.equipment else '',
                 s.equipment.equipment_number if s.equipment else '',
                 s.equipment.equipment_type.name if s.equipment and s.equipment.equipment_type else '',
-                s.equipment.department.name if s.equipment and s.equipment.department else '',
+                (s.equipment.department if isinstance(s.equipment.department, str) else getattr(s.equipment.department, 'name', '')) if s.equipment and s.equipment.department else '',
                 s.requester.username if s.requester else '',
                 s.description or '',
                 status_map.get(s.status, s.status),

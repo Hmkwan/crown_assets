@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>  皇冠新材IT资产管理系统</title>
+    <!--[if lt IE 9]>
+    <script src="/static/vendor/polyfills/html5shiv.min.js"></script>
+    <script src="/static/vendor/polyfills/respond.min.js"></script>
+    <![endif]-->
+    
+    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/site.css?v=20251201-6">
+    
+    <meta name="csrf-token" content="ImE3NzI1YmZiZGE3NGNlYjQyZTEyYzliYTc2NDNkYWJiYmMzMzRhODEi.aUoDUQ.TZKwEg9vxtSbKq1rNjv-nWT3_zw">
+    <style>
+        /* 导航栏Logo样式 - 铺满左侧区域 */
+        .navbar-logo {
+            height: 48px;
+            width: auto;
+            margin-right: 12px;
+            object-fit: contain;
+        }
+        
+        /* 仪表板网格样式：等高卡片、占位样式 - 兼容旧浏览器 */
+        .dashboard-grid .card { 
+            min-height: 180px; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .card-body { 
+            -ms-flex: 1 1 auto;
+            -webkit-flex: 1 1 auto;
+            flex: 1 1 auto; 
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -ms-flex-direction: column;
+            -webkit-flex-direction: column;
+            flex-direction: column; 
+        }
+        .dashboard-grid .card .mt-auto { margin-top: auto; }
+        .dashboard-grid .placeholder { visibility: hidden; }
+        
+        /* 页面标题样式 - 提升对比度与可读性 */
+        .page-header {
+            /* 使用 CSS 变量以便统一主题色 */
+            background: var(--header-grad-start);
+            background: -webkit-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -o-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: -moz-linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            background: linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-end) 100%);
+            color: var(--header-text);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+            /* 微妙的文字阴影让白色文字在浅色区域更清晰 */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.18);
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .page-header .lead {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+    
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-modern sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/index">
+                <img src="/static/images/CROWN_Logo.jpg" alt="Crown Logo" class="navbar-logo">
+                <span class="brand-text">皇冠新材IT资产管理系统</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-label="切换导航">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/auth/login"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                    </li>
+                </ul>
+                
+            </div>
+        </div>
+    </nav>
+
+    <!-- 流程状态查询模态框 -->
+    <div class="modal fade" id="workflowQueryModal" tabindex="-1" aria-labelledby="workflowQueryLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="workflowQueryLabel">流程状态查询</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">流程类型</label>
+              <select class="form-control" id="wfType">
+                <option value="">请选择流程类型</option>
+                <option value="repair_order">维修工单</option>
+                <option value="part_request_order">配件申请</option>
+                <option value="equipment_transfer">设备调拨</option>
+                <option value="equipment_scrap">设备报废</option>
+                <option value="equipment_loan">设备借用</option>
+                <option value="equipment_application">设备申请</option>
+              </select>
+            </div>
+            <div class="mb-3" id="wfOrderSelectGroup" style="display: none;">
+              <label class="form-label">选择工单</label>
+              <select class="form-control" id="wfOrderSelect" size="10">
+                <option value="">请先选择流程类型</option>
+              </select>
+              <small class="form-text text-muted">
+                显示您创建的工单和待您审批的工单(最近50条)
+              </small>
+            </div>
+            <div class="text-center" id="wfLoadingIndicator" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">加载中...</span>
+              </div>
+              <p class="mt-2">正在加载工单列表...</p>
+            </div>
+            <div class="alert alert-info" id="wfEmptyMessage" style="display: none;">
+              暂无相关工单
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="wfGo" disabled>查看</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main role="main" class="container-lg py-5">
+        
+        
+        
+
+        
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-md-5 col-lg-4">
+            <div class="text-center mb-4">
+                <h1 class="display-5 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    皇冠新材
+                </h1>
+                <p class="text-muted">IT资产管理系统</p>
+            </div>
+            <div class="card shadow-lg">
+                <div class="card-header text-center py-4">
+                    <h3 class="mb-0">用户登录</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        <input id="csrf_token" name="csrf_token" type="hidden" value="ImE3NzI1YmZiZGE3NGNlYjQyZTEyYzliYTc2NDNkYWJiYmMzMzRhODEi.aUoDUQ.TZKwEg9vxtSbKq1rNjv-nWT3_zw">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="username">用户名</label>
+                            <input class="form-control form-control-lg" id="username" name="username" required type="text" value="">
+                            
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="password">密码</label>
+                            <input class="form-control form-control-lg" id="password" name="password" required type="password" value="">
+                            
+                        </div>
+                        <div class="mb-4 form-check">
+                            <input class="form-check-input" id="remember_me" name="remember_me" type="checkbox" value="y">
+                            <label class="form-check-label" for="remember_me">记住我</label>
+                        </div>
+                        <div class="d-grid">
+                            <input class="btn btn-primary btn-lg" id="submit" name="submit" type="submit" value="登录">
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            没有账号？<a href="/auth/register">点击申请开通</a>
+                        </small>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4">
+        <div class="container">
+            <p class="mb-0 footer-small">© 2025 皇冠新材料科技股份有限公司. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
+    <script src="/static/vendor/moment-timezone/moment-timezone-with-data.min.js"></script>
+    
+    
+
+    
+    <script src="/static/vendor/polyfills/es6-promise.auto.min.js"></script>
+    <script>
+        // fetch polyfill for IE11
+        if (!window.fetch) {
+            // 使用双引号包裹 Jinja 表达式，避免与外层单引号冲突
+            document.write('<script src="/static/vendor/polyfills/fetch.min.js"><\/script>');
+        }
+    </script>
+
+    
+    <script>
+        (function() {
+            // fallback for jQuery
+            if (typeof jQuery === 'undefined') {
+                var s = document.createElement('script');
+                s.src = "/static/vendor/jquery/jquery-1.12.4.min.js";
+                document.head.appendChild(s);
+            }
+            // fallback for bootstrap bundle
+            if (typeof bootstrap === 'undefined' && typeof $.fn.modal === 'undefined') {
+                var s2 = document.createElement('script');
+                s2.src = "/static/vendor/bootstrap/js/bootstrap.bundle.min.js";
+                document.head.appendChild(s2);
+            }
+            // moment fallback
+            if (typeof moment === 'undefined') {
+                var s3 = document.createElement('script');
+                s3.src = "/static/vendor/moment-timezone/moment-timezone-with-data.min.js";
+                document.head.appendChild(s3);
+            }
+        })();
+    </script>
+    <script>
+        // 将 CSRF token 暴露到全局并为 jQuery/fetch 请求自动注入 header
+        (function() {
+            try {
+                window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            } catch (e) {
+                window.CSRF_TOKEN = '';
+            }
+
+            if (window.jQuery) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                            xhr.setRequestHeader('X-CSRFToken', window.CSRF_TOKEN);
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                        }
+                    }
+                });
+            }
+
+            // 包装 fetch，自动在非安全方法中注入 CSRF header
+            if (window.fetch) {
+                const _oldFetch = window.fetch.bind(window);
+                window.fetch = function(input, init) {
+                    init = init || {};
+                    init.headers = init.headers || {};
+                    const method = (init.method || 'GET').toUpperCase();
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+                        init.headers['X-CSRFToken'] = window.CSRF_TOKEN;
+                        init.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+                    }
+                    return _oldFetch(input, init);
+                };
+            }
+        })();
+    </script>
+    <script>
+        // 设置中文与中国时区
+        (function(){
+            if (typeof moment !== 'undefined') {
+                moment.locale('zh-cn');
+                if (moment.tz) {
+                    moment.tz.setDefault('Asia/Shanghai');
+                }
+            }
+        })();
+    </script>
+    <script>
+      // 流程查询功能
+      (function(){
+        const typeSelect = document.getElementById('wfType');
+        const orderSelect = document.getElementById('wfOrderSelect');
+        const orderSelectGroup = document.getElementById('wfOrderSelectGroup');
+        const loadingIndicator = document.getElementById('wfLoadingIndicator');
+        const emptyMessage = document.getElementById('wfEmptyMessage');
+        const goBtn = document.getElementById('wfGo');
+        
+        // 监听流程类型变化
+        if(typeSelect){
+          typeSelect.addEventListener('change', function(){
+            const type = this.value;
+            
+            // 重置
+            orderSelect.innerHTML = '<option value="">加载中...</option>';
+            orderSelectGroup.style.display = 'none';
+            loadingIndicator.style.display = 'none';
+            emptyMessage.style.display = 'none';
+            goBtn.disabled = true;
+            
+            if(!type){
+              orderSelect.innerHTML = '<option value="">请先选择流程类型</option>';
+              return;
+            }
+            
+            // 显示加载指示器
+            loadingIndicator.style.display = 'block';
+            
+            // 获取工单列表
+            fetch('/api/my-workflow-orders?type=' + type)
+              .then(function(response){ return response.json(); })
+              .then(function(data){
+                loadingIndicator.style.display = 'none';
+                
+                if(data.success && data.data && data.data.length > 0){
+                  orderSelect.innerHTML = '';
+                  data.data.forEach(function(order){
+                    const option = document.createElement('option');
+                    option.value = order.id;
+                    option.textContent = order.label;
+                    if(order.is_my_approval){
+                      option.style.fontWeight = 'bold';
+                      option.style.color = '#dc3545';
+                    }
+                    orderSelect.appendChild(option);
+                  });
+                  orderSelectGroup.style.display = 'block';
+                } else {
+                  orderSelect.innerHTML = '<option value="">暂无相关工单</option>';
+                  emptyMessage.style.display = 'block';
+                }
+              })
+              .catch(function(error){
+                loadingIndicator.style.display = 'none';
+                orderSelect.innerHTML = '<option value="">加载失败,请重试</option>';
+                console.error('加载工单列表失败:', error);
+              });
+          });
+        }
+        
+        // 监听工单选择变化
+        if(orderSelect){
+          orderSelect.addEventListener('change', function(){
+            goBtn.disabled = !this.value;
+          });
+        }
+        
+        // 查看按钮点击
+        if(goBtn){
+          goBtn.addEventListener('click', function(){
+            const type = typeSelect.value;
+            const id = orderSelect.value;
+            
+            if(!type){
+              alert('请选择流程类型');
+              return;
+            }
+            if(!id){
+              alert('请选择工单');
+              return;
+            }
+            
+            window.location.href = '/workflow/status/' + type + '/' + id;
+          });
+        }
+      })();
+    </script>
+    
+    <!-- Socket.IO 实时通知：仅在已登录用户页面加载，避免未认证客户端频繁尝试连接造成噪音 -->
+    
+    
+    
+</body>
+</html>

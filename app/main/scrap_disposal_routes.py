@@ -21,7 +21,7 @@ def dispose_scrap(scrap_id):
     
     if scrap.status != 'approved':
         flash('只能处置已批准的报废申请', 'warning')
-        return redirect(url_for('main.scrap_requests'))
+        return redirect(url_for('main.admin_scraps'))
     
     if request.method == 'POST':
         try:
@@ -78,7 +78,8 @@ def dispose_scrap(scrap_id):
             
             db.session.commit()
             flash(f'报废设备已处置({method_text})', 'success')
-            return redirect(url_for('main.scrap_requests'))
+            # scrap_requests endpoint 不存在，重定向到管理员报废管理页
+            return redirect(url_for('main.admin_scraps'))
             
         except Exception as e:
             db.session.rollback()

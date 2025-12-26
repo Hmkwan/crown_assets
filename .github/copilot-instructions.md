@@ -1,65 +1,48 @@
-# Copilot Instructions for IT资产管理系统
+# Copilot Instructions — IT资产管理系统
 
-精要：为 AI 编码代理提供在本仓库能快速产出可运行变更的、可执行的指南。目标是：在 1–2 次提问内做出可测试的补丁并通过本地测试。
+目的：让 AI 编码代理在 1–2 次交互内产出可运行、可测试的补丁并通过本地测试；保留关键约定、运行/测试命令、与仓库特化示例。
 
-## 一眼看懂（架构与边界）
-- Web 后端：Flask + SQLAlchemy，入口在 `app/__init__.py`（`create_app()` 负责配置DB、登录、SocketIO、调度器、蓝图注册、兼容性修补）。
-- 服务分层：路由（`app/main`, `app/api`, `app/admin` 等）只做参数/权限与响应格式，复杂业务放 `app/services/`（示例：`app/services/approval_service.py`）。
-- 实时：Flask-SocketIO + Redis（可选 message_queue），事件在 `app/socketio_handler.py` 与 `app/chat_*` 文件夹。
-- 调度：APScheduler（`app/scheduler.py`），由 `create_app()` 调用 `init_scheduler(app)`，调度任务须在 app.context 中运行或显式推送上下文。
-- 数据库迁移：仓库以 SQL 脚本和导出为主（`migrations/` 下的 `*.sql` / `*.py`），并在 `create_app()` 中有**兼容性修补**（运行时尝试自动 ADD COLUMN，便于渐进迁移）。
+## 快速概览
+- 栈：Python (3.8+) + Flask + SQLAlchemy。App 入口由 `app/__init__.py` 的 `create_app()` 创建并配置：DB、登录、SocketIO、APScheduler、蓝图。
+- 实时：基于 Flask-SocketIO（`app/socketio_handler.py`），生产通常使用 `eventlet` + Redis（参见 `docker-compose.yml`）。
+- 调度：APScheduler（`app/scheduler.py`），`create_app()` 会按环境变量初始化任务。
+- 数据库：生产使用 PostgreSQL；迁移由 Alembic 管理（`migrations/`）。注意：`create_app()` 内有运行时的兼容性 ALTER 补丁，但不要依赖其代替正式迁移脚本。
 
-## 快速上手（环境与常用命令）
-- 建议（Windows）:
-  - python -m venv .venv
-  - & .\.venv\Scripts\Activate.ps1
-  - pip install -r requirements.txt
-- 本地启动：`python app.py`（默认 host=0.0.0.0 port=5020）
-- 调试变量：`FLASK_DEBUG=True|False`（默认 5020，输出路由仅在 `FLASK_DEBUG` 打开时显示）
-- 推荐 Docker Compose：`docker-compose up --build`（包含 postgres, redis）。
+## 关键命令（直接照抄即可）
+- 本地开发：
+  - 启动：`python app.py`（默认 host=0.0.0.0 port=5020；若启用 SocketIO 则通过 socketio.run 启动）
+  - 容器化：`docker-compose up --build`（`web` 映射到 5020；包含 `postgres` & `redis`）
+  - 生产：使用 `wsgi.py`，容器/部署用 Gunicorn
+- 数据库迁移：
+  - 新建迁移：`alembic revision --autogenerate -m "<msg>"`
+  - 应用迁移：`alembic upgrade head`（在 CI/本地非破坏性验证）
+- 测试：`pytest -q`（`conftest.py` 在 session 启动时创建表并注入种子数据）
 
-## 重要环境变量（必须知道）
-- SKIP_SOCKETIO_INIT=1 — 跳过 SocketIO 初始化（用于脚本/CI，避免因 Redis 不可用而阻塞）。
-- REDIS_HOST / REDIS_PORT / REDIS_DB — SocketIO 的 message_queue（`app/socketio_handler.py` 使用 `redis://`）。
-- ENABLE_FD2_FILTER=1 — 启用底层 stderr 过滤（高级运维调试用）。
-- DATABASE_URL — 生产 DB 连接字符串（Postgres）。
+## 测试与约束（重要示例）
+- 测试安全：`conftest.py` 默认 `TEST_DATABASE_URI=sqlite:///tests_shared.db` 并阻止连接到远程 Postgres，除非设置 `FORCE_ALLOW_REMOTE_DB=1`。
+- 测试模式：`create_app()` 会检测 `PYTEST_CURRENT_TEST`、`TESTING=1` 等并启用测试友好配置（内存/SQLite、禁用 CSRF、跳过 Redis）。
+- SocketIO 测试：使用 `eventlet.monkey_patch()`（见 `tests/test_socketio_connection.py`）；如果缺少 `flask_socketio` 项目自带一个 stub 以保持多数测试可跑，确保在需要时安装 `eventlet`。
 
-## 测试与常见陷阱（实用提示）
-- 运行测试：`pytest -q`。Tests 以 `create_app()` 构建应用；常见 pattern：创建 `TestConfig` 覆盖 `SQLALCHEMY_DATABASE_URI='sqlite:///:memory:'`。
-- SocketIO 测试：需要 eventlet 的 monkey patch（示例：`tests/test_socketio_connection.py` 中 `import eventlet; eventlet.monkey_patch()`）。
-- 若 tests 在导入时因 `apscheduler`、`eventlet`、`redis` 缺失而失败，请先安装 `requirements.txt`（`APScheduler`, `eventlet`, `redis`, `Flask-SocketIO`）。
-- 脚本/CI：若需要在没有 Redis 的环境安全运行脚本，请在运行前设置 `SKIP_SOCKETIO_INIT=1`。
+## 项目约定与常见陷阱
+- 业务逻辑务必放在 `app/services/`，路由仅做参数校验/权限并调用服务层。
+- 为避免循环导入，采用延迟导入（在函数内部导入模型/服务），示例见 `create_app()` 中的 `load_user` 与 `inject_unread_notifications`。
+- `create_app()` 有自动 ALTER 补丁（缺列时尝试修复），但每次模型修改仍要提交 Alembic 迁移脚本并在 tests 中验证。
+- 日志处理：项目对 engineio/socketio 噪音做了过滤与 fd2 拦截（`ENABLE_FD2_FILTER=1`）；变动日志处理时务必在包含 socket 场景下回归测试。
+- 蓝图与路由：大多数蓝图在 `create_app()` 注册（`app.main`, `app.api`, `app.admin`, `app.chat_*` 等）。修改路由后用 `scripts/print_routes.py` 或开启 `FLASK_DEBUG=True` 验证已注册。
 
-## 代码约定（对 AI 的具体指令）
-- 将复杂逻辑放服务层：优先在 `app/services/` 添加/更改逻辑，route 负责参数验证与权限检查。
-- 延迟导入：为避免循环导入，**在函数内部**导入模型或服务（参见 `app/__init__.py` 中的 `load_user`、`inject_unread_notifications` 示例和 `app/main/inventory_routes.py`）。
-- 数据库改动：修改模型时同时添加 `migrations/*.sql` 或 `migrations/versions/*.py` 对应脚本；写测试用 in-memory sqlite 验证行为。
-- 日志与噪音：底层有针对 engineio/socketio 的日志过滤与 stderr 拦截（见 `app/__init__.py` 的过滤实现），变更日志时注意不要破坏这些过滤器。
+## 有用的环境变量（常用）
+- `SKIP_SOCKETIO_INIT=1`：跳过 SocketIO 初始化（CI/脚本中避免依赖 Redis）。
+- `REDIS_DISABLED=1`：禁用 Redis，SocketIO 回退到内存模式。
+- `REDIS_HOST/REDIS_PORT/REDIS_DB`：消息队列配置（Docker 默认服务名为 `equipment-redis`）。
+- `SCHEDULER_ENABLED` / `SCHEDULER_JOBS`：控制调度器与单任务启停。
+- `ENABLE_FD2_FILTER=1`：启用 stderr 过滤（调试/运维用途）。
 
-## SocketIO / Redis 注意事项（具体示例）
-- 初始化位置：`create_app()` 内调用 `app.socketio = init_socketio(app)`（看 `app/socketio_handler.py: init_socketio`），async_mode 固定为 `eventlet`。
-- message_queue：如果 Redis 不可用，handler 会降级为内存模式（`message_queue=None`），但有功能差异；测试时注意模拟或跳过 Redis。
-- 客户端事件示例：`join_conversation`、`send_message`、`typing`。实现中会做权限检查并在房间内 broadcast（参见 `app/socketio_handler.py`）。
-
-## 调度（APScheduler）和兼容性修补
-- `init_scheduler(app)` 在 `app/scheduler.py` 中定义；APScheduler 是必需依赖以启用定时任务。
-- `create_app()` 启动期间有一段**兼容性修补**逻辑，会尝试通过 `ALTER TABLE ADD COLUMN` 自动修复缺失列（便于老库直接启动）。请在做正式 schema 更改时同时提交迁移脚本到 `migrations/`，不要仅依赖运行时修补。
-
-## 常见文件与示例（查阅优先级）
-- 核心：`app/__init__.py`, `app/socketio_handler.py`, `app/scheduler.py`, `requirements.txt`
-- 服务：`app/services/*.py`（业务逻辑实现）
-- 路由：`app/main/*.py`, `app/api/*.py`, `app/admin/*`（蓝图注册在 `create_app()` 中）
-- 脚本：`scripts/print_routes.py`, `scripts/init_workflow_templates.py`（如何使用 `create_app()`）
-- 迁移：`migrations/*.sql`, `migrations/README_SQLite_to_RDBMS.md`
-- 测试样例：`tests/test_socketio_connection.py`（演示 eventlet monkey-patch 与 socketio 测试），`tests/*` 其余文件展示典型测试模式
-
-## 小提示 / 常见 PR checklist ✅
-- 包：在本地先 pip install -r requirements.txt 并确认 `pytest -q` 通过
-- 路由/新 API：在 `scripts/print_routes.py` 或 `python app.py`（FLASK_DEBUG=True）下验证路由已注册
-- 数据库：为每个 schema 改动提交 `migrations/` SQL，并在 tests 中使用 in-memory sqlite 验证行为
-- SocketIO：若修改 socket 事件，添加对应的单元/集成测试（参照 `tests/test_chat_auto.py`）
-- Playwright / 烟雾测试：如新增 Playwright 验证脚本，请新增 CI workflow（` .github/workflows/playwright-smoke.yml`）并将 artifacts（截图、服务日志）保存到 `scripts/playwright_artifacts/`。
-- 规范化脚本：如添加 `scripts/normalize_attachment_paths.py`，在部署流程加入 dry-run 检查与 `scripts/deploy_normalize_check.py`，并在 staging 先执行 `--apply` 验证。
+## 编辑/测试建议 & PR Checklist ✅
+- 本地先安装依赖：`pip install -r requirements.txt`。
+- 运行 `pytest -q` 并确保所有 tests（包括 SocketIO 相关）通过；若新增 DB 字段，添加 Alembic migration 并在测试中验证。示例测试位置：`tests/test_chat_auto.py`, `tests/test_socketio_connection.py`。
+- 若改动 socket 事件：新增/更新对应的 SocketIO 单/集成测试并在有 `eventlet` 的环境下跑。 
+- 修改日志/stderr 处理时：在包含 engineio/socketio 场景下验证没有噪音回归。
 
 ---
-如需我把这些要点精简为易核查的 PR Checklist 或补充某个子模块（审批/聊天/调度/迁移）快速入门片段，我可以继续把该部分展开为 10–15 条操作步骤供 CI/Reviewer 使用。请告诉我你想先改进哪一块。✅
+
+请帮忙审阅：哪些子模块你想要我补充“快速上手”步骤（例如 scheduler、socketio 或 migrations 的典型补丁流程）？我会据此迭代并把示例补齐。

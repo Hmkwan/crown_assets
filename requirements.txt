@@ -23,4 +23,5 @@ Flask-SocketIO==5.3.4
 python-socketio==5.9.0
 redis==4.6.0
 eventlet==0.33.3
+gevent-websocket==0.10.1
 bleach==6.0.0

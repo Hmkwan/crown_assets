@@ -1,13 +1,35 @@
 /* 现代化聊天界面样式 */
 
 /* 全局样式优化 */
-.chat-container {
-    height: calc(100vh - 100px);
-    display: flex;
-    background: #f5f7fa;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+/* 优先使用 CSS Grid 布局，以支持三栏（会话 / 聊天 / 在线用户），并保留 flex 回退 */
+@supports (display: grid) {
+    .chat-container {
+        height: calc(100vh - 100px);
+        display: grid;
+        grid-template-columns: 320px 1fr 260px;
+        gap: 20px;
+        align-items: stretch;
+        background: #f5f7fa;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .chat-sidebar { height: 100%; }
+    .chat-main { height: 100%; }
+    .online-users-container { height: 100%; }
+}
+
+/* Flex fallback */
+@supports not (display: grid) {
+    .chat-container {
+        height: calc(100vh - 100px);
+        display: flex;
+        background: #f5f7fa;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
 }
 
 /* 会话列表侧边栏 */

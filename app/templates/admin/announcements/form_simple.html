@@ -167,17 +167,23 @@
 {% endblock %}
 
 {% block scripts %}
-{% if SUMMERNOTE_FULL_AVAILABLE %}
-<script src="{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}"></script>
-{% else %}
-<script src="{{ url_for('static', filename='js/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/summernote-zh-CN.min.js') }}"></script>
-{% endif %}
+<script>
+(function(){
+    var supportsModernSyntax = true;
+    try { new Function('return {...{a:1}};')(); } catch (e) { supportsModernSyntax = false; }
+    if (supportsModernSyntax) {
+        var s1 = document.createElement('script'); s1.src = '{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}'; s1.defer = true; document.head.appendChild(s1);
+        var s2 = document.createElement('script'); s2.src = '{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}'; s2.defer = true; document.head.appendChild(s2);
+    } else {
+        console.warn('浏览器不支持 Summernote 所需的现代语法；将使用纯文本 textarea 作为回退编辑器。');
+    }
+})();
+</script>
 <script>
 $(function() {
-    // 初始化富文本编辑器
-    $('#content').summernote({
+    // 初始化富文本编辑器（若可用）
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+        // Summernote 存在才去初始化
         height: 400,
         lang: 'zh-CN',
         toolbar: [
@@ -214,7 +220,13 @@ $(function() {
     });
     // 提交前写入隐藏域
     $('form').on('submit', function(e){
-        var html = $('#content').summernote('code');
+        var html;
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+            html = $('#content').summernote('code');
+        } else {
+            var el = document.getElementById('content');
+            html = el ? (el.value || el.textContent || '') : '';
+        }
         var title = $('#title').val().trim();
         if(!title){
             e.preventDefault();

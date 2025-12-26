@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 def _log_activity(action, description):
     """记录操作日志"""
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         ip = request.headers.get('X-Forwarded-For') or request.headers.get('X-Real-IP') or request.remote_addr or ''
         activity_log = UserActivityLog(
@@ -33,10 +35,14 @@ def _log_activity(action, description):
         db.session.add(activity_log)
         try:
             db.session.commit()
-        except Exception:
-            pass
-    except Exception:
-        pass
+        except Exception as e:
+            logger.warning('记录活动日志时提交失败: %s', e, exc_info=True)
+            try:
+                db.session.rollback()
+            except Exception:
+                logger.debug('回滚活动日志事务失败（忽略）', exc_info=True)
+    except Exception as e:
+        logger.warning('记录活动日志失败: %s', e, exc_info=True)
 
 
 @bp.route('/admin/wework')
@@ -124,7 +130,14 @@ def sync_wework_users():
     注意: 此操作不会创建新用户,只会更新已存在用户的信息
     """
     try:
-        department_id = request.json.get('department_id') if request.is_json else None
+        # 兼容性：请求 body 可能为空或不是 JSON，使用 silent=True 避免抛出 BadRequest
+        data = request.get_json(silent=True)
+        if data is None:
+            raw = request.get_data(as_text=True)
+            logger.debug(f'sync_wework_users raw body: {raw!r}')
+            department_id = None
+        else:
+            department_id = data.get('department_id')
         
         client = get_wework_client()
         result = client.sync_users_to_local(department_id)

@@ -1,0 +1,15 @@
+{
+  "innerWidth": 1280,
+  "match_max_768": false,
+  "has_chat_container": false,
+  "has_online_users_container": false,
+  "online_classes": null,
+  "chat_display": null,
+  "chat_grid_columns": null,
+  "online_display": null,
+  "online_bounds": null,
+  "first_icon": null,
+  "conversation_count": 0,
+  "conversation_sample": null,
+  "chat_window_display": null
+}

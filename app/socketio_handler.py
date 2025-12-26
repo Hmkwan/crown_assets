@@ -309,9 +309,13 @@ def register_handlers(socketio):
             
             logger.info(f"消息已保存: ID={message.id}, 会话={conversation_id}")
             
-            # 实时广播到会话房间
+            # 实时广播到会话房间 (使用统一的消息结构: 包含 message 与 conversation_id)
             room_name = f"conversation_{conversation_id}"
-            emit('new_message', message_data, room=room_name)
+            try:
+                emit('new_message', {'message': message_data, 'conversation_id': conversation_id}, room=room_name)
+            except Exception:
+                # 回退到直接广播消息体, 保证兼容旧客户端
+                emit('new_message', message_data, room=room_name)
             
             # 发送成功确认
             emit('message_sent', {

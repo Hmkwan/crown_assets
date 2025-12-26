@@ -210,7 +210,13 @@
                                 </a>
                                 {% endif %}
                             </td>
-                            <td>{{ ro.equipment.department.name if ro.equipment and ro.equipment.department else '' }}</td>
+                            <td>
+                                {% if ro.equipment and ro.equipment.department is string %}
+                                    {{ ro.equipment.department }}
+                                {% else %}
+                                    {{ ro.equipment.department.name if ro.equipment and ro.equipment.department else '' }}
+                                {% endif %}
+                            </td>
                             <td>
                                 <span title="{{ ro.description }}">
                                     {{ ro.description[:30] + '...' if ro.description and ro.description|length > 30 else ro.description }}

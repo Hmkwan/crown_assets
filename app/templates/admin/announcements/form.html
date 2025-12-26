@@ -153,16 +153,20 @@
     </div>
 </div>
 
-<!-- 富文本编辑器 (优先使用本地官方 vendor) -->
+<!-- 富文本编辑器 (加载前做特性检测并动态加载，以避免在旧浏览器中解析现代语法导致语法错误) -->
 <link href="{{ url_for('static', filename='css/summernote-bs4.min.css') }}" rel="stylesheet">
-{% if SUMMERNOTE_FULL_AVAILABLE %}
-<script src="{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}"></script>
-{% else %}
-<script src="{{ url_for('static', filename='js/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/summernote-zh-CN.min.js') }}"></script>
-{% endif %}
-
+<script>
+(function(){
+    var supportsModernSyntax = true;
+    try { new Function('return {...{a:1}};')(); } catch (e) { supportsModernSyntax = false; }
+    if (supportsModernSyntax) {
+        var s1 = document.createElement('script'); s1.src = '{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}'; s1.defer = true; document.head.appendChild(s1);
+        var s2 = document.createElement('script'); s2.src = '{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}'; s2.defer = true; document.head.appendChild(s2);
+    } else {
+        console.warn('浏览器不支持 Summernote 所需的现代语法；将使用纯文本 textarea 作为回退编辑器。');
+    }
+})();
+</script>
 <!-- Dropzone.js -->
 <link href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.js"></script>
@@ -302,7 +306,13 @@ $(document).ready(function() {
     // 表单提交：写入隐藏域并校验
     $('form').on('submit', function(e){
         var title = $('#title').val().trim();
-        var html = $('#content').summernote('code');
+        var html;
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+            html = $('#content').summernote('code');
+        } else {
+            var el = document.getElementById('content');
+            html = el ? (el.value || el.textContent || '') : '';
+        }
         if(!title){
             e.preventDefault();
             if (window.toastr) { toastr.error('请输入公告标题'); } else { alert('请输入公告标题'); }

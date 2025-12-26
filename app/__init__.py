@@ -582,19 +582,19 @@ def create_app(config_class=Config):
         import traceback
         traceback.print_exc()
     
-    # 注册聊天系统路由
+    # 注册聊天系统页面路由，使用 /chat 前缀
     try:
         from app.chat_routes import chat_bp
-        app.register_blueprint(chat_bp)
+        app.register_blueprint(chat_bp, url_prefix='/chat')
     except Exception as e:
         print('Error registering chat blueprint:', e)
         import traceback
         traceback.print_exc()
-    
-    # 注册聊天API路由
+
+    # 注册聊天API路由，使用 /api/chat 前缀
     try:
         from app.chat_api import bp as chat_api_bp
-        app.register_blueprint(chat_api_bp)
+        app.register_blueprint(chat_api_bp, url_prefix='/api/chat')
         print('✓ 聊天API路由已注册')
     except Exception as e:
         print('Error registering chat_api blueprint:', e)

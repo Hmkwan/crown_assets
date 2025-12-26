@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="/static/css/site.css?v=20251201-6">
     
-    <meta name="csrf-token" content="IjVjYmIzNzNhZjRjNTY0ODQzNWNhNjRmMTQ5NjMyMTc1NDU1MWJkNDci.aUNVag.l_v9oa7p4YEoEBJNr6JE1jBVMiw">
+    <meta name="csrf-token" content="IjBjNTJiOTYwZDI2YTM3ZGZkMWJjNjE0ZTg1ZWNjODdkNWY1ZjZlZGMi.aUnyZw.egUaPeV1ayEmFV9aOD2V6CaTBHY">
     <style>
         /* 导航栏Logo样式 - 铺满左侧区域 */
         .navbar-logo {
@@ -171,7 +171,7 @@
                 </div>
                 <div class="card-body p-4">
                     <form method="post">
-                        <input id="csrf_token" name="csrf_token" type="hidden" value="IjVjYmIzNzNhZjRjNTY0ODQzNWNhNjRmMTQ5NjMyMTc1NDU1MWJkNDci.aUNVag.l_v9oa7p4YEoEBJNr6JE1jBVMiw">
+                        <input id="csrf_token" name="csrf_token" type="hidden" value="IjBjNTJiOTYwZDI2YTM3ZGZkMWJjNjE0ZTg1ZWNjODdkNWY1ZjZlZGMi.aUnyZw.egUaPeV1ayEmFV9aOD2V6CaTBHY">
                         <div class="mb-3">
                             <label class="form-label fw-semibold" for="username">用户名</label>
                             <input class="form-control form-control-lg" id="username" name="username" required type="text" value="">
@@ -388,9 +388,8 @@
       })();
     </script>
     
-    <!-- Socket.IO 实时通知 -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="/static/js/realtime-notifications.js?v=20251206-3"></script>
+    <!-- Socket.IO 实时通知：仅在已登录用户页面加载，避免未认证客户端频繁尝试连接造成噪音 -->
+    
     
     
 </body>

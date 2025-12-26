@@ -117,14 +117,47 @@ $(document).ready(function() {
     // 每5秒刷新一次会话列表
     setInterval(loadConversations, 5000);
 
-    // 兼容性包装：若使用了新的 chatSystem 类，则将全局函数映射到其实例方法
+    // 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。若 chatSystem 尚未准备就绪，则排队并在就绪后回放。
     (function(){
-        if (window.chatSystem) {
-            window.loadConversations = window.loadConversations || function(){ return window.chatSystem.loadConversations(); };
-            window.selectConversation = window.selectConversation || function(id){ return window.chatSystem.selectConversation(id); };
-            window.loadMessages = window.loadMessages || function(id){ return window.chatSystem.loadMessages(id); };
-            window.showNewChat = window.showNewChat || function(){ return window.chatSystem.showNewChatModal(); };
+        window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+        let __chat_legacy_flush_timer = null;
+        function tryFlush() {
+            if (window.chatSystem && window.__chat_legacy_queue.length) {
+                while (window.__chat_legacy_queue.length) {
+                    const item = window.__chat_legacy_queue.shift();
+                    try { window.chatSystem[item.fnName].apply(window.chatSystem, item.args); } catch(e) { console.warn('replaying legacy call failed', e); }
+                }
+                if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; }
+            }
         }
+        __chat_legacy_flush_timer = setInterval(tryFlush, 200);
+        // 暴露清理函数
+        window.__chat_legacy_clearTimer = function(){ if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; } };
+        function wrap(name, fnName) {
+            if (typeof window[name] === 'undefined') {
+                window[name] = function(){
+                    try {
+                        if (window.chatSystem && typeof window.chatSystem[fnName] === 'function') {
+                            return window.chatSystem[fnName].apply(window.chatSystem, arguments);
+                        } else {
+                            console.warn(`${name} called but chatSystem not ready; queuing call`);
+                            const args = Array.prototype.slice.call(arguments);
+                            const q = window.__chat_legacy_queue;
+                            const last = q.length? q[q.length-1] : null;
+                            if (!last || last.fnName !== fnName || JSON.stringify(last.args) !== JSON.stringify(args)) {
+                                q.push({ fnName: fnName, args: args });
+                            } else {
+                                console.debug('[Chat wrapper] skip duplicate queued call', fnName, args);
+                            }
+                        }
+                    } catch(e) { console.warn(`${name} wrapper error`, e); }
+                };
+            }
+        }
+        wrap('loadConversations', 'loadConversations');
+        wrap('selectConversation', 'selectConversation');
+        wrap('loadMessages', 'loadMessages');
+        wrap('showNewChat', 'showNewChatModal');
     })();
 });
 
@@ -293,7 +326,40 @@ function createConversation() {
             $('#newChatModal').modal('hide');
             loadConversations();
             if (data.conversation) {
-                setTimeout(() => selectConversation(data.conversation.id), 500);
+                // 乐观更新：在 chatSystem 中插入新会话以便立即可见
+                try {
+                    if (window.chatSystem && Array.isArray(window.chatSystem.conversations)) {
+                        if (!window.chatSystem.conversations.find(c => c.id === data.conversation.id)) {
+                            window.chatSystem.conversations.unshift(data.conversation);
+                            try { window.chatSystem.renderConversations(); } catch(e) { console.warn('renderConversations failed after optimistic push', e); }
+                        }
+                    }
+                } catch(e) { console.warn('optimistic update failed', e); }
+
+                // Use promise-based wait for chatSystem readiness; fallback to legacy if timeout
+                if (window.__chat_wait_for_chatSystem) {
+                    window.__chat_wait_for_chatSystem(7000).then(() => {
+                        try { window.chatSystem.selectConversation(data.conversation.id); } catch(e) { console.warn('chatSystem.selectConversation failed (after wait)', e); selectConversation(data.conversation.id); }
+                    }).catch(() => {
+                        console.warn('chatSystem not ready after wait; attempting immediate chatSystem call before falling back');
+                        try {
+                            if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+                                window.chatSystem.selectConversation(data.conversation.id);
+                                return;
+                            }
+                        } catch (e) { console.warn('immediate chatSystem.selectConversation after wait failed', e); }
+                        setTimeout(() => selectConversation(data.conversation.id), 500);
+                    });
+                } else {
+                    if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+                        try { window.chatSystem.selectConversation(data.conversation.id); } catch(e) { console.warn('chatSystem.selectConversation failed', e); }
+                    } else if (typeof selectConversation === 'function') {
+                        setTimeout(() => selectConversation(data.conversation.id), 500);
+                    } else {
+                        window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                        window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [data.conversation.id] });
+                    }
+                }
             }
         },
         error: function(xhr) {

@@ -58,8 +58,22 @@
 {% block scripts %}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
-// 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。
+// 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。若 chatSystem 尚未准备就绪，则排队并在就绪后回放。
 (function(){
+    window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+    let __chat_legacy_flush_timer = null;
+    function tryFlush() {
+        if (window.chatSystem && window.__chat_legacy_queue.length) {
+            while (window.__chat_legacy_queue.length) {
+                const item = window.__chat_legacy_queue.shift();
+                try { window.chatSystem[item.fnName].apply(window.chatSystem, item.args); } catch(e) { console.warn('replaying legacy call failed', e); }
+            }
+            if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; }
+        }
+    }
+    __chat_legacy_flush_timer = setInterval(tryFlush, 200);
+    // 暴露全局清理器
+    window.__chat_legacy_clearTimer = function(){ if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; } };
     function wrap(name, fnName) {
         if (typeof window[name] === 'undefined') {
             window[name] = function(){
@@ -67,7 +81,15 @@
                     if (window.chatSystem && typeof window.chatSystem[fnName] === 'function') {
                         return window.chatSystem[fnName].apply(window.chatSystem, arguments);
                     } else {
-                        console.warn(`${name} called but chatSystem not ready`);
+                        console.warn(`${name} called but chatSystem not ready; queuing call`);
+                        const args = Array.prototype.slice.call(arguments);
+                        const q = window.__chat_legacy_queue;
+                        const last = q.length? q[q.length-1] : null;
+                        if (!last || last.fnName !== fnName || JSON.stringify(last.args) !== JSON.stringify(args)) {
+                            q.push({ fnName: fnName, args: args });
+                        } else {
+                            console.debug('[Chat wrapper] skip duplicate queued call', fnName, args);
+                        }
                     }
                 } catch(e) { console.warn(`${name} wrapper error`, e); }
             };

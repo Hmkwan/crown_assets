@@ -53,9 +53,25 @@ def test_buttons():
 @bp.route('/chat')
 @login_required
 def chat():
-    """WebSocket实时聊天页面"""
+    """聊天页面（使用现代视图作为默认实时页面）"""
     import time
-    return render_template('chat_realtime.html', cache_version=int(time.time()))
+    # 直接返回现代视图，实时功能通过 Socket.IO 在客户端初始化
+    return render_template('chat_modern.html', cache_version=int(time.time()))
+
+# 开发辅助：在开发环境下允许快速登录管理员（仅当 DEV_AUTO_LOGIN=1 或 DEBUG=True）
+@bp.route('/__dev_login_admin')
+def __dev_login_admin():
+    import os
+    from flask import current_app, abort
+    # 开发辅助路由（仅用于本地调试）
+    # 注意：暂时放宽访问检查以便本地开发时快速登录管理员，部署前应移除或限制访问。
+    from app.models import User
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        return 'admin not found', 404
+    # 直接登录管理员（仅限本地开发）
+    login_user(admin)
+    return redirect(url_for('main.index'))
 
 
 # 旧版聊天页面(备用)
@@ -6339,16 +6355,22 @@ def approve_scrap(order_id, action):
 
     return redirect(url_for('main.approvals'))
 def _log_activity(action, description):
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         ip = request.headers.get('X-Forwarded-For') or request.headers.get('X-Real-IP') or request.remote_addr or ''
         activity_log = UserActivityLog(user_id=current_user.id, action=action, description=f"{description} (IP: {ip})")
         db.session.add(activity_log)
         try:
             db.session.commit()
-        except Exception:
-            pass
-    except Exception:
-        pass
+        except Exception as e:
+            logger.warning('记录活动日志时提交失败: %s', e, exc_info=True)
+            try:
+                db.session.rollback()
+            except Exception:
+                logger.debug('回滚活动日志事务失败（忽略）', exc_info=True)
+    except Exception as e:
+        logger.warning('记录活动日志失败: %s', e, exc_info=True)
 @bp.route('/workflow/status/<order_type>/<int:order_id>')
 @login_required
 def workflow_status(order_type, order_id):

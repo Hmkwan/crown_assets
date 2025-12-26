@@ -105,7 +105,13 @@ def get_users():
 def create_conversation():
     """创建新会话"""
     try:
-        data = request.get_json()
+        # 尝试解析 JSON，silent=True 避免抛出 BadRequest 导致 500
+        data = request.get_json(silent=True)
+        if data is None:
+            raw = request.get_data(as_text=True)
+            current_app.logger.debug(f'create_conversation raw body: {raw!r}')
+            current_app.logger.debug(f'create_conversation headers: {dict(request.headers)}')
+            return jsonify({'error': '无效的 JSON 或请求体为空'}), 400
         current_app.logger.debug(f'create_conversation payload: {data}, user: {getattr(current_user, "id", None)}')
         conversation_type = data.get('type', 'direct')  # direct 或 group
         participant_ids = data.get('participant_ids', [])  # 参与者ID列表
@@ -133,6 +139,7 @@ def create_conversation():
             ).first()
             
             if existing:
+                current_app.logger.debug(f'existing conversation returned: id={existing.id}, user={current_user.id}')
                 return jsonify({'conversation': existing.to_dict(current_user.id)}), 200
         
         # 创建新会话
@@ -164,6 +171,7 @@ def create_conversation():
                 db.session.add(participant)
         
         db.session.commit()
+        current_app.logger.debug(f'conversation created: id={conversation.id}, creator={current_user.id}, participants={participant_ids}')
         
         # 通知所有参与者
         from app.socketio_handler import send_notification_to_user
@@ -227,19 +235,22 @@ def get_conversations():
 def get_conversation(conversation_id):
     """获取会话详情"""
     try:
-        # 检查用户是否是参与者
+        current_app.logger.debug(f'get_conversation request: id={conversation_id}, user={getattr(current_user, "id", None)}')
+        # 先查找所有参与者记录
         participant = ChatParticipant.query.filter_by(
             conversation_id=conversation_id,
-            user_id=current_user.id,
-            is_left=False
+            user_id=current_user.id
         ).first()
-        
         if not participant:
             return jsonify({'error': '无权访问此会话'}), 403
-        
+        # 如果是已退出成员，自动恢复为参与者
+        if participant.is_left:
+            participant.is_left = False
+            participant.left_date = None
+            db.session.commit()
+            current_app.logger.info(f'用户{current_user.id}自动恢复为会话{conversation_id}参与者')
         conversation = participant.conversation
         conv_dict = conversation.to_dict(current_user.id)
-        
         # 获取参与者信息
         conv_dict['participants'] = [
             {
@@ -251,9 +262,7 @@ def get_conversation(conversation_id):
             }
             for p in conversation.participants if not p.is_left
         ]
-        
         return jsonify({'conversation': conv_dict}), 200
-        
     except Exception as e:
         current_app.logger.error(f"获取会话详情失败: {e}")
         return jsonify({'error': str(e)}), 500
@@ -967,8 +976,15 @@ def delete_conversation_admin(conversation_id):
         # 删除所有消息 - 分步处理以便定位可能的异常
         try:
             msg_q = ChatMessage.query.filter_by(conversation_id=conversation_id)
-            msg_count = msg_q.count()
+            msg_ids = [m.id for m in msg_q.with_entities(ChatMessage.id).all()]
+            msg_count = len(msg_ids)
             if msg_count:
+                # 先处理附件：把 attachment.message_id 置为 NULL，以避免外键约束错误
+                try:
+                    ChatAttachment.query.filter(ChatAttachment.message_id.in_(msg_ids)).update({'message_id': None}, synchronize_session=False)
+                except Exception as ex_att:
+                    current_app.logger.warning(f'清理附件关联 message_id 失败: {ex_att}')
+                # 然后删除消息
                 msg_q.delete(synchronize_session=False)
         except Exception as ex_msg:
             current_app.logger.error(f'删除消息失败: {ex_msg}')

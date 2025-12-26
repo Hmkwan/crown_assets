@@ -23,6 +23,11 @@ class ChatSystem {
         this.updateToolbarIconFallbacks();
         // 自动加载在线用户面板内容以提升可用性
         this.fetchOnlineUsers();
+
+        // 回放任何在 chatSystem 就绪前排队的 legacy 调用
+        try {
+            this.flushLegacyQueue();
+        } catch (e) { console.warn('flushLegacyQueue invocation failed', e); }
     }
     
     initSocket() {
@@ -35,6 +40,19 @@ class ChatSystem {
             console.error('Socket.IO未初始化');
             return;
         }
+        // 额外的 socket 生命周期事件，用于诊断与重连处理
+        try {
+            this.socket.on('connect', () => {
+                try { console.debug('[Chat] socket connected, id=', this.socket.id); } catch(e) { console.debug('[Chat] socket connected'); }
+                if (this.currentConversation && this.currentConversation.id) {
+                    try { this.socket.emit('join_conversation', { conversation_id: this.currentConversation.id }); } catch (e) { console.warn('rejoin conversation after socket connect failed', e); }
+                }
+            });
+            this.socket.on('connect_error', (err) => { console.warn('[Chat] socket connect_error', err); });
+            this.socket.on('disconnect', (reason) => { console.warn('[Chat] socket disconnected:', reason); });
+            this.socket.on('reconnect_attempt', () => { console.debug('[Chat] socket reconnect attempt'); });
+            this.socket.on('reconnect_failed', () => { console.warn('[Chat] socket reconnect_failed'); });
+        } catch (e) { console.warn('[Chat] binding socket lifecycle events failed', e); }
         this.registerChatEvents();
     }
     
@@ -66,28 +84,32 @@ class ChatSystem {
     }
     
     bindEvents() {
-        // 新建会话按钮
-        document.getElementById('newChatBtn')?.addEventListener('click', () => {
-            this.showNewChatModal();
-        });
-        
-        // 搜索会话
-        document.getElementById('conversationSearch')?.addEventListener('input', (e) => {
-            this.searchConversations(e.target.value);
-        });
-        
-        // 发送消息
-        document.getElementById('sendBtn')?.addEventListener('click', () => {
-            this.sendMessage();
-        });
-        
-        // 输入框事件
+        const newChatBtn = document.getElementById('newChatBtn');
+        const conversationSearch = document.getElementById('conversationSearch');
+        const sendBtn = document.getElementById('sendBtn');
         const chatInput = document.getElementById('chatInput');
+        const fileUploadBtn = document.getElementById('fileUploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fetchOnlineUsersBtn = document.getElementById('fetch-online-users-btn');
+        const createConversationBtn = document.getElementById('create-conversation-btn');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const showInfoBtn = document.getElementById('showInfoBtn');
+        const toggleOnlineUsersBtn = document.getElementById('toggleOnlineUsersBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const endConversationBtn = document.getElementById('endConversationBtn');
+
+        // 新建会话按钮
+        newChatBtn?.addEventListener('click', () => this.showNewChatModal());
+
+        // 搜索会话
+        conversationSearch?.addEventListener('input', (e) => this.searchConversations(e.target.value));
+
+        // 发送消息
+        sendBtn?.addEventListener('click', () => this.sendMessage());
+
+        // 输入框事件
         if (chatInput) {
-            chatInput.addEventListener('input', () => {
-                this.handleTyping();
-            });
-            
+            chatInput.addEventListener('input', () => this.handleTyping());
             chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -95,49 +117,23 @@ class ChatSystem {
                 }
             });
         }
-        
+
         // 文件上传
-        document.getElementById('fileUploadBtn')?.addEventListener('click', () => {
-            document.getElementById('fileInput')?.click();
-        });
-        
-        document.getElementById('fileInput')?.addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files);
-        });
+        fileUploadBtn?.addEventListener('click', () => fileInput?.click());
+        fileInput?.addEventListener('change', (e) => this.handleFileUpload(e.target.files));
 
         // 在线用户相关按钮
-        document.getElementById('fetch-online-users-btn')?.addEventListener('click', () => {
-            this.fetchOnlineUsers();
-        });
+        fetchOnlineUsersBtn?.addEventListener('click', () => this.fetchOnlineUsers());
+        createConversationBtn?.addEventListener('click', () => this.showNewChatModal());
 
-        document.getElementById('create-conversation-btn')?.addEventListener('click', () => {
-            this.showNewChatModal();
-        });
-
-        // 键盘快捷键：Ctrl+K 或 / 聚焦会话搜索
-        window.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey && e.key.toLowerCase() === 'k') || e.key === '/') {
-                const s = document.getElementById('conversationSearch');
-                if (s) {
-                    e.preventDefault();
-                    s.focus();
-                    s.select();
-                }
-            }
-            // ESC 清除搜索焦点
-            if (e.key === 'Escape') {
-                const s = document.getElementById('conversationSearch');
-                if (s && document.activeElement === s) s.blur();
-            }
-        });
-
-        // 在窗口尺寸变化时，重新检查 icon 回退显示
-        window.addEventListener('resize', this.updateToolbarIconFallbacks.bind(this));
-
-        // 定期刷新在线用户（每60秒）
-        this._onlineRefreshInterval = setInterval(() => this.fetchOnlineUsers(), 60000);
+        // 工具栏按钮
+        emojiBtn?.addEventListener('click', () => this.toggleEmojiPicker());
+        showInfoBtn?.addEventListener('click', () => this.showConversationInfo());
+        toggleOnlineUsersBtn?.addEventListener('click', () => this.toggleOnlineUsers());
+        confirmDeleteBtn?.addEventListener('click', () => this.deleteConversation());
+        endConversationBtn?.addEventListener('click', () => this.endConversation());
     }
-
+    
     // 检测 icon 字体是否加载，若被阻止则显示文字回退
     updateToolbarIconFallbacks() {
         try {
@@ -158,41 +154,43 @@ class ChatSystem {
             console.warn('更新 toolbar 图标回退失败', e);
         }
     }
+
+    // 将在 chatSystem 准备前排队的 legacy 调用回放执行
+    flushLegacyQueue() {
+        try {
+            if (!window.__chat_legacy_queue || !window.__chat_legacy_queue.length) return;
+            console.debug('[Chat] 回放 legacy 调用, count=', window.__chat_legacy_queue.length);
+            while (window.__chat_legacy_queue.length) {
+                const item = window.__chat_legacy_queue.shift();
+                if (!item || !item.fnName) continue;
+                console.debug('[Chat] 回放 legacy 调用:', item.fnName, item.args || []);
+                const fn = this[item.fnName];
+                if (typeof fn === 'function') {
+                    try { fn.apply(this, item.args || []); }
+                    catch (e) { console.warn('replaying legacy call failed for', item.fnName, e); }
+                } else {
+                    console.warn('legacy flush: method not found on ChatSystem:', item.fnName);
+                }
+            }
+            // 如果 wrapper 暴露了清理方法，调用它以清除内部定时器
+            if (typeof window.__chat_legacy_clearTimer === 'function') {
+                try { window.__chat_legacy_clearTimer(); } catch (e) { console.warn('calling __chat_legacy_clearTimer failed', e); }
+            }
+        } catch (e) {
+            console.error('flushLegacyQueue failed', e);
+        }
+    }
     
     // ==================== 会话管理 ====================
     
     async loadConversations() {
         console.log('[Chat] 开始加载会话列表...');
         try {
-            // 提取 CSRF 令牌（容错：若页面没有隐藏 input 则尝试从 cookie 读取或为空）
-            const csrfElem = document.querySelector('input[name="csrf_token"]');
-            const csrfToken = csrfElem ? csrfElem.value : (function(){
-                const name = 'csrf_token=';
-                const ca = document.cookie.split(';');
-                for (let i = 0; i < ca.length; i++) {
-                    const c = ca[i].trim();
-                    if (c.indexOf(name) === 0) return c.substring(name.length);
-                }
-                return '';
-            })();
-
             const response = await fetch('/api/chat/conversations', {
                 method: 'GET',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include' // 确保发送 Cookie
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include'
             });
-
-            console.log('[Chat] API响应状态:', response.status, response.statusText);
-
-            // 检查是否需要登录
-            if (response.status === 302 || response.redirected) {
-                console.warn('[Chat] 需要登录,跳转到登录页');
-                window.location.href = '/auth/login';
-                return;
-            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -204,7 +202,7 @@ class ChatSystem {
             this.conversations = data.conversations || [];
             console.log('[Chat] 会话列表加载成功:', this.conversations);
 
-            // 渲染会话列表并自动选中第一个会话（提升首屏可用性）
+            this.flushLegacyQueue();
             this.renderConversations();
             if (!this.currentConversation && this.conversations.length > 0) {
                 setTimeout(() => this.selectConversation(this.conversations[0].id), 100);
@@ -212,9 +210,7 @@ class ChatSystem {
         } catch (error) {
             console.error('[Chat] 加载会话列表失败:', error);
             this.showToast('加载会话列表失败: ' + error.message, 'error');
-            // 显示空状态
             this.conversations = [];
-            this.renderConversations();
         }
     }
     
@@ -235,7 +231,7 @@ class ChatSystem {
         container.innerHTML = this.conversations.map(conv => `
             <div class="conversation-item ${conv.is_pinned ? 'pinned' : ''} ${this.currentConversation?.id === conv.id ? 'active' : ''}"
                  role="listitem" tabindex="0" data-id="${conv.id}"
-                 onclick="chatSystem.selectConversation(${conv.id})">
+                 >
                 <div class="conversation-avatar">
                     ${this.getConversationAvatar(conv)}
                 </div>
@@ -252,12 +248,18 @@ class ChatSystem {
             </div>
         `).join('');
 
-        // 添加键盘交互支持（Enter 键选择会话）
+        // 添加交互支持（点击或回车选择会话），使用实例方法以避免依赖全局 chatSystem
         container.querySelectorAll('.conversation-item').forEach(item => {
+            // 点击选择
+            item.addEventListener('click', () => {
+                const id = item.dataset.id;
+                if (id) this.selectConversation(parseInt(id));
+            });
+            // 回车键也选择
             item.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const id = item.dataset.id;
-                    if (id) chatSystem.selectConversation(parseInt(id));
+                    if (id) this.selectConversation(parseInt(id));
                 }
             });
         });
@@ -280,25 +282,89 @@ class ChatSystem {
     
     async selectConversation(conversationId) {
         try {
-            // 获取会话详情
-            const response = await fetch(`/api/chat/conversations/${conversationId}`);
+            console.debug('[Chat] selectConversation start:', conversationId);
+
+            // 检查 conversationId 是否有效
+            if (!conversationId) {
+                console.error('[Chat] selectConversation failed: 无效的会话ID');
+                this.showToast('无效的会话ID', 'error');
+                return;
+            }
+
+            // 确保会话数据已加载；若尚未加载则将调用排入 legacy 队列以在就绪后回放
+            if (!this.conversations || this.conversations.length === 0) {
+                console.warn('[Chat] selectConversation deferred: 会话数据未加载, enqueueing');
+                window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [conversationId] });
+                if (typeof window.__chat_legacy_enqueue === 'function') window.__chat_legacy_enqueue();
+                return;
+            }
+
+            // 获取会话详情（包含凭据与 CSRF 以避免 403）
+            const csrfElem = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfElem ? csrfElem.value : (function(){
+                const name = 'csrf_token=';
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    const c = ca[i].trim();
+                    if (c.indexOf(name) === 0) return c.substring(name.length);
+                }
+                return '';
+            })();
+
+            const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                console.error('[Chat] selectConversation failed: API响应错误', response.status);
+                if (response.status === 403) {
+                    const respText = await response.text();
+                    console.warn('[Chat] selectConversation 403 response:', respText.substring(0,200));
+                    this.showToast('无权限查看该会话（403），请确认你是参与者或重新登录', 'error');
+                } else {
+                    this.showToast('加载会话失败: API错误', 'error');
+                }
+                return;
+            }
+
             const data = await response.json();
-            
+            if (!data.conversation) {
+                console.error('[Chat] selectConversation failed: API未返回会话数据');
+                this.showToast('加载会话失败: 数据错误', 'error');
+                return;
+            }
+
             this.currentConversation = data.conversation;
-            
-            // 加入会话房间
-            this.socket.emit('join_conversation', { conversation_id: conversationId });
-            
+            console.debug('[Chat] selectConversation loaded conversation:', this.currentConversation && this.currentConversation.id);
+
+            // 加入会话房间（socket 可能未就绪，容错处理）
+            try {
+                if (this.socket && typeof this.socket.emit === 'function') {
+                    this.socket.emit('join_conversation', { conversation_id: conversationId });
+                } else {
+                    console.warn('[Chat] socket 未就绪，跳过 join_conversation');
+                }
+            } catch (e) {
+                console.warn('join_conversation error', e);
+            }
+
             // 加载消息历史
             await this.loadMessages(conversationId);
-            
+
             // 标记已读
             this.markAsRead(conversationId);
-            
+
             // 更新UI
             this.renderConversations();
             this.renderChatHeader();
-            
+            console.debug('[Chat] selectConversation success:', conversationId);
+
         } catch (error) {
             console.error('选择会话失败:', error);
             this.showToast('加载会话失败', 'error');
@@ -336,16 +402,22 @@ class ChatSystem {
                 ${this.currentConversation.type === 'group' ? `<span class="text-muted ml-2">(${this.currentConversation.participant_count}人)</span>` : ''}
             </div>
             <div class="chat-actions">
-                <button class="chat-action-btn" onclick="chatSystem.togglePin()">
+                <button id="emojiBtn" class="chat-action-btn toolbar-btn" onclick="chatSystemSafeCall('toggleEmojiPicker')" title="表情">
+                    <i class="fas fa-smile"></i>
+                </button>
+                <button id="fileUploadBtn" class="chat-action-btn toolbar-btn" onclick="document.getElementById('fileInput')?.click()" title="上传文件">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <button class="chat-action-btn" onclick="chatSystemSafeCall('togglePin')">
                     <i class="fas fa-thumbtack"></i>
                 </button>
-                <button class="chat-action-btn" onclick="chatSystem.toggleMute()">
+                <button class="chat-action-btn" onclick="chatSystemSafeCall('toggleMute')">
                     <i class="fas fa-bell-slash"></i>
                 </button>
-                <button class="chat-action-btn" onclick="chatSystem.toggleOnlineUsers()" title="在线用户">
+                <button id="toggleOnlineUsersBtn" class="chat-action-btn toolbar-btn" onclick="chatSystemSafeCall('toggleOnlineUsers')" title="在线用户">
                     <i class="fas fa-users"></i>
                 </button>
-                <button class="chat-action-btn" onclick="chatSystem.showConversationInfo()">
+                <button id="showInfoBtn" class="chat-action-btn toolbar-btn" onclick="chatSystemSafeCall('showConversationInfo')" title="会话信息">
                     <i class="fas fa-info-circle"></i>
                 </button>
             </div>
@@ -381,13 +453,13 @@ class ChatSystem {
         } else if (msg.message_type === 'image') {
             const attachment = msg.attachments?.[0];
             if (attachment) {
-                contentHtml = `<img src="${attachment.thumbnail_url || attachment.download_url}" class="message-image" alt="图片" onclick="chatSystem.previewImage('${attachment.download_url}')">`;
+                contentHtml = `<img src="${attachment.thumbnail_url || attachment.download_url}" class="message-image" alt="图片" onclick="chatSystemSafeCall('previewImage', '${attachment.download_url}')">`;
             }
         } else if (msg.message_type === 'file') {
             const attachment = msg.attachments?.[0];
             if (attachment) {
                 contentHtml = `
-                    <div class="message-file" onclick="chatSystem.downloadFile(${attachment.id})">
+                    <div class="message-file" onclick="chatSystemSafeCall('downloadFile', ${attachment.id})">
                         <i class="fas fa-file message-file-icon"></i>
                         <div class="message-file-info">
                             <div class="message-file-name">${this.escapeHtml(attachment.filename)}</div>
@@ -409,7 +481,7 @@ class ChatSystem {
                         ${contentHtml}
                         ${isOwn && !msg.is_recalled ? `
                             <div class="message-actions">
-                                <button class="message-action" onclick="chatSystem.recallMessage(${msg.id})">
+                                <button class="message-action" onclick="chatSystemSafeCall('recallMessage', ${msg.id})">
                                     <i class="fas fa-undo"></i> 撤回
                                 </button>
                             </div>
@@ -433,19 +505,49 @@ class ChatSystem {
         const content = input.value.trim();
         
         if (!content) return;
-        
-        // 通过Socket.IO发送消息
-        this.socket.emit('send_message', {
-            conversation_id: this.currentConversation.id,
-            content: content,
-            message_type: 'text'
-        });
+
+        // 优先使用 Socket.IO，如果未连接则回退到 REST API
+        if (this.socket && typeof this.socket.emit === 'function' && this.socket.connected) {
+            try {
+                this.socket.emit('send_message', {
+                    conversation_id: this.currentConversation.id,
+                    content: content,
+                    message_type: 'text'
+                });
+            } catch (e) {
+                console.error('通过 Socket 发送失败，尝试使用 REST:', e);
+                await this._sendMessageRest(content);
+            }
+        } else {
+            await this._sendMessageRest(content);
+        }
         
         // 清空输入框
         input.value = '';
         
         // 停止输入状态
         this.stopTyping();
+    }
+
+    async _sendMessageRest(content) {
+        try {
+            const resp = await fetch(`/api/chat/conversations/${this.currentConversation.id}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message_type: 'text', content })
+            });
+            if (resp.ok) {
+                this.showToast('消息已发送（使用备用通道）', 'success');
+                // 主动刷新消息
+                await this.loadMessages(this.currentConversation.id);
+            } else {
+                const data = await resp.json().catch(() => ({}));
+                this.showToast(data.error || '消息发送失败', 'error');
+            }
+        } catch (e) {
+            console.error('REST 发送消息失败:', e);
+            this.showToast('网络错误：发送失败', 'error');
+        }
     }
     
     handleTyping() {
@@ -499,30 +601,18 @@ class ChatSystem {
         }
         
         try {
-            // 上传文件
+            // 上传文件逻辑
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('conversation_id', this.currentConversation.id);
-            
-            const response = await fetch('/api/chat/attachments', {
+
+            const response = await fetch('/api/chat/upload', {
                 method: 'POST',
                 body: formData
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
-                // 判断文件类型
-                const messageType = file.type.startsWith('image/') ? 'image' : 'file';
-                
-                // 发送消息
-                this.socket.emit('send_message', {
-                    conversation_id: this.currentConversation.id,
-                    content: file.name,
-                    message_type: messageType,
-                    attachment_id: data.attachment_id
-                });
-                
                 this.showToast('文件上传成功', 'success');
             } else {
                 this.showToast(data.error || '文件上传失败', 'error');
@@ -586,8 +676,14 @@ class ChatSystem {
     }
     
     handleNewConversation(data) {
-        // 添加新会话到列表
-        this.loadConversations();
+        console.debug('[Chat] handleNewConversation payload:', data);
+        // 如果 payload 带有会话 id，优先打开该会话
+        const id = (data && (data.conversation && data.conversation.id || data.id || data.conversation_id));
+        this.loadConversations().then(() => {
+            if (id) {
+                try { this.selectConversation(id); } catch (e) { console.warn('select after new_conversation failed, enqueueing', e); window.__chat_legacy_queue = window.__chat_legacy_queue || []; window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [id] }); if (typeof window.__chat_legacy_enqueue === 'function') window.__chat_legacy_enqueue(); }
+            }
+        }).catch(e => { console.warn('loadConversations failed after new_conversation', e); });
         this.showToast('收到新会话', 'info');
     }
     
@@ -870,69 +966,313 @@ class ChatSystem {
         const conversationType = document.getElementById('conversationType')?.value || 'direct';
         const groupName = document.getElementById('groupName')?.value;
         const participantSelect = document.getElementById('participantSelect');
-        
-        if (!participantSelect) return;
-        
-        // 获取选中的参与者
+
+        if (!participantSelect) {
+            console.error('[Chat] createNewConversation failed: participantSelect element not found');
+            this.showToast('无法找到参与者选择器', 'error');
+            return;
+        }
+
         const selectedOptions = Array.from(participantSelect.selectedOptions);
         const participant_ids = selectedOptions.map(opt => parseInt(opt.value));
-        
+
         if (participant_ids.length === 0) {
             this.showToast('请选择至少一个参与者', 'warning');
             return;
         }
-        
+
         if (conversationType === 'direct' && participant_ids.length > 1) {
             this.showToast('一对一会话只能选择一个参与者', 'warning');
             return;
         }
-        
+
         if (conversationType === 'group' && !groupName) {
             this.showToast('请输入群组名称', 'warning');
             return;
         }
-        
+
         try {
+            // 发送创建会话请求（包含凭据与 CSRF）
+            const csrfElem = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfElem ? csrfElem.value : (function(){
+                const name = 'csrf_token=';
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    const c = ca[i].trim();
+                    if (c.indexOf(name) === 0) return c.substring(name.length);
+                }
+                return '';
+            })();
+
             const response = await fetch('/api/chat/conversations', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                credentials: 'include',
                 body: JSON.stringify({
                     type: conversationType,
                     participant_ids,
                     name: groupName
                 })
             });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                $('#newChatModal').modal('hide');
-                this.showToast('会话创建成功', 'success');
-                this.loadConversations();
-                
-                // 如果返回了会话ID,自动选中
-                if (data.conversation && data.conversation.id) {
-                    setTimeout(() => {
-                        this.selectConversation(data.conversation.id);
-                    }, 500);
-                }
-            } else {
-                this.showToast(data.error || '创建会话失败', 'error');
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Chat] createNewConversation failed: API error', response.status, errorText);
+                this.showToast('创建会话失败: ' + errorText, 'error');
+                return;
             }
+
+            const data = await response.json();
+            console.debug('[Chat] createNewConversation success:', data);
+
+            // 刷新会话列表并尝试打开新创建（或已存在）的会话
+            try {
+                await this.loadConversations();
+                const createdId = data.conversation && data.conversation.id;
+                if (createdId) {
+                    try {
+                        await this.selectConversation(createdId);
+                    } catch (e) {
+                        console.warn('[Chat] select after create failed, enqueueing:', e);
+                        window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                        window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [createdId] });
+                        if (typeof window.__chat_legacy_enqueue === 'function') window.__chat_legacy_enqueue();
+                    }
+                }
+            } catch (e) {
+                console.warn('[Chat] loadConversations/select after create encountered an error', e);
+            }
+            // 隐藏新建对话模态框（如果存在）
+            try { $('#newChatModal').modal('hide'); } catch(e) {}
+            this.showToast('会话创建成功', 'success');
         } catch (error) {
-            console.error('创建会话失败:', error);
+            console.error('[Chat] createNewConversation failed:', error);
             this.showToast('创建会话失败', 'error');
         }
     }
     
     showConversationInfo() {
-        // TODO: 实现会话信息对话框
-        alert('会话信息功能开发中...');
+        if (!this.currentConversation) {
+            this.showToast('请先选择会话', 'warning');
+            return;
+        }
+        const body = document.getElementById('conversationInfoBody');
+        if (!body) return;
+        const conv = this.currentConversation;
+        body.innerHTML = `
+            <p><strong>会话名：</strong> ${this.escapeHtml(this.getConversationName(conv))}</p>
+            <p><strong>类型：</strong> ${this.escapeHtml(conv.type || '')}</p>
+            <p><strong>参与者：</strong> ${this.escapeHtml((conv.participant_count||0).toString())}</p>
+            <p><strong>最后消息：</strong> ${this.escapeHtml(conv.last_message?.content || '')}</p>
+        `;
+        // 绑定模态框底部的按钮（footer 中已有按钮）
+        document.getElementById('endConversationBtn')?.addEventListener('click', () => {
+            $('#conversationInfoModal').modal('hide');
+            this.endConversation();
+        });
+        // 绑定删除按钮（footer 页的删除按钮）
+        document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
+            // confirmDeleteBtn 已绑定于初始化，UI 内部的删除流程会调用 deleteConversation
+        });
+        $('#conversationInfoModal').modal('show');
+    }
+
+    async deleteConversation() {
+        if (!this.currentConversation) {
+            this.showToast('无效的会话', 'warning');
+            return;
+        }
+        const id = this.currentConversation.id;
+        try {
+            // 只有管理员可直接删除会话
+            if (window.currentUserIsAdmin) {
+                const resp = await fetch(`/api/chat/admin/conversations/${id}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    this.showToast('会话已删除', 'success');
+                    $('#confirmDeleteModal').modal('hide');
+                    // 重新加载
+                    this.currentConversation = null;
+                    this.loadConversations();
+                    document.getElementById('chatMessages').innerHTML = '<div class="chat-empty"><i class="fas fa-comments"></i><p>选择一个会话开始聊天</p></div>';
+                    return;
+                } else {
+                    const data = await resp.json().catch(() => ({}));
+                    this.showToast(data.error || '删除会话失败', 'error');
+                    return;
+                }
+            }
+
+            // 非管理员：提示需要管理员权限
+            this.showToast('删除会话需要管理员权限，请联系管理员', 'warning');
+            $('#confirmDeleteModal').modal('hide');
+        } catch (e) {
+            console.error('删除会话失败:', e);
+            this.showToast('删除会话失败：网络错误', 'error');
+        }
+    }
+
+    async endConversation() {
+        if (!this.currentConversation) {
+            this.showToast('无效的会话', 'warning');
+            return;
+        }
+        const id = this.currentConversation.id;
+        try {
+            // 尝试调用用户离开会话的 API (如不存在则回退到本地移除)
+            const resp = await fetch(`/api/chat/conversations/${id}/leave`, { method: 'POST' });
+            if (resp.ok) {
+                this.showToast('已离开会话', 'success');
+                this.currentConversation = null;
+                // 从本地列表移除
+                this.conversations = this.conversations.filter(c => c.id !== id);
+                this.renderConversations();
+                document.getElementById('chatMessages').innerHTML = '<div class="chat-empty"><i class="fas fa-comments"></i><p>选择一个会话开始聊天</p></div>';
+                return;
+            }
+            // 若服务器返回错误则显示信息
+            const data = await resp.json().catch(()=>({}));
+            this.showToast(data.error || '离开会话失败', 'error');
+        } catch (e) {
+            console.warn('离开会话 API 不可用或失败，回退到本地移除', e);
+            // 回退：本地移除会话，使用户短期内看不到
+            this.conversations = this.conversations.filter(c => c.id !== id);
+            this.renderConversations();
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-empty"><i class="fas fa-comments"></i><p>选择一个会话开始聊天</p></div>';
+            this.showToast('已从列表移除（未同步至服务器）', 'warning');
+        }
+    }
+
+    toggleEmojiPicker() {
+        // 简单 emoji 回退实现：弹出小面板插入 emoji
+        const existing = document.getElementById('emojiPicker');
+        if (existing) { existing.remove(); return; }
+        const btn = document.getElementById('emojiBtn');
+        if (!btn) return;
+        const picker = document.createElement('div');
+        picker.id = 'emojiPicker';
+        picker.style.position = 'absolute';
+        picker.style.zIndex = 9999;
+        picker.style.padding = '6px';
+        picker.style.background = '#fff';
+        picker.style.border = '1px solid #ddd';
+        picker.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+        picker.innerHTML = ['😀','😁','😂','😅','😊','😎','😢','👍','🙏'].map(e => `<button class="emoji-btn" style="border:none;background:none;font-size:20px;margin:4px;cursor:pointer">${e}</button>`).join('');
+        document.body.appendChild(picker);
+        const r = btn.getBoundingClientRect();
+        picker.style.left = (r.left) + 'px';
+        picker.style.top = (r.bottom + 6) + 'px';
+        picker.querySelectorAll('.emoji-btn').forEach(b => b.addEventListener('click', (ev) => {
+            const input = document.getElementById('chatInput');
+            if (input) {
+                const start = input.selectionStart || 0;
+                const end = input.selectionEnd || 0;
+                const v = input.value;
+                input.value = v.substring(0, start) + ev.target.textContent + v.substring(end);
+                input.focus();
+            }
+            picker.remove();
+        }));
+        // 点击空白处关闭
+        setTimeout(() => document.addEventListener('click', function onDocClick(e){ if (!picker.contains(e.target) && e.target !== btn) { picker.remove(); document.removeEventListener('click', onDocClick); } }));
     }
 }
 
+// 初始化 legacy 队列（用于兼容在 chatSystem 就绪前被调用的旧 API）
+window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+window.__chat_legacy_flush_timer = window.__chat_legacy_flush_timer || null;
+window.__chat_legacy_clearTimer = function() { if (window.__chat_legacy_flush_timer) { clearInterval(window.__chat_legacy_flush_timer); window.__chat_legacy_flush_timer = null; } };
+window.__chat_legacy_enqueue = function() {
+    // 启动定时器定期尝试回放，最长尝试 10s
+    if (window.__chat_legacy_flush_timer) return;
+    window.__chat_legacy_flush_timer = setInterval(() => {
+        if (window.chatSystem && typeof window.chatSystem.flushLegacyQueue === 'function') {
+            try { window.chatSystem.flushLegacyQueue(); } catch (e) { console.warn('legacy enqueue flush error', e); }
+        }
+    }, 500);
+    setTimeout(() => { if (window.__chat_legacy_flush_timer) { window.__chat_legacy_clearTimer(); } }, 10000);
+};
+
+// 全局安全调用 helper：在 chatSystem 可用时直接执行方法，否则入队回放
+window.chatSystemSafeCall = function(fnName, ...args) {
+    if (window.chatSystem && typeof window.chatSystem[fnName] === 'function') {
+        try { return window.chatSystem[fnName].apply(window.chatSystem, args); } catch (e) { console.warn('chatSystemSafeCall error', fnName, e); }
+    } else {
+        window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+        window.__chat_legacy_queue.push({ fnName, args });
+        if (typeof window.__chat_legacy_enqueue === 'function') window.__chat_legacy_enqueue();
+    }
+};
+
 // 初始化聊天系统
-let chatSystem;
-document.addEventListener('DOMContentLoaded', () => {
-    chatSystem = new ChatSystem();
+// readiness promise helper for other scripts to await chatSystem
+// global readiness promise: resolved by initChatSystem; no auto-reject here (callers should use __chat_wait_for_chatSystem(timeout))
+window.__chat_system_ready_promise = new Promise((resolve, reject) => {
+    // store resolvers so initChatSystem can resolve/reject
+    window.__chat_system_ready_resolve = (val) => {
+        console.debug('[Chat] __chat_system_ready_promise resolved');
+        try { resolve(val); } finally { window.__chat_system_ready_resolve = null; window.__chat_system_ready_reject = null; }
+    };
+    window.__chat_system_ready_reject = (err) => {
+        console.debug('[Chat] __chat_system_ready_promise rejected', err);
+        try { reject(err); } finally { window.__chat_system_ready_resolve = null; window.__chat_system_ready_reject = null; }
+    };
 });
+
+let chatSystem;
+function initChatSystem() {
+    try {
+        chatSystem = new ChatSystem();
+        // 将实例暴露给 window，确保兼容旧代码与 legacy 队列
+        try { window.chatSystem = chatSystem; } catch(e) { console.warn('assign window.chatSystem failed', e); }
+        console.debug('[ChatSystem] initialized');
+        try { window.dispatchEvent(new Event('chatSystemReady')); } catch(e) { console.warn('dispatch chatSystemReady failed', e); }
+
+        // 立即回放任何 legacy 队列内容，并清理定时器
+        try {
+            if (window.chatSystem && typeof window.chatSystem.flushLegacyQueue === 'function') {
+                try { window.chatSystem.flushLegacyQueue(); } catch(e) { console.warn('initial flushLegacyQueue failed', e); }
+            }
+            if (typeof window.__chat_legacy_clearTimer === 'function') {
+                try { window.__chat_legacy_clearTimer(); } catch(e) {}
+            }
+        } catch (e) { console.warn('[Chat] initial legacy flush failed', e); }
+
+        // resolve readiness promise if somebody is waiting
+        try {
+            if (window.__chat_system_ready_resolve) {
+                window.__chat_system_ready_resolve(window.chatSystem);
+                window.__chat_system_ready_resolve = null;
+                window.__chat_system_ready_reject = null;
+            }
+        } catch (e) { console.warn('[Chat] resolving __chat_system_ready_promise failed', e); }
+    } catch (e) { console.error('[ChatSystem] initialization failed', e); }
+}
+// 兼容：若脚本在 DOMContentLoaded 之后加载，则直接初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChatSystem);
+} else {
+    initChatSystem();
+}
+
+// convenience helper: await chatSystem readiness with optional timeout
+window.__chat_wait_for_chatSystem = function(timeoutMs = 7000) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout waiting for chatSystem')), timeoutMs);
+        window.__chat_system_ready_promise.then(r => { clearTimeout(timer); resolve(r); }).catch(err => { clearTimeout(timer); reject(err); });
+    });
+};
+
+// 调试助手：显示当前 chatSystem / legacy 队列 状态
+window.__chat_debug_status = function() {
+    console.groupCollapsed('[Chat Debug Status]');
+    console.log('chatSystem exists:', !!window.chatSystem);
+    if (window.chatSystem) {
+        try { console.log('conversations count:', (window.chatSystem.conversations||[]).length); } catch(e) { console.warn('read convs failed', e); }
+        try { console.log('currentConversation id:', window.chatSystem.currentConversation && window.chatSystem.currentConversation.id); } catch(e) {}
+    }
+    console.log('__chat_legacy_queue size:', (window.__chat_legacy_queue && window.__chat_legacy_queue.length) || 0);
+    if (window.__chat_legacy_queue && window.__chat_legacy_queue.length) console.log('queue sample:', window.__chat_legacy_queue.slice(0,5));
+    console.log('__chat_legacy_flush_timer exists:', !!window.__chat_legacy_flush_timer);
+    console.log('__chat_legacy_clearTimer exists:', typeof window.__chat_legacy_clearTimer === 'function');
+    console.groupEnd();
+};

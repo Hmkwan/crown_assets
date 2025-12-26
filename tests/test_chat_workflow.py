@@ -19,10 +19,14 @@ def app_ctx():
 def test_chat_start_workflow_creates_instance_and_message(app_ctx):
     # 创建用户和会话
     import uuid
-    u1 = User(username='u1', email=f'u1-{uuid.uuid4().hex[:8]}@example.com')
+    u1_username = 'u1-' + uuid.uuid4().hex[:8]
+    u2_username = 'u2-' + uuid.uuid4().hex[:8]
+    u1 = User(username=u1_username, email=f'{u1_username}@example.com')
     u1.set_password('pass')
-    u2 = User(username='u2', email=f'u2-{uuid.uuid4().hex[:8]}@example.com')
+    u2 = User(username=u2_username, email=f'{u2_username}@example.com')
     u2.set_password('pass')
+    # use generated username when logging in later
+    login_username = u1_username
     db.session.add_all([u1, u2])
     db.session.commit()
 
@@ -44,7 +48,7 @@ def test_chat_start_workflow_creates_instance_and_message(app_ctx):
 
     # 模拟登录为 u1
     with client:
-        client.post('/auth/login', data={'username': 'u1', 'password': 'pass', 'csrf_token': client.get('/auth/login').data.decode()})
+        client.post('/auth/login', data={'username': login_username, 'password': 'pass', 'csrf_token': client.get('/auth/login').data.decode()})
         # 列表模板
         resp = client.get('/api/chat/workflow_templates')
         assert resp.status_code == 200

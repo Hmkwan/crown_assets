@@ -372,13 +372,27 @@ def _send_notification(user_id, title, message):
 
 
 def _log_activity(action, description):
-    """记录活动日志"""
-    log = UserActivityLog(
-        user_id=current_user.id,
-        action=action,
-        description=description
-    )
-    db.session.add(log)
+    """记录活动日志并提交（若失败则记录警告）"""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        ip = request.headers.get('X-Forwarded-For') or request.headers.get('X-Real-IP') or request.remote_addr or ''
+        log = UserActivityLog(
+            user_id=current_user.id,
+            action=action,
+            description=f"{description} (IP: {ip})"
+        )
+        db.session.add(log)
+        try:
+            db.session.commit()
+        except Exception as e:
+            logger.warning('记录活动日志时提交失败: %s', e, exc_info=True)
+            try:
+                db.session.rollback()
+            except Exception:
+                logger.debug('回滚活动日志事务失败（忽略）', exc_info=True)
+    except Exception as e:
+        logger.warning('记录活动日志失败: %s', e, exc_info=True)
 
 
 # ==================== 节点管理 ====================

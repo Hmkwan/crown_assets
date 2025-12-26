@@ -167,8 +167,29 @@
 <!-- 实时通知封装 -->
 <script src="{{ url_for('static', filename='js/realtime-notifications.js') }}?v={{ cache_version }}"></script>
 <script>
-// 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。
+// 兼容性包装：将旧的全局函数映射到新的 chatSystem 实例方法（如果存在）。若 chatSystem 尚未准备就绪，则排队并在就绪后回放。
 (function(){
+    window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+    let __chat_legacy_flush_timer = null;
+    function tryFlush() {
+        if (window.chatSystem && window.__chat_legacy_queue.length) {
+            while (window.__chat_legacy_queue.length) {
+                const item = window.__chat_legacy_queue.shift();
+                console.debug('[Chat wrapper] replaying legacy call', item.fnName, item.args);
+                try { 
+                    if (typeof window.chatSystem[item.fnName] === 'function') {
+                        window.chatSystem[item.fnName].apply(window.chatSystem, item.args);
+                    } else {
+                        console.warn('[Chat wrapper] method not found on ChatSystem:', item.fnName);
+                    }
+                } catch(e) { console.warn('replaying legacy call failed', e); }
+            }
+            if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; }
+        }
+    }
+    __chat_legacy_flush_timer = setInterval(tryFlush, 200);
+    // 暴露一个全局清理函数，以便外部（如 ChatSystem）能清除内部的定时器
+    window.__chat_legacy_clearTimer = function(){ if (__chat_legacy_flush_timer) { clearInterval(__chat_legacy_flush_timer); __chat_legacy_flush_timer = null; } };
     function wrap(name, fnName) {
         if (typeof window[name] === 'undefined') {
             window[name] = function(){
@@ -176,7 +197,15 @@
                     if (window.chatSystem && typeof window.chatSystem[fnName] === 'function') {
                         return window.chatSystem[fnName].apply(window.chatSystem, arguments);
                     } else {
-                        console.warn(`${name} called but chatSystem not ready`);
+                        console.warn(`${name} called but chatSystem not ready; queuing call`);
+                        const args = Array.prototype.slice.call(arguments);
+                        const q = window.__chat_legacy_queue;
+                        const last = q.length? q[q.length-1] : null;
+                        if (!last || last.fnName !== fnName || JSON.stringify(last.args) !== JSON.stringify(args)) {
+                            q.push({ fnName: fnName, args: args });
+                        } else {
+                            console.debug('[Chat wrapper] skip duplicate queued call', fnName, args);
+                        }
                     }
                 } catch(e) { console.warn(`${name} wrapper error`, e); }
             };
@@ -230,6 +259,55 @@ function formatTime(timeStr) {
 // 选择会话
 let joinedConversationId = null;
 function selectConversation(id) {
+    // Prefer chatSystem implementation when available
+    if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+        try {
+            return window.chatSystem.selectConversation(id);
+        } catch (e) { console.warn('chatSystem.selectConversation error', e); }
+    }
+
+    // Legacy fallback: only run if legacy 'conversations' array exists
+    if (typeof conversations === 'undefined') {
+        console.warn('selectConversation called but legacy conversations not available; will defer to chatSystemReady or queue');
+        console.debug('selectConversation status:', {
+            chatSystemExists: !!window.chatSystem,
+            chatSystemHasSelect: !!(window.chatSystem && typeof window.chatSystem.selectConversation === 'function'),
+            legacyQueueLen: (window.__chat_legacy_queue || []).length
+        });
+
+        // 如果 chatSystem 已存在但旧的 conversations 变量没有定义，直接委托给 chatSystem.selectConversation
+        if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+            try {
+                console.debug('Delegating selectConversation to chatSystem immediately', id);
+                window.chatSystem.selectConversation(id);
+                return;
+            } catch (e) { console.warn('chatSystem.selectConversation immediate delegation failed', e); }
+        }
+
+        // 否则在 chatSystemReady 事件到达时尝试一次委托
+        const onReady = function() {
+            try {
+                if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+                    console.debug('Deferred selectConversation on chatSystemReady', id);
+                    window.chatSystem.selectConversation(id);
+                    return;
+                }
+            } catch (e) { console.warn('Deferred chatSystem.selectConversation failed', e); }
+        };
+        window.addEventListener('chatSystemReady', onReady, { once: true });
+
+        // 超时回退到 legacy queue（以保证最终会有重试）
+        setTimeout(function(){
+            if (!(window.chatSystem && typeof window.chatSystem.selectConversation === 'function')) {
+                console.warn('chatSystem did not become ready in time; queueing legacy selectConversation', id);
+                window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [id] });
+            }
+        }, 5000);
+
+        return;
+    }
+
     const conv = conversations.find(c => c.id === id);
     if (!conv) return;
 
@@ -657,7 +735,48 @@ function createConversation() {
             console.log('[Chat] 会话已创建:', data.conversation.id);
             $('#newChatModal').modal('hide');
             loadConversations();
-            setTimeout(() => selectConversation(data.conversation.id), 500);
+            if (data.conversation) {
+                // 乐观更新：把新会话加入本地会话数组以便立即可见
+                try {
+                    if (window.chatSystem && Array.isArray(window.chatSystem.conversations)) {
+                        const exists = window.chatSystem.conversations.find(c => c.id === data.conversation.id);
+                        if (!exists) {
+                            window.chatSystem.conversations.unshift(data.conversation);
+                            try { window.chatSystem.renderConversations(); } catch(e) { console.warn('renderConversations failed after optimistic push', e); }
+                        }
+                    }
+                } catch(e){ console.warn('optimistic update failed', e); }
+
+                // 使用 Promise 来确保 chatSystem 已就绪; 超时回退到 legacy
+                if (window.__chat_wait_for_chatSystem) {
+                    window.__chat_wait_for_chatSystem(7000).then(() => {
+                        try { window.chatSystem.selectConversation(data.conversation.id); } catch(e) { console.warn('chatSystem.selectConversation failed (after wait)', e); selectConversation(data.conversation.id); }
+                    }).catch(() => {
+                        console.warn('chatSystem not ready after wait; attempting immediate chatSystem call before falling back');
+                        try {
+                            if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+                                window.chatSystem.selectConversation(data.conversation.id);
+                                return;
+                            }
+                        } catch (e) { console.warn('immediate chatSystem.selectConversation after wait failed', e); }
+                        if (typeof selectConversation === 'function') {
+                            selectConversation(data.conversation.id);
+                        } else {
+                            window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                            window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [data.conversation.id] });
+                        }
+                    });
+                } else {
+                    if (window.chatSystem && typeof window.chatSystem.selectConversation === 'function') {
+                        try { window.chatSystem.selectConversation(data.conversation.id); } catch(e) { console.warn('chatSystem.selectConversation failed', e); }
+                    } else if (typeof selectConversation === 'function') {
+                        setTimeout(() => selectConversation(data.conversation.id), 500);
+                    } else {
+                        window.__chat_legacy_queue = window.__chat_legacy_queue || [];
+                        window.__chat_legacy_queue.push({ fnName: 'selectConversation', args: [data.conversation.id] });
+                    }
+                }
+            }
         },
         error: function(xhr) {
             console.error('[Chat] 创建会话失败', xhr.status, xhr.responseText);

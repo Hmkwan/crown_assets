@@ -1,0 +1,643 @@
+From 701150ccf70d2a7124a4e4a39d3271d1d971f5ac Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E4=BF=A1=E6=81=AF-=E5=85=B3=E9=B9=A4=E9=B8=A3?=
+ <it03@gd.crown.com>
+Date: Tue, 23 Dec 2025 10:36:16 +0800
+Subject: [PATCH] chat(ui): improve layout, accessibility, keyboard support;
+ add online-users autosync and graceful Redis fallback
+
+---
+ app/__init__.py               |  14 ++++
+ app/online_users.py           |  11 ++-
+ app/static/css/chat.css       | 165 +++++++++++++++++++++++++++++++++++++-----
+ app/static/js/chat.js         | 164 +++++++++++++++++++++++++++++++++++++++--
+ app/static/js/online-users.js |  16 ++++
+ app/templates/chat.html       |  49 +++++++------
+ 6 files changed, 372 insertions(+), 47 deletions(-)
+
+diff --git a/app/__init__.py b/app/__init__.py
+index 57e911c..5e7932e 100644
+--- a/app/__init__.py
++++ b/app/__init__.py
+@@ -742,6 +742,20 @@ def create_app(config_class=Config):
+     from app.routes.announcement_routes import announcement_bp
+     app.register_blueprint(announcement_bp, url_prefix='/api')
+ 
++    # 开发辅助: 在调试模式或设置 DEV_ALLOW_DEV_ROUTE=1 时提供一个免登录的本地预览路由 `/ _dev/chat`。
++    # 仅允许本地回环地址访问，避免在远程环境中暴露此路由。
++    if app.debug or os.environ.get('DEV_ALLOW_DEV_ROUTE') == '1':
++        from types import SimpleNamespace
++        from flask import request, abort, render_template
++
++        @app.route('/_dev/chat')
++        def _dev_chat():
++            if request.remote_addr not in ('127.0.0.1', '::1', 'localhost'):
++                abort(403)
++            fake_user = SimpleNamespace(id=1, is_authenticated=True)
++            # 直接渲染 chat.html，传入一个伪造的 current_user 用于本地UI调试
++            return render_template('chat.html', current_user=fake_user)
++
+     return app
+ 
+ 
+diff --git a/app/online_users.py b/app/online_users.py
+index f1f8ea7..73a804d 100644
+--- a/app/online_users.py
++++ b/app/online_users.py
+@@ -10,12 +10,19 @@ redis_client = create_redis_client()  # 可能为 None，如果 Redis 不可用
+ 
+ @online_users_bp.route('/online_users', methods=['GET'])
+ def get_online_users():
+-    """获取在线用户列表"""
++    """获取在线用户列表
++
++    如果 Redis 未启用或不可用，返回空列表以便前端能优雅降级（无需抛出 500）。
++    """
+     try:
++        if not redis_client:
++            return jsonify({'online_users': []}), 200
+         online_user_ids = redis_client.smembers('online_users')
++        # 返回 Python 原生的 list，确保 JSON 序列化
+         return jsonify({'online_users': list(online_user_ids)}), 200
+     except Exception as e:
+-        return jsonify({'error': str(e)}), 500
++        # 日志已由调用方处理，这里返回空列表以便前端继续工作
++        return jsonify({'online_users': []}), 200
+ 
+ @online_users_bp.route('/update_online_status', methods=['POST'])
+ def update_online_status():
+diff --git a/app/static/css/chat.css b/app/static/css/chat.css
+index 922116d..0aeae03 100644
+--- a/app/static/css/chat.css
++++ b/app/static/css/chat.css
+@@ -1,22 +1,102 @@
+ /* 聊天系统样式 */
+ 
+-.chat-container {
+-    display: flex;
+-    height: calc(100vh - 120px);
+-    background: #f5f7fa;
+-    border-radius: 8px;
+-    overflow: hidden;
+-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
++/* Modern layout using CSS Grid (preferred) */
++@supports (display: grid) {
++    .chat-container {
++        display: grid;
++        grid-template-columns: 320px 1fr 260px;
++        gap: 20px;
++        height: calc(100vh - 120px);
++        max-width: 1200px;
++        margin: 0 auto;
++        align-items: stretch;
++    }
++
++    .conversation-list {
++        background: white;
++        border-radius: 8px;
++        border-right: 1px solid #e4e7ed;
++        display: flex;
++        flex-direction: column;
++        overflow: hidden;
++    }
++
++    .chat-window {
++        background: white;
++        border-radius: 8px;
++        overflow: hidden;
++        display: flex;
++        flex-direction: column;
++    }
++
++    .online-users-container {
++        background: white;
++        border-radius: 8px;
++        padding: 12px 16px;
++        border-left: 1px solid #e4e7ed;
++        overflow: auto;
++        min-height: 200px;
++        display: flex;
++        flex-direction: column;
++        gap: 12px;
++    }
++
++    .online-users-container h3 { margin: 0 0 8px 0; font-size: 16px; }
++    .online-users-container .list-group { flex: 1; overflow: auto; }
++    .online-users-container .list-group-item { display: flex; align-items: center; gap: 10px; }
++    .avatar-sm { width: 32px; height: 32px; border-radius: 50%; font-size: 14px; }
++}
++
++/* Modern layout using flexbox (preferred) */
++@supports (display: flex) {
++    .chat-container {
++        display: flex;
++        max-width: 1200px;
++        margin: 0 auto;
++        height: calc(100vh - 120px);
++        background: #f5f7fa;
++        border-radius: 8px;
++        overflow: hidden;
++        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
++    }
++
++    /* 会话列表 */
++    .conversation-list {
++        width: 320px;
++        background: white;
++        border-right: 1px solid #e4e7ed;
++        display: flex;
++        flex-direction: column;
++        overflow: hidden;
++    }
++} 
++
++/* Legacy fallback when flexbox isn't available (or CSS failed to parse) */
++@supports not (display: flex) {
++    .chat-container {
++        display: block;
++        overflow: hidden;
++        background: #f5f7fa;
++    }
++    .conversation-list {
++        float: left;
++        width: 300px;
++        background: white;
++        border-right: 1px solid #e4e7ed;
++        box-sizing: border-box;
++    }
++    .chat-window {
++        margin-left: 300px;
++        box-sizing: border-box;
++        min-height: calc(100vh - 120px);
++    }
++    /* 清理浮动，避免布局被破坏 */
++    .chat-container::after { content: ""; display: table; clear: both; }
++    .chat-messages { min-height: calc(100vh - 240px); overflow-y: auto; }
+ }
+ 
+ /* 会话列表 */
+-.conversation-list {
+-    width: 300px;
+-    background: white;
+-    border-right: 1px solid #e4e7ed;
+-    display: flex;
+-    flex-direction: column;
+-}
++/* (flex version continues below for common rules) */
+ 
+ .conversation-list-header {
+     padding: 20px;
+@@ -65,16 +145,45 @@
+ }
+ 
+ .conversation-item {
+-    padding: 15px;
++    padding: 16px 18px;
+     border-bottom: 1px solid #f0f0f0;
+     cursor: pointer;
+-    transition: background 0.2s;
++    transition: background 0.2s, transform 0.06s;
+     display: flex;
+     align-items: flex-start;
++    gap: 12px;
++    min-height: 64px; /* larger touch targets */
+ }
+ 
+ .conversation-item:hover {
+     background: #f5f7fa;
++    transform: translateY(-1px);
++}
++
++/* Focus styles for keyboard navigation */
++.conversation-item:focus {
++    outline: 3px solid rgba(64,158,255,0.25);
++    outline-offset: 2px;
++    background: #f0f8ff;
++}
++
++.toolbar-btn:focus,
++.send-btn:focus,
++.new-chat-btn:focus {
++    outline: 3px solid rgba(64,158,255,0.25);
++    outline-offset: 2px;
++}
++
++/* Ensure chat input is more accessible */
++.chat-input {
++    min-height: 80px;
++    padding: 10px;
++    font-size: 15px;
++}
++
++/* Make buttons slightly larger on touch devices */
++@media (pointer: coarse) {
++    .toolbar-btn, .send-btn, .new-chat-btn { padding: 10px 14px; font-size: 16px; }
+ }
+ 
+ .conversation-item.active {
+@@ -444,17 +553,39 @@
+ }
+ 
+ /* 响应式 */
++.online-users-container.hidden { display: none !important; }
++
+ @media (max-width: 768px) {
+     .conversation-list {
+         width: 100%;
+         position: absolute;
+-        z-index: 10;
++        z-index: 20;
+         height: 100%;
++        left: 0;
++        top: 0;
++        background: white;
+     }
+     
+     .conversation-list.hidden {
+         display: none;
+     }
++
++    .online-users-container {
++        display: none;
++        position: absolute;
++        right: 0;
++        top: 0;
++        width: 80%;
++        z-index: 20;
++        background: white;
++        height: 100%;
++        padding: 20px;
++        box-shadow: -2px 0 6px rgba(0,0,0,0.08);
++    }
++
++    .online-users-container.visible {
++        display: block;
++    }
+     
+     .message-content {
+         max-width: 80%;
+diff --git a/app/static/js/chat.js b/app/static/js/chat.js
+index c212113..6332a71 100644
+--- a/app/static/js/chat.js
++++ b/app/static/js/chat.js
+@@ -19,16 +19,23 @@ class ChatSystem {
+         
+         // 绑定事件
+         this.bindEvents();
++        // 检查并显示 toolbar 图标的回退文字（当 font-awesome 被阻止或未加载时）
++        this.updateToolbarIconFallbacks();
++        // 自动加载在线用户面板内容以提升可用性
++        this.fetchOnlineUsers();
+     }
+     
+     initSocket() {
+-        // 使用已有的realtime-notifications.js中的socket
++        // 优先使用全局 socket，若不可用则尝试 RealtimeNotification 的 socket() 接口
+         if (window.socket) {
+             this.socket = window.socket;
+-            this.registerChatEvents();
++        } else if (window.RealtimeNotification && typeof window.RealtimeNotification.socket === 'function' && window.RealtimeNotification.socket()) {
++            this.socket = window.RealtimeNotification.socket();
+         } else {
+             console.error('Socket.IO未初始化');
++            return;
+         }
++        this.registerChatEvents();
+     }
+     
+     registerChatEvents() {
+@@ -97,6 +104,59 @@ class ChatSystem {
+         document.getElementById('fileInput')?.addEventListener('change', (e) => {
+             this.handleFileUpload(e.target.files);
+         });
++
++        // 在线用户相关按钮
++        document.getElementById('fetch-online-users-btn')?.addEventListener('click', () => {
++            this.fetchOnlineUsers();
++        });
++
++        document.getElementById('create-conversation-btn')?.addEventListener('click', () => {
++            this.showNewChatModal();
++        });
++
++        // 键盘快捷键：Ctrl+K 或 / 聚焦会话搜索
++        window.addEventListener('keydown', (e) => {
++            if ((e.ctrlKey && e.key.toLowerCase() === 'k') || e.key === '/') {
++                const s = document.getElementById('conversationSearch');
++                if (s) {
++                    e.preventDefault();
++                    s.focus();
++                    s.select();
++                }
++            }
++            // ESC 清除搜索焦点
++            if (e.key === 'Escape') {
++                const s = document.getElementById('conversationSearch');
++                if (s && document.activeElement === s) s.blur();
++            }
++        });
++
++        // 在窗口尺寸变化时，重新检查 icon 回退显示
++        window.addEventListener('resize', this.updateToolbarIconFallbacks.bind(this));
++
++        // 定期刷新在线用户（每60秒）
++        this._onlineRefreshInterval = setInterval(() => this.fetchOnlineUsers(), 60000);
++    }
++
++    // 检测 icon 字体是否加载，若被阻止则显示文字回退
++    updateToolbarIconFallbacks() {
++        try {
++            document.querySelectorAll('.toolbar-btn').forEach(btn => {
++                const icon = btn.querySelector('i');
++                const label = btn.querySelector('.btn-label');
++                if (!icon) return;
++                const rect = icon.getBoundingClientRect ? icon.getBoundingClientRect() : { width: 0, height: 0 };
++                if ((rect.width === 0 && rect.height === 0) && label) {
++                    label.style.display = 'inline';
++                    icon.style.display = 'none';
++                } else if (label) {
++                    label.style.display = 'none';
++                    icon.style.display = '';
++                }
++            });
++        } catch (e) {
++            console.warn('更新 toolbar 图标回退失败', e);
++        }
+     }
+     
+     // ==================== 会话管理 ====================
+@@ -104,8 +164,17 @@ class ChatSystem {
+     async loadConversations() {
+         console.log('[Chat] 开始加载会话列表...');
+         try {
+-            // 提取 CSRF 令牌
+-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
++            // 提取 CSRF 令牌（容错：若页面没有隐藏 input 则尝试从 cookie 读取或为空）
++            const csrfElem = document.querySelector('input[name="csrf_token"]');
++            const csrfToken = csrfElem ? csrfElem.value : (function(){
++                const name = 'csrf_token=';
++                const ca = document.cookie.split(';');
++                for (let i = 0; i < ca.length; i++) {
++                    const c = ca[i].trim();
++                    if (c.indexOf(name) === 0) return c.substring(name.length);
++                }
++                return '';
++            })();
+ 
+             const response = await fetch('/api/chat/conversations', {
+                 method: 'GET',
+@@ -132,8 +201,14 @@ class ChatSystem {
+             }
+ 
+             const data = await response.json();
+-            this.conversations = data.conversations;
++            this.conversations = data.conversations || [];
+             console.log('[Chat] 会话列表加载成功:', this.conversations);
++
++            // 渲染会话列表并自动选中第一个会话（提升首屏可用性）
++            this.renderConversations();
++            if (!this.currentConversation && this.conversations.length > 0) {
++                setTimeout(() => this.selectConversation(this.conversations[0].id), 100);
++            }
+         } catch (error) {
+             console.error('[Chat] 加载会话列表失败:', error);
+             this.showToast('加载会话列表失败: ' + error.message, 'error');
+@@ -159,7 +234,7 @@ class ChatSystem {
+         
+         container.innerHTML = this.conversations.map(conv => `
+             <div class="conversation-item ${conv.is_pinned ? 'pinned' : ''} ${this.currentConversation?.id === conv.id ? 'active' : ''}"
+-                 data-id="${conv.id}"
++                 role="listitem" tabindex="0" data-id="${conv.id}"
+                  onclick="chatSystem.selectConversation(${conv.id})">
+                 <div class="conversation-avatar">
+                     ${this.getConversationAvatar(conv)}
+@@ -176,6 +251,16 @@ class ChatSystem {
+                 </div>
+             </div>
+         `).join('');
++
++        // 添加键盘交互支持（Enter 键选择会话）
++        container.querySelectorAll('.conversation-item').forEach(item => {
++            item.addEventListener('keydown', (e) => {
++                if (e.key === 'Enter') {
++                    const id = item.dataset.id;
++                    if (id) chatSystem.selectConversation(parseInt(id));
++                }
++            });
++        });
+     }
+     
+     getConversationName(conv) {
+@@ -257,6 +342,9 @@ class ChatSystem {
+                 <button class="chat-action-btn" onclick="chatSystem.toggleMute()">
+                     <i class="fas fa-bell-slash"></i>
+                 </button>
++                <button class="chat-action-btn" onclick="chatSystem.toggleOnlineUsers()" title="在线用户">
++                    <i class="fas fa-users"></i>
++                </button>
+                 <button class="chat-action-btn" onclick="chatSystem.showConversationInfo()">
+                     <i class="fas fa-info-circle"></i>
+                 </button>
+@@ -654,6 +742,70 @@ class ChatSystem {
+     downloadFile(attachmentId) {
+         window.location.href = `/api/chat/attachments/${attachmentId}/download`;
+     }
++
++    // 切换在线用户面板显示
++    toggleOnlineUsers() {
++        const pane = document.querySelector('.online-users-container');
++        if (!pane) return;
++        pane.classList.toggle('hidden');
++    }
++
++    // 拉取在线用户并渲染
++    async fetchOnlineUsers() {
++        try {
++            const ul = document.getElementById('online-users-list');
++            if (!ul) return;
++            // 显示加载指示
++            ul.innerHTML = `
++                <li class="list-group-item text-center py-4">
++                    <div class="spinner-border text-primary" role="status"><span class="sr-only">加载中...</span></div>
++                </li>
++            `;
++
++            // 首先获取在线用户ID列表
++            const response = await fetch('/api/online_users');
++            if (!response.ok) {
++                ul.innerHTML = '<li class="list-group-item text-muted">无法获取在线用户</li>';
++                return;
++            }
++            const data = await response.json();
++            const ids = data.online_users || [];
++
++            if (ids.length === 0) {
++                ul.innerHTML = '<li class="list-group-item text-muted">暂无在线用户</li>';
++                return;
++            }
++
++            // 获取用户详情并按在线顺序渲染
++            const usersResp = await fetch('/api/chat/users');
++            if (!usersResp.ok) {
++                // 回退到只显示ID的模式
++                ul.innerHTML = ids.map(id => `<li class="list-group-item">用户ID: ${id}</li>`).join('');
++                return;
++            }
++            const usersData = await usersResp.json();
++            const users = usersData.users || [];
++            const userMap = {};
++            users.forEach(u => { userMap[u.id] = u; });
++
++            ul.innerHTML = ids.map(id => {
++                const u = userMap[id];
++                if (u) {
++                    return `
++                        <li class="list-group-item d-flex align-items-center">
++                            <div class="avatar-sm me-2" style="width:32px;height:32px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${this.escapeHtml((u.real_name||u.username||'').charAt(0).toUpperCase())}</div>
++                            <div>${this.escapeHtml(u.real_name || u.username)}</div>
++                        </li>
++                    `;
++                }
++                return `<li class="list-group-item">用户ID: ${id}</li>`;
++            }).join('');
++        } catch (error) {
++            console.error('获取在线用户失败:', error);
++            const ul = document.getElementById('online-users-list');
++            if (ul) ul.innerHTML = '<li class="list-group-item text-muted">加载在线用户时出错</li>';
++        }
++    }
+     
+     async showNewChatModal() {
+         // 加载用户列表
+diff --git a/app/static/js/online-users.js b/app/static/js/online-users.js
+index b7b24f6..cfc0b43 100644
+--- a/app/static/js/online-users.js
++++ b/app/static/js/online-users.js
+@@ -10,12 +10,28 @@ function fetchOnlineUsers() {
+                 userItem.textContent = `用户ID: ${user}`;
+                 userItem.dataset.userId = user;
+                 userItem.classList.add('online-user-item');
++                userItem.tabIndex = 0; // 可聚焦
+                 userList.appendChild(userItem);
++
++                // 点击/回车选择
++                userItem.addEventListener('click', () => userItem.classList.toggle('selected'));
++                userItem.addEventListener('keydown', (e) => {
++                    if (e.key === 'Enter') userItem.classList.toggle('selected');
++                });
+             });
+         })
+         .catch(error => console.error('获取在线用户失败:', error));
+ }
+ 
++// 事件绑定
++document.getElementById('fetch-online-users-btn').addEventListener('click', fetchOnlineUsers);
++document.getElementById('create-conversation-btn').addEventListener('click', createConversation);
++
++// 支持键盘创建会话（回车）
++document.getElementById('create-conversation-btn').addEventListener('keydown', (e) => {
++    if (e.key === 'Enter') createConversation();
++});
++
+ function createConversation() {
+     const selectedUsers = Array.from(document.querySelectorAll('.online-user-item.selected'))
+         .map(item => item.dataset.userId);
+diff --git a/app/templates/chat.html b/app/templates/chat.html
+index 08936ac..78ad6a0 100644
+--- a/app/templates/chat.html
++++ b/app/templates/chat.html
+@@ -19,10 +19,10 @@
+             </div>
+             
+             <div class="conversation-search">
+-                <input type="text" id="conversationSearch" placeholder="搜索会话..." class="form-control">
++                <input type="text" id="conversationSearch" placeholder="搜索会话..." aria-label="搜索会话" class="form-control">
+             </div>
+             
+-            <div id="conversationItems" class="conversation-items">
++            <div id="conversationItems" class="conversation-items" role="list" aria-label="会话列表">
+                 <!-- 会话列表将通过JavaScript动态加载 -->
+                 <div class="text-center p-4">
+                     <div class="spinner-border text-primary" role="status">
+@@ -42,7 +42,7 @@
+                 </div>
+             </div>
+             
+-            <div id="chatMessages" class="chat-messages">
++            <div id="chatMessages" class="chat-messages" role="log" aria-live="polite" aria-atomic="false" tabindex="0">
+                 <!-- 消息列表将通过JavaScript动态渲染 -->
+             </div>
+             
+@@ -51,15 +51,18 @@
+             </div>
+             
+             <div class="chat-input-area">
+-                <div class="chat-toolbar">
+-                    <button class="toolbar-btn" id="emojiBtn" title="表情">
+-                        <i class="fas fa-smile"></i>
++                <div class="chat-toolbar" role="toolbar" aria-label="聊天工具栏">
++                    <button class="toolbar-btn" id="emojiBtn" title="表情" data-fallback="表情" aria-label="表情" tabindex="0">
++                        <i class="fas fa-smile" aria-hidden="true"></i>
++                        <span class="btn-label" style="display:none">表情</span>
+                     </button>
+-                    <button class="toolbar-btn" id="fileUploadBtn" title="上传文件">
+-                        <i class="fas fa-paperclip"></i>
++                    <button class="toolbar-btn" id="fileUploadBtn" title="上传文件" data-fallback="附件" aria-label="上传文件" tabindex="0">
++                        <i class="fas fa-paperclip" aria-hidden="true"></i>
++                        <span class="btn-label" style="display:none">附件</span>
+                     </button>
+-                    <button class="toolbar-btn" id="imageUploadBtn" title="上传图片">
+-                        <i class="fas fa-image"></i>
++                    <button class="toolbar-btn" id="imageUploadBtn" title="上传图片" data-fallback="图片" aria-label="上传图片" tabindex="0">
++                        <i class="fas fa-image" aria-hidden="true"></i>
++                        <span class="btn-label" style="display:none">图片</span>
+                     </button>
+                     <input type="file" id="fileInput" style="display: none;" accept="*/*">
+                 </div>
+@@ -74,7 +77,16 @@
+                     </button>
+                 </div>
+             </div>
+-        </div>
++        <!-- 右侧在线用户列表（已迁入主布局） -->
++        <div class="online-users-container">
++            <h3>在线用户</h3>
++            <button id="fetch-online-users-btn" class="btn btn-primary">刷新在线用户</button>
++            <ul id="online-users-list" class="list-group mt-2">
++                <!-- 在线用户列表将通过JavaScript动态加载 -->
++            </ul>
++            <button id="create-conversation-btn" class="btn btn-success mt-2">
++                <i class="fas fa-comments"></i> 创建会话
++            </button>        </div>
+     </div>
+ </div>
+ 
+@@ -117,22 +129,15 @@
+     </div>
+ </div>
+ 
+-<!-- 在线用户列表 -->
+-<div class="online-users-container">
+-    <h3>在线用户</h3>
+-    <button id="fetch-online-users-btn" class="btn btn-primary">刷新在线用户</button>
+-    <ul id="online-users-list" class="list-group mt-2">
+-        <!-- 在线用户列表将通过JavaScript动态加载 -->
+-    </ul>
+-    <button id="create-conversation-btn" class="btn btn-success mt-2">
+-        <i class="fas fa-comments"></i> 创建会话
+-    </button>
+-</div>
+ 
+ <script>
+ // 设置当前用户ID(用于判断消息是否为自己发送)
+ window.currentUserId = {{ current_user.id }};
+ </script>
++
++<!-- Hidden CSRF token for legacy scripts that read it directly -->
++<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
++
+ {% endblock %}
+ 
+ {% block scripts %}
+-- 
+2.9.0.windows.1
+

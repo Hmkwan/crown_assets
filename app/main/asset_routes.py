@@ -22,6 +22,8 @@ import base64
 
 def _log_activity(action, description):
     """记录用户活动日志"""
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         from app.models import UserActivityLog
         from flask import request
@@ -34,10 +36,14 @@ def _log_activity(action, description):
         db.session.add(activity_log)
         try:
             db.session.commit()
-        except Exception:
-            pass
-    except Exception:
-        pass
+        except Exception as e:
+            logger.warning('记录活动日志时提交失败: %s', e, exc_info=True)
+            try:
+                db.session.rollback()
+            except Exception:
+                logger.debug('回滚活动日志事务失败（忽略）', exc_info=True)
+    except Exception as e:
+        logger.warning('记录活动日志失败: %s', e, exc_info=True)
 
 
 @bp.route('/asset_center')

@@ -204,7 +204,9 @@ docker-compose down
 
 4. **逐步测试**: 在容器内逐个测试 Python 导入,能够快速定位依赖问题
 
-5. **日志是关键**: Docker 容器的完整错误日志是排查问题的最佳工具
+5. **Socket.IO / WebSocket 注意**: 如果使用 Socket.IO，请确保所选的 Gunicorn worker 支持 WebSocket（例如 `eventlet` 或 `gevent-websocket`）。如果你选择 gevent，安装 `gevent-websocket` 并将 worker 指定为 `geventwebsocket.gunicorn.workers.GeventWebSocketWorker`，否则浏览器的 `/socket.io` WebSocket 握手可能会返回 404。
+
+6. **日志是关键**: Docker 容器的完整错误日志是排查问题的最佳工具
 
 ---
 

@@ -193,7 +193,13 @@
                             <td>{{ eq.brand or '' }}</td>
                             <td>{{ eq.model or '' }}</td>
                             <td><code>{{ eq.serial_number }}</code></td>
-                            <td>{{ eq.department.name if eq.department else '' }}</td>
+                            <td>
+                                {% if eq.department is string %}
+                                    {{ eq.department }}
+                                {% else %}
+                                    {{ eq.department.name if eq.department else '' }}
+                                {% endif %}
+                            </td>
                             <td>{{ eq.location or '' }}</td>
                             <td>
                                 {% if eq.status == 'active' %}

@@ -28,10 +28,12 @@ def login_admin(client):
     client.post('/auth/login', data={'username': 'admin', 'password': 'admin12'}, follow_redirects=True)
 
 
-def test_chat_realtime_contains_link_to_modern(client, app):
+def test_chat_realtime_uses_modern_view_and_has_modern_features(client, app):
     login_admin(client)
     rv = client.get('/chat')
     assert rv.status_code == 200
     html = rv.get_data(as_text=True)
-    assert '/chat/modern' in html
-    assert '切换到现代聊天视图' in html
+    # 现在 /chat 直接使用现代视图，页面应包含附件/流程按钮等现代功能
+    assert '发送流程' in html
+    assert '附件' in html
+    assert 'attachment-previews' in html

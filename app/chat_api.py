@@ -18,8 +18,66 @@ bp = Blueprint('chat_api', __name__, url_prefix='/api/chat')
 UPLOAD_FOLDER = 'app/static/uploads/chat'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'}
 
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# 新增: API 获取会话详情，自动恢复 is_left 用户
+@bp.route('/conversations/<int:conversation_id>', methods=['GET'])
+@login_required
+def get_conversation(conversation_id):
+    """API: 获取会话详情，自动恢复 is_left 用户"""
+    try:
+        # 查找参与者记录
+        participant = ChatParticipant.query.filter_by(
+            conversation_id=conversation_id,
+            user_id=current_user.id
+        ).first()
+        if not participant:
+            # 若未找到参与者，尝试容错性地恢复/加入：
+            # 对于 direct 一对一会话，若会话存在且当前只包含另一方，则自动将当前用户加入（修复可能的不同步问题）
+            conversation_tmp = ChatConversation.query.get(conversation_id)
+            if conversation_tmp and conversation_tmp.conversation_type == 'direct':
+                total = len(conversation_tmp.participants)
+                other_count = sum(1 for p in conversation_tmp.participants if p.user_id != current_user.id)
+                if total < 2 and other_count >= 1:
+                    new_participant = ChatParticipant(conversation_id=conversation_id, user_id=current_user.id)
+                    db.session.add(new_participant)
+                    db.session.commit()
+                    participant = new_participant
+
+            # 如果仍未找到则返回 403
+            if not participant:
+                # 返回详细调试信息
+                return jsonify({
+                    'error': '无权访问此会话',
+                    'user_id': current_user.id,
+                    'conversation_id': conversation_id,
+                    'participant': None
+                }), 403
+        # 无论 is_left 状态，均自动恢复为参与者
+        if participant.is_left:
+            participant.is_left = False
+            participant.left_date = None
+            db.session.flush()
+            db.session.refresh(participant)
+            db.session.commit()
+        conversation = participant.conversation
+        conv_dict = conversation.to_dict(current_user.id)
+        # 获取参与者信息
+        conv_dict['participants'] = [
+            {
+                'id': p.user.id,
+                'username': p.user.username,
+                'real_name': getattr(p.user, 'real_name', p.user.username),
+                'role': p.role,
+                'joined_date': p.joined_date.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            for p in conversation.participants if not p.is_left
+        ]
+        return jsonify({'conversation': conv_dict}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/users', methods=['GET'])
@@ -43,7 +101,7 @@ def get_users():
 def get_conversations():
     """获取当前用户的所有会话"""
     # 查询用户参与的所有会话
-    participant_records = ChatParticipant.query.filter_by(user_id=current_user.id).all()
+    participant_records = ChatParticipant.query.filter_by(user_id=current_user.id, is_left=False).all()
     conversation_ids = [p.conversation_id for p in participant_records]
     if not conversation_ids:
         return jsonify({'conversations': []})
@@ -129,8 +187,29 @@ def create_conversation():
         
         other_user_id = participant_ids[0]
         
-        # 查找是否已存在与该用户的私聊
-        existing_conv = db.session.query(ChatConversation).join(
+        # 优先查找当前用户仍为参与者（未退出）的私聊
+        existing_active_conv = db.session.query(ChatConversation).join(
+            ChatParticipant, ChatConversation.id == ChatParticipant.conversation_id
+        ).filter(
+            ChatConversation.conversation_type == 'direct',
+            ChatParticipant.user_id.in_([current_user.id, other_user_id]),
+            ChatParticipant.is_left == False
+        ).group_by(ChatConversation.id).having(
+            db.func.count(ChatParticipant.user_id) == 2
+        ).first()
+
+        if existing_active_conv:
+            return jsonify({
+                'conversation': {
+                    'id': existing_active_conv.id,
+                    'type': existing_active_conv.conversation_type,
+                    'name': existing_active_conv.name
+                },
+                'existed': True
+            })
+
+        # 若未找到活跃会话，查找历史会话（可能用户此前退出），尝试恢复当前用户参与状态
+        existing_any_conv = db.session.query(ChatConversation).join(
             ChatParticipant, ChatConversation.id == ChatParticipant.conversation_id
         ).filter(
             ChatConversation.conversation_type == 'direct',
@@ -138,14 +217,45 @@ def create_conversation():
         ).group_by(ChatConversation.id).having(
             db.func.count(ChatParticipant.user_id) == 2
         ).first()
-        
-        if existing_conv:
-            # 返回已存在的会话
+
+        if existing_any_conv:
+            # 检查当前用户参与记录是否被标记为已退出，若是则恢复
+            participant_record = ChatParticipant.query.filter_by(conversation_id=existing_any_conv.id, user_id=current_user.id).first()
+            if participant_record and participant_record.is_left:
+                participant_record.is_left = False
+                participant_record.left_date = None
+                db.session.flush()
+                db.session.refresh(participant_record)
+                db.session.commit()
+                return jsonify({
+                    'conversation': {
+                        'id': existing_any_conv.id,
+                        'type': existing_any_conv.conversation_type,
+                        'name': existing_any_conv.name
+                    },
+                    'existed': True,
+                    'rejoined': True
+                })
+            # 如果当前用户此前从未参与该会话，则将其加入会话（避免前端选中后出现 403）
+            if not participant_record:
+                new_participant = ChatParticipant(conversation_id=existing_any_conv.id, user_id=current_user.id)
+                db.session.add(new_participant)
+                db.session.commit()
+                return jsonify({
+                    'conversation': {
+                        'id': existing_any_conv.id,
+                        'type': existing_any_conv.conversation_type,
+                        'name': existing_any_conv.name
+                    },
+                    'existed': True,
+                    'joined': True
+                })
+            # 否则返回已存在但当前用户未参与的会话（将导致前端 403），交由调用方判断
             return jsonify({
                 'conversation': {
-                    'id': existing_conv.id,
-                    'type': existing_conv.conversation_type,
-                    'name': existing_conv.name
+                    'id': existing_any_conv.id,
+                    'type': existing_any_conv.conversation_type,
+                    'name': existing_any_conv.name
                 },
                 'existed': True
             })

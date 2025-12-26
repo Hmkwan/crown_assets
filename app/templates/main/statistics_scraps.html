@@ -161,7 +161,13 @@
                             <td>{{ s.equipment.name if s.equipment else '' }}</td>
                             <td>{{ s.equipment.equipment_number if s.equipment else '' }}</td>
                             <td>{{ s.equipment.equipment_type.name if s.equipment and s.equipment.equipment_type else '' }}</td>
-                            <td>{{ s.equipment.department.name if s.equipment and s.equipment.department else '' }}</td>
+                            <td>
+                                {% if s.equipment and s.equipment.department is string %}
+                                    {{ s.equipment.department }}
+                                {% else %}
+                                    {{ s.equipment.department.name if s.equipment and s.equipment.department else '' }}
+                                {% endif %}
+                            </td>
                             <td>{{ s.requester.username if s.requester else '' }}</td>
                             <td>
                                 <span title="{{ s.description }}">

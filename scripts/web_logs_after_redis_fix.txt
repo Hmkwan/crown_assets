@@ -1,0 +1,54 @@
+equipment-management-system  | [2025-12-22 11:07:26 +0800] [1] [INFO] Starting gunicorn 23.0.0
+equipment-management-system  | [2025-12-22 11:07:26 +0800] [1] [INFO] Listening at: http://0.0.0.0:5020 (1)
+equipment-management-system  | [2025-12-22 11:07:26 +0800] [1] [INFO] Using worker: gevent
+equipment-management-system  | [2025-12-22 11:07:26 +0800] [7] [INFO] Booting worker with pid: 7
+equipment-management-system  | ✓ SocketIO实时通知系统已初始化
+equipment-management-system  | ✓ 聊天API路由已注册
+equipment-management-system  | [2025-12-22 11:07:28,308] INFO in scheduler: [调度器] 定时任务调度器已启动
+equipment-management-system  | Patched database: chat_attachment.message_id is now nullable
+equipment-management-system  | [2025-12-22 11:07:28,364] WARNING in redis_utils: ⚠ Redis连接失败(尝试 1/6): maximum recursion depth exceeded. 1s 后重试...
+equipment-management-system  | [2025-12-22 11:07:29,366] WARNING in redis_utils: ⚠ Redis连接失败(尝试 2/6): maximum recursion depth exceeded. 2s 后重试...
+equipment-management-system  | [2025-12-22 11:07:31,369] WARNING in redis_utils: ⚠ Redis连接失败(尝试 3/6): maximum recursion depth exceeded. 4s 后重试...
+equipment-management-system  | [2025-12-22 11:07:35,366] WARNING in redis_utils: ⚠ Redis连接失败(尝试 4/6): maximum recursion depth exceeded. 8s 后重试...
+equipment-management-system  | [2025-12-22 11:07:43,375] WARNING in redis_utils: ⚠ Redis连接失败(尝试 5/6): maximum recursion depth exceeded. 16s 后重试...
+equipment-management-system  | [2025-12-22 11:07:59,392] WARNING in redis_utils: ⚠ Redis连接失败(尝试 6/6): maximum recursion depth exceeded. 30s 后重试...
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /chat/modern HTTP/1.1" 200 48107 "http://10.168.93.93:5020/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:29 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:31 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:35 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:36 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:39 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:41 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:11:08:41 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:45 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:46 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:51 +0800] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 404 232 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:51 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:08:56 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:01 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:05 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:10 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 127.0.0.1 - - [22/Dec/2025:11:09:11 +0800] "GET /auth/login HTTP/1.1" 200 16564 "-" "curl/8.14.1"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:15 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:20 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | 172.19.0.1 - - [22/Dec/2025:11:09:25 +0800] "GET /api/chat/conversations HTTP/1.1" 200 1200 "http://10.168.93.93:5020/chat/modern" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+equipment-management-system  | [2025-12-22 11:09:28 +0800] [1] [INFO] Handling signal: term
+equipment-management-system  | [2025-12-22 11:09:29 +0800] [7] [INFO] Worker exiting (pid: 7)
+equipment-management-system  | [2025-12-22 11:09:29 +0800] [1] [INFO] Shutting down: Master
+equipment-management-system  | [2025-12-22 11:09:31 +0800] [1] [INFO] Starting gunicorn 23.0.0
+equipment-management-system  | [2025-12-22 11:09:31 +0800] [1] [INFO] Listening at: http://0.0.0.0:5020 (1)
+equipment-management-system  | [2025-12-22 11:09:31 +0800] [1] [INFO] Using worker: gevent
+equipment-management-system  | [2025-12-22 11:09:31 +0800] [7] [INFO] Booting worker with pid: 7
+equipment-management-system  | ✓ SocketIO实时通知系统已初始化
+equipment-management-system  | ✓ 聊天API路由已注册
+equipment-management-system  | [2025-12-22 11:09:32,420] INFO in scheduler: [调度器] 定时任务调度器已启动
+equipment-management-system  | Patched database: chat_attachment.message_id is now nullable
+equipment-management-system  | [2025-12-22 11:09:32,457] WARNING in redis_utils: ⚠ Redis连接失败(尝试 1/6): maximum recursion depth exceeded. 1s 后重试...
+equipment-management-system  | [2025-12-22 11:09:33,460] WARNING in redis_utils: ⚠ Redis连接失败(尝试 2/6): maximum recursion depth exceeded. 2s 后重试...
+equipment-management-system  | [2025-12-22 11:09:35,464] WARNING in redis_utils: ⚠ Redis连接失败(尝试 3/6): maximum recursion depth exceeded. 4s 后重试...
+equipment-management-system  | [2025-12-22 11:09:39,469] WARNING in redis_utils: ⚠ Redis连接失败(尝试 4/6): maximum recursion depth exceeded. 8s 后重试...
+equipment-management-system  | [2025-12-22 11:09:47,478] WARNING in redis_utils: ⚠ Redis连接失败(尝试 5/6): maximum recursion depth exceeded. 16s 后重试...

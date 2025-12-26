@@ -186,20 +186,30 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Summernote (prefer local official vendor when available) -->
+<!-- Summernote (加载前做特性检测并动态加载，以避免在旧浏览器中解析现代语法导致语法错误) -->
 <link href="{{ url_for('static', filename='css/summernote-bs4.min.css') }}" rel="stylesheet">
-{% if SUMMERNOTE_FULL_AVAILABLE %}
-<script src="{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}"></script>
-{% else %}
-<script src="{{ url_for('static', filename='js/summernote-bs4.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/summernote-zh-CN.min.js') }}"></script>
-{% endif %}
+<script>
+(function(){
+    // 检测浏览器是否支持对象展开运算符等现代语法（如果不支持，跳过加载 Summernote）
+    var supportsModernSyntax = true;
+    try {
+        new Function('return {...{a:1}};')();
+    } catch (e) { supportsModernSyntax = false; }
+
+    if (supportsModernSyntax) {
+        var s1 = document.createElement('script'); s1.src = '{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}'; s1.defer = true; document.head.appendChild(s1);
+        var s2 = document.createElement('script'); s2.src = '{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}'; s2.defer = true; document.head.appendChild(s2);
+    } else {
+        console.warn('浏览器不支持 Summernote 所需的现代语法；将使用纯文本 textarea 作为回退编辑器。');
+    }
+})();
+</script>
 
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     // 初始化 Summernote 编辑器 (支持从 textarea 读取初始值)
-    $('#content').summernote({
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+        $('#content').summernote({
         height: 400,
         lang: 'zh-CN',
         toolbar: [
@@ -217,12 +227,20 @@ $(document).ready(function() {
     // 如果 textarea 有初始 HTML 内容，确保 Summernote 使用该内容
     var initial = $('#content').val();
     if (initial && initial.trim().length) {
-        $('#content').summernote('code', initial);
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+            $('#content').summernote('code', initial);
+        }
     }
 
     // 预览按钮: 在模态窗口中展示当前编辑器 HTML
     $('#previewBtn').on('click', function() {
-        var html = $('#content').summernote('code');
+        var html;
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+            html = $('#content').summernote('code');
+        } else {
+            var el = document.getElementById('content');
+            html = el ? (el.value || el.textContent || '') : '';
+        }
         var modalHtml = '<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">' +
                         '<div class="modal-dialog modal-xl" role="document">' +
                         '<div class="modal-content">' +
@@ -334,7 +352,13 @@ $(document).ready(function() {
         e.preventDefault();
         var $form = $(this);
         var title = $('#title').val().trim();
-        var html = $('#content').summernote('code');
+        var html;
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.summernote) {
+            html = $('#content').summernote('code');
+        } else {
+            var el = document.getElementById('content');
+            html = el ? (el.value || el.textContent || '') : '';
+        }
         if (!title) {
             if (window.toastr) { toastr.error('请输入公告标题'); } else { alert('请输入公告标题'); }
             $('#title').focus();

@@ -25,7 +25,11 @@ def check_equipment_status():
         private_count = 0
         
         for eq in equipments:
-            dept_name = eq.department.name if eq.department else "无"
+            # department may be a string or a relationship object
+            if eq.department:
+                dept_name = eq.department if isinstance(eq.department, str) else getattr(eq.department, 'name', '无')
+            else:
+                dept_name = '无'
             is_public_str = "是" if eq.is_public_pool else "否"
             
             if eq.is_public_pool:

@@ -24,7 +24,9 @@ COPY requirements.txt .
 
 # 安装Python依赖
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn
+    && pip install --no-cache-dir gunicorn \
+    && pip install --no-cache-dir gevent --force-reinstall \
+    && pip install --no-cache-dir gevent-websocket
 
 # 复制应用代码
 COPY . .
@@ -39,5 +41,5 @@ EXPOSE 5020
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5020/auth/login')" || exit 1
 
-# 启动命令(临时使用 sync worker 以避免 eventlet 导致的镜像启动失败，长期应修复 eventlet 依赖)
-CMD ["gunicorn", "-k", "sync", "-w", "1", "-b", "0.0.0.0:5020", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+# 启动命令 - 使用 gevent worker 提供异步支持（在当前镜像中 eventlet 行为异常）
+CMD ["gunicorn", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "-w", "1", "-b", "0.0.0.0:5020", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]

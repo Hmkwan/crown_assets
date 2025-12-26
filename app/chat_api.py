@@ -35,12 +35,26 @@ def get_conversation(conversation_id):
         ).first()
         if not participant:
             # 若未找到参与者，尝试容错性地恢复/加入：
-            # 对于 direct 一对一会话，若会话存在且当前只包含另一方，则自动将当前用户加入（修复可能的不同步问题）
+            # 1) 对于 direct 一对一会话，若会话存在且当前仅包含另一方（或参与记录缺失但有单一参与者），尝试自动加入（修复同步或历史数据缺失）
+            # 2) 若当前用户是会话创建者，恢复其参与记录
+            # 3) 若当前用户曾在此会话发过消息（说明曾是参与者），恢复其参与记录
             conversation_tmp = ChatConversation.query.get(conversation_id)
-            if conversation_tmp and conversation_tmp.conversation_type == 'direct':
-                total = len(conversation_tmp.participants)
-                other_count = sum(1 for p in conversation_tmp.participants if p.user_id != current_user.id)
-                if total < 2 and other_count >= 1:
+            if conversation_tmp:
+                try_join = False
+                # 若是 direct 且目前不包含当前用户但有至少一个其他参与者
+                if conversation_tmp.conversation_type == 'direct':
+                    has_current = any(p.user_id == current_user.id for p in conversation_tmp.participants)
+                    other_count = sum(1 for p in conversation_tmp.participants if p.user_id != current_user.id)
+                    if not has_current and other_count >= 1:
+                        try_join = True
+                # 如果当前用户是创建者，也尝试恢复
+                if conversation_tmp.creator_id == current_user.id:
+                    try_join = True
+                # 如果当前用户曾发送过消息到此会话，也可以恢复
+                if ChatMessage.query.filter_by(conversation_id=conversation_id, sender_id=current_user.id).first():
+                    try_join = True
+
+                if try_join:
                     new_participant = ChatParticipant(conversation_id=conversation_id, user_id=current_user.id)
                     db.session.add(new_participant)
                     db.session.commit()

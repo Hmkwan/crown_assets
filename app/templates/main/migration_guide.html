@@ -112,11 +112,10 @@
                             <!-- 步骤1 -->
                             <div class="card mb-3">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0">步骤1: 导出SQLite数据</h5>
+                                    <h5 class="mb-0">步骤1: 数据准备</h5>
                                 </div>
                                 <div class="card-body">
-                                    <p>使用在线导出或命令行:</p>
-                                    <pre class="bg-dark text-light p-3 rounded"><code>python scripts/sqlite_to_mysql.py --sqlite app.db --out migrations/mysql_dump.sql</code></pre>
+                                    <p>SQLite 自动导出脚本已移除。请准备 PostgreSQL SQL 转储 (.sql) 并在测试环境验证后导入目标数据库，或联系运维获取迁移支持。</p>
                                 </div>
                             </div>
 
@@ -188,7 +187,7 @@ COLLATE utf8mb4_unicode_ci;</code></pre>
                                     <h5 class="mb-0">步骤1: 导出数据</h5>
                                 </div>
                                 <div class="card-body">
-                                    <pre class="bg-dark text-light p-3 rounded"><code>python scripts/sqlite_to_mssql.py --sqlite app.db --out migrations/mssql_dump.sql</code></pre>
+                                    <p>SQLite 自动导出脚本已移除。请准备 PostgreSQL SQL 转储 (.sql) 并在测试环境验证后导入目标数据库，或联系运维获取迁移支持。</p>
                                 </div>
                             </div>
 
@@ -254,7 +253,7 @@ COLLATE Chinese_PRC_CI_AS;</code></pre>
                                     <h5 class="mb-0">步骤1: 导出数据</h5>
                                 </div>
                                 <div class="card-body">
-                                    <pre class="bg-dark text-light p-3 rounded"><code>python scripts/sqlite_to_postgresql.py --sqlite app.db --out migrations/pg_dump.sql</code></pre>
+                                    <p>SQLite 自动导出脚本已移除。请准备 PostgreSQL SQL 转储 (.sql) 并在测试环境验证后导入目标数据库，或联系运维获取迁移支持。</p>
                                 </div>
                             </div>
 

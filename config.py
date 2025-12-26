@@ -4,15 +4,10 @@ import os
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard-to-guess-string'
     
-    # 如果在 pytest 环境中或明确设置 TESTING=1，则默认使用内存 sqlite，避免在收集测试时依赖外部 Postgres/psycopg2
+    # 测试/CI/TEMP: 通过环境变量 `TEST_DATABASE_URI` 指定测试数据库地址（不再默认回退到 SQLite）。
     import sys as _sys
-    if os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('TESTING') == '1' or 'pytest' in _sys.modules:
-        SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URI', 'sqlite:///:memory:')
-    else:
-        # PostgreSQL 数据库配置（默认）
-        # 格式: postgresql://用户名:密码@主机:端口/数据库名
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-            'postgresql://postgres:difyai123456@host.docker.internal:15432/it_asset'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URI') or os.environ.get('DATABASE_URL') or \
+        'postgresql://postgres:difyai123456@host.docker.internal:15432/it_asset'
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     

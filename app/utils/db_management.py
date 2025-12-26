@@ -55,31 +55,9 @@ def backup_database(compress=True):
             now = datetime.utcnow()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         
-        # SQLite 数据库路径
+        # SQLite support removed: do not perform file-based backups
         if db_uri.startswith('sqlite:///'):
-            db_path = db_uri.replace('sqlite:///', '')
-            
-            if not os.path.exists(db_path):
-                return {'success': False, 'message': '数据库文件不存在'}
-            
-            backup_filename = f'app_backup_{timestamp}.db'
-            backup_path = os.path.join(backup_dir, backup_filename)
-            
-            # 复制数据库文件
-            shutil.copy2(db_path, backup_path)
-            
-            # 获取文件大小
-            file_size = os.path.getsize(backup_path)
-            
-            return {
-                'success': True,
-                'message': 'SQLite备份成功',
-                'backup_path': backup_path,
-                'backup_filename': backup_filename,
-                'file_size': file_size,
-                'timestamp': timestamp,
-                'db_type': 'sqlite'
-            }
+            return {'success': False, 'message': 'SQLite support removed: file-based SQLite backup is no longer supported. Please use PostgreSQL backups or export a PostgreSQL dump.'}
         
         # PostgreSQL 数据库
         elif db_uri.startswith('postgresql://') or db_uri.startswith('postgres://'):
@@ -215,29 +193,9 @@ def restore_database(backup_filename, auto_backup=True):
         if not os.path.exists(backup_path):
             return {'success': False, 'message': '备份文件不存在'}
         
-        # SQLite数据库恢复
+        # SQLite support removed: do not perform SQLite file restore
         if db_uri.startswith('sqlite:///'):
-            db_path = db_uri.replace('sqlite:///', '')
-            
-            # 验证备份文件
-            if not backup_filename.endswith('.db'):
-                return {'success': False, 'message': 'SQLite备份文件必须是.db格式'}
-            
-            # 自动备份当前数据库
-            if auto_backup and os.path.exists(db_path):
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                current_backup = f"{db_path}.before_restore_{timestamp}"
-                shutil.copy2(db_path, current_backup)
-            
-            # 恢复数据库
-            shutil.copy2(backup_path, db_path)
-            
-            return {
-                'success': True,
-                'message': 'SQLite数据库恢复成功',
-                'backup_used': backup_filename,
-                'db_type': 'sqlite'
-            }
+            return {'success': False, 'message': 'SQLite support removed: SQLite file restore is not supported. Please restore using PostgreSQL SQL dumps.'}
         
         # PostgreSQL数据库恢复
         elif db_uri.startswith('postgresql://') or db_uri.startswith('postgres://'):
@@ -729,31 +687,9 @@ def export_database_to_mssql(sqlite_path, out_dir=None, src_tz='UTC', dst_tz='As
 
 
 def export_database_to_postgresql(sqlite_path, out_dir=None, src_tz='UTC', dst_tz='Asia/Shanghai'):
-    """调用脚本将 SQLite 导出为 PostgreSQL 兼容 SQL 文件，返回生成的文件名。"""
-    try:
-        if out_dir is None:
-            out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'migrations')
-        os.makedirs(out_dir, exist_ok=True)
-        try:
-            if pytz:
-                now = datetime.now(pytz.timezone('Asia/Shanghai'))
-            else:
-                from datetime import timedelta
-                now = datetime.utcnow() + timedelta(hours=8)
-        except Exception:
-            now = datetime.utcnow()
-        out_name = f'app_db_postgresql_dump_{now.strftime("%Y%m%d_%H%M%S")}.sql'
-        out_path = os.path.join(out_dir, out_name)
-
-        PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        script = os.path.join(PROJECT_ROOT, 'scripts', 'sqlite_to_postgresql.py')
-        cmd = [sys.executable, script, '--sqlite', sqlite_path, '--out', out_path, '--src-tz', src_tz, '--dst-tz', dst_tz]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if proc.returncode != 0:
-            return {'success': False, 'message': proc.stderr}
-        return {'success': True, 'dump_path': out_path, 'dump_filename': out_name}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+    """已移除 SQLite -> PostgreSQL 的自动转换功能。
+    如果你需要将数据库迁移为 PostgreSQL，请提供一个 PostgreSQL SQL 转储（.sql）或使用专业迁移工具。"""
+    return {'success': False, 'message': 'SQLite support removed: automatic SQLite->PostgreSQL conversion is disabled. Provide a PostgreSQL dump (.sql) instead.'}
 
 
 def validate_database_file(file_path):
@@ -769,30 +705,9 @@ def validate_database_file(file_path):
         
         file_ext = os.path.splitext(file_path.lower())[1]
         
-        # SQLite 数据库验证
+        # 不再支持 SQLite 数据库文件的验证/导入
         if file_ext == '.db':
-            import sqlite3
-            try:
-                conn = sqlite3.connect(file_path)
-                cursor = conn.cursor()
-                
-                # 检查是否是有效的SQLite数据库
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-                tables = cursor.fetchall()
-                table_count = len(tables)
-                
-                conn.close()
-                
-                return {
-                    'success': True,
-                    'message': 'SQLite数据库文件有效',
-                    'file_size': file_size,
-                    'table_count': table_count,
-                    'tables': [t[0] for t in tables],
-                    'db_type': 'sqlite'
-                }
-            except Exception as e:
-                return {'success': False, 'message': f'不是有效的SQLite数据库: {str(e)}'}
+            return {'success': False, 'message': '不再支持 SQLite 数据库文件，请提供 PostgreSQL SQL 转储 (.sql) 或连接到 PostgreSQL。', 'db_type': 'unsupported'}
         
         # PostgreSQL SQL 文件验证
         elif file_ext == '.sql' or file_path.lower().endswith('.sql.gz'):

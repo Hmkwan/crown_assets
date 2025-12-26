@@ -120,7 +120,7 @@
                         </label>
                         <div class="input-group">
                             <input type="file" class="form-control" id="import-db-file" 
-                                   accept=".db,.sql,.sql.gz" 
+                                   accept=".sql,.sql.gz" 
                                    style="font-size: 0.95rem;">
                             <button class="btn btn-outline-primary px-4" id="import-db-btn" style="font-weight: 600;">
                                 <i class="bi bi-upload me-1"></i>导入
@@ -128,13 +128,7 @@
                         </div>
                         <small class="text-muted mt-2 d-block" style="font-size: 0.85rem;">
                             <i class="bi bi-info-circle me-1"></i>
-                            {% if db_info.type == 'PostgreSQL' %}
-                                支持 .sql 和 .sql.gz 格式文件（PostgreSQL备份）
-                            {% elif db_info.type == 'SQLite' %}
-                                支持 .db 格式文件（SQLite数据库）
-                            {% else %}
-                                支持 .db, .sql, .sql.gz 格式文件
-                            {% endif %}
+                            支持 .sql 和 .sql.gz 格式文件（PostgreSQL SQL 转储）
                         </small>
                     </div>
                     

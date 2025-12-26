@@ -26,7 +26,9 @@ def pytest_sessionstart(session):
                 raise RuntimeError("Invalid or remote TEST_DATABASE_URI; set FORCE_ALLOW_REMOTE_DB=1 to proceed.")
         os.environ['TEST_DATABASE_URI'] = db_uri
     else:
-        os.environ.setdefault('TEST_DATABASE_URI', 'sqlite:///tests_shared.db')
+        # 不再默认回退到 SQLite：强制要求在测试/CI 环境中显式设置 TEST_DATABASE_URI（例如指向一个本地或CI中的 PostgreSQL 测试数据库）。
+        if not os.environ.get('TEST_DATABASE_URI'):
+            raise RuntimeError("TEST_DATABASE_URI must be set to a PostgreSQL test database (e.g., postgresql://...) for running tests. SQLite support has been removed.")
 
     os.environ.setdefault('TESTING', '1')
 

@@ -81,11 +81,12 @@ def create_app(config_class=Config):
     # 如果在 pytest 上下文中运行（如 CI 或本地测试），或显式设置 TESTING=1，使用内存 SQLite 数据库以避免依赖外部 Postgres/psycopg2
     import sys as _sys
     if os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('TESTING') == '1' or 'pytest' in _sys.modules:
+        # 运行在测试/CI 环境中时启用 TESTING，但不再默认回退到 SQLite。
         app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TEST_DATABASE_URI', 'sqlite:///:memory:')
+        if os.environ.get('TEST_DATABASE_URI'):
+            app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TEST_DATABASE_URI')
         app.config['WTF_CSRF_ENABLED'] = False
-        # 避免使用针对 Postgres 的 engine options 导致 sqlite 适配问题
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
+        # 保持 SQLALCHEMY_ENGINE_OPTIONS 的默认配置（Postgres 优化配置不再被覆盖）
 
     # 安全默认：在非生产环境默认禁用 Redis（以避免开发环境/CI 被 Redis 连接卡住），生产环境仍需显示启用
     if app.config.get('ENV', '').lower() != 'production' and os.environ.get('REDIS_DISABLED') is None:

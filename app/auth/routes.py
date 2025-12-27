@@ -6,6 +6,7 @@ from app.models import Department
 from app.auth.forms import LoginForm, RegistrationForm
 from urllib.parse import urlparse
 
+from sqlalchemy.exc import SQLAlchemyError
 from app.auth import bp
 
 
@@ -20,7 +21,13 @@ def login():
     if form.validate_on_submit():
         # 支持使用用户名或邮箱登录，避免用户混淆
         uname = form.username.data.strip()
-        user = User.query.filter((User.username == uname) | (User.email == uname)).first()
+        try:
+            user = User.query.filter((User.username == uname) | (User.email == uname)).first()
+        except SQLAlchemyError as e:
+            current_app.logger.exception('数据库错误：登录查询失败')
+            flash('系统暂不可用，请稍后重试')
+            return redirect(url_for('auth.login'))
+
         if user is None or not user.check_password(form.password.data):
             flash('用户名或密码错误')
             return redirect(url_for('auth.login'))
@@ -41,7 +48,13 @@ def login():
         uname = (request.form.get('username') or '').strip()
         pwd = request.form.get('password') or ''
         if uname and pwd:
-            user = User.query.filter((User.username == uname) | (User.email == uname)).first()
+            try:
+                user = User.query.filter((User.username == uname) | (User.email == uname)).first()
+            except SQLAlchemyError:
+                current_app.logger.exception('数据库错误：测试回退登录查询失败')
+                flash('系统暂不可用，请稍后重试')
+                return redirect(url_for('auth.login'))
+
             if user and user.check_password(pwd):
                 login_user(user, remember=bool(request.form.get('remember_me')))
                 next_page = request.args.get('next')

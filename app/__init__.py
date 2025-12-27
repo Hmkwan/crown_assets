@@ -121,7 +121,57 @@ def create_app(config_class=Config):
         login.session_key = '_user_id'
     except Exception:
         pass
-    
+
+    # Database readiness check: 如果关键表不存在，则设置标记并在请求时返回友好 503
+    from sqlalchemy import inspect
+    def _check_db_ready():
+        try:
+            inspector = inspect(db.engine)
+            # 最小检查：必须存在 app_user 表（其他关键表可按需添加）
+            required_tables = ['app_user']
+            missing = [t for t in required_tables if not inspector.has_table(t)]
+            if missing:
+                app.logger.error("数据库 schema 不完整，缺失表: %s", missing)
+                app.config['DB_READY'] = False
+            else:
+                app.config['DB_READY'] = True
+        except Exception as e:
+            # 无法连接数据库或其他错误，标记为不可用并记录
+            app.logger.exception('数据库就绪检查失败')
+            app.config['DB_READY'] = False
+
+    # 在第一次请求前执行检查（避免在某些启动阶段早于 DB 可用性运行）
+    @app.before_first_request
+    def _run_db_check_once():
+        _check_db_ready()
+
+    # 在每次请求前确保 DB 就绪，否则返回 503（允许 /static 与 health 路径）
+    from flask import request, jsonify, make_response
+
+    @app.before_request
+    def require_db_ready():
+        if not app.config.get('DB_READY', True):
+            # 允许健康检查或静态资源通过
+            if request.path.startswith('/static') or request.path.startswith('/health'):
+                return None
+            app.logger.warning('拒绝请求：数据库未就绪（路径 %s）', request.path)
+            # 对 API 请求返回 JSON 503
+            if request.path.startswith('/api/') or request.is_json:
+                return jsonify({'error': '服务暂不可用', 'message': '数据库尚未初始化或 schema 不完整，请稍后重试'}), 503
+            # 对普通页面返回简短的 HTML 503 响应（避免渲染依赖 DB 的模板）
+            return make_response('<h1>服务暂不可用</h1><p>数据库未初始化或 schema 不完整，请稍后重试。</p>', 503)
+
+    # 全局 SQLAlchemy 错误处理：记录异常并返回友好信息，避免错误信息泄露到用户界面
+    from sqlalchemy.exc import SQLAlchemyError
+    @app.errorhandler(SQLAlchemyError)
+    def handle_sqlalchemy_error(err):
+        app.logger.exception('捕获到数据库异常：%s', err)
+        # API 请求返回 JSON 错误
+        if request.path.startswith('/api/') or request.is_json:
+            return jsonify({'error': '数据库错误', 'message': '内部错误，请稍后重试'}), 500
+        # 页面请求显示通用提示（不泄露内部信息）
+        return make_response('<h1>服务器错误</h1><p>数据库发生错误，请联系管理员。</p>', 500)
+
     # 配置未授权处理器 - API请求返回JSON而非重定向
     @login.unauthorized_handler
     def unauthorized():

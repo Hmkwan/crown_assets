@@ -4,6 +4,7 @@ import json
 # Normalize and set TEST_DATABASE_URI
 raw = os.environ.get('TEST_DATABASE_URI') or 'postgresql://postgres:difyai123456@localhost:15432/it_asset'
 # Replace accidental double slash before db name
+
 normalized = raw.replace('://', '://', 1)
 # ensure only single slash after host:port
 normalized = normalized.replace('//it_asset', '/it_asset')

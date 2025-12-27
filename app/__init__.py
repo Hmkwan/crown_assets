@@ -624,7 +624,7 @@ def create_app(config_class=Config):
             except Exception:
                 try:
                     # SQLite 支持 ADD COLUMN
-                    conn.execute('ALTER TABLE approval_workflow ADD COLUMN auto_assigned BOOLEAN DEFAULT 0')
+                    conn.execute("ALTER TABLE approval_workflow ADD COLUMN auto_assigned BOOLEAN DEFAULT false")
                     print('Patched database: added column approval_workflow.auto_assigned')
                 except Exception as e:
                     # 非致命：打印警告，继续运行（某些环境需要手动迁移）
@@ -635,7 +635,7 @@ def create_app(config_class=Config):
                 conn.execute('SELECT is_parallel FROM workflow_node LIMIT 1')
             except Exception:
                 try:
-                    conn.execute("ALTER TABLE workflow_node ADD COLUMN is_parallel BOOLEAN DEFAULT 0")
+                    conn.execute("ALTER TABLE workflow_node ADD COLUMN is_parallel BOOLEAN DEFAULT false")
                     conn.execute("ALTER TABLE workflow_node ADD COLUMN required_approvals INTEGER DEFAULT 1")
                     conn.execute("ALTER TABLE workflow_node ADD COLUMN actions_on_reject TEXT")
                     print('Patched database: added workflow_node.is_parallel/required_approvals/actions_on_reject')
@@ -656,7 +656,7 @@ def create_app(config_class=Config):
                 conn.execute('SELECT is_default FROM workflow_template LIMIT 1')
             except Exception:
                 try:
-                    conn.execute("ALTER TABLE workflow_template ADD COLUMN is_default BOOLEAN DEFAULT 0")
+                    conn.execute("ALTER TABLE workflow_template ADD COLUMN is_default BOOLEAN DEFAULT false")
                     print('Patched database: added workflow_template.is_default')
                 except Exception as e:
                     print('Warning: failed to add workflow_template.is_default automatically:', e)
@@ -705,12 +705,20 @@ def create_app(config_class=Config):
             except Exception as e:
                 # Not fatal; may already be nullable or running on DB that doesn't support this syntax
                 print('Notice: could not ensure chat_attachment.message_id nullable automatically:', e)
+
+            # 兼容性修补：允许 chat_attachment.upload_user_id 为 NULL（回填前临时可空，以便插入 NULL 值），Postgres 需要 DROP NOT NULL
+            try:
+                conn.execute("ALTER TABLE chat_attachment ALTER COLUMN upload_user_id DROP NOT NULL")
+                print('Patched database: chat_attachment.upload_user_id is now nullable')
+            except Exception as e:
+                print('Notice: could not ensure chat_attachment.upload_user_id nullable automatically:', e)
+
             # 兼容性修补:为 user 表添加新的工作流权限列
             try:
                 conn.execute('SELECT can_edit_workflow FROM app_user LIMIT 1')
             except Exception:
                 try:
-                    conn.execute('ALTER TABLE app_user ADD COLUMN can_edit_workflow BOOLEAN DEFAULT 0')
+                    conn.execute("ALTER TABLE app_user ADD COLUMN can_edit_workflow BOOLEAN DEFAULT false")
                     print('Patched database: added user.can_edit_workflow')
                 except Exception as e:
                     print('Warning: failed to add user.can_edit_workflow automatically:', e)
@@ -718,7 +726,7 @@ def create_app(config_class=Config):
                 conn.execute('SELECT can_manage_workflow_templates FROM app_user LIMIT 1')
             except Exception:
                 try:
-                    conn.execute('ALTER TABLE app_user ADD COLUMN can_manage_workflow_templates BOOLEAN DEFAULT 0')
+                    conn.execute("ALTER TABLE app_user ADD COLUMN can_manage_workflow_templates BOOLEAN DEFAULT false")
                     print('Patched database: added user.can_manage_workflow_templates')
                 except Exception as e:
                     print('Warning: failed to add user.can_manage_workflow_templates automatically:', e)
@@ -727,7 +735,7 @@ def create_app(config_class=Config):
                 conn.execute('SELECT is_active FROM app_user LIMIT 1')
             except Exception:
                 try:
-                    conn.execute('ALTER TABLE app_user ADD COLUMN is_active BOOLEAN DEFAULT 1')
+                    conn.execute("ALTER TABLE app_user ADD COLUMN is_active BOOLEAN DEFAULT true")
                     print('Patched database: added user.is_active')
                 except Exception as e:
                     print('Warning: failed to add user.is_active automatically:', e)

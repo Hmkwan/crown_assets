@@ -1,5 +1,5 @@
 """系统公告路由"""
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from flask import render_template, request, jsonify, flash, redirect, url_for, send_file, current_app
 from flask_login import login_required, current_user
@@ -147,21 +147,25 @@ def create_announcement():
     """创建公告"""
     if request.method == 'POST':
         try:
-            data = request.form
+            import logging
+            logger = logging.getLogger(__name__)
+            # 防止在处理表单并验证之前发生隐式 autoflush，使用 no_autoflush 做防护
+            with db.session.no_autoflush:
+                data = request.form
 
-            # 优先读取已被 JS 填充的隐藏字段（防止 textarea/name 冲突导致 content 为空）
-            content_raw = data.get('content') or request.form.get('content_hidden')
-            data = data.copy()
-            data['content'] = sanitize_html(content_raw)
+                # 优先读取已被 JS 填充的隐藏字段（防止 textarea/name 冲突导致 content 为空）
+                content_raw = data.get('content') or request.form.get('content_hidden')
+                data = data.copy()
+                data['content'] = sanitize_html(content_raw)
 
-            # 后端校验：禁止保存空内容（防止编辑时误把正文覆写为空）
-            if not data['content'] or not data['content'].strip() or data['content'].strip() == '<p><br></p>':
-                flash('公告内容不能为空', 'danger')
-                return render_template('admin/announcements/form_new.html', announcement=None)
+                # 后端校验：禁止保存空内容（防止编辑时误把正文覆写为空）
+                if not data['content'] or not data['content'].strip() or data['content'].strip() == '<p><br></p>':
+                    flash('公告内容不能为空', 'danger')
+                    return render_template('admin/announcements/form_new.html', announcement=None)
 
-            files = request.files.getlist('attachments')
+                files = request.files.getlist('attachments')
 
-            announcement = create_announcement_from_form(data, files, current_user)
+                announcement = create_announcement_from_form(data, files, current_user)
 
             # 记录日志
             _log_activity('创建公告', f'创建公告: {announcement.title} (ID: {announcement.id})')
@@ -169,7 +173,8 @@ def create_announcement():
             return redirect(url_for('main.edit_announcement', id=announcement.id, preview=1))
         except Exception as e:
             db.session.rollback()
-            flash(f'创建公告失败: {str(e)}', 'danger')
+            logger.exception('创建公告时发生异常')
+            flash('创建公告失败: 服务器发生错误，请稍后重试', 'danger')
     
     return render_template('admin/announcements/form_new.html', announcement=None)
 
@@ -183,94 +188,104 @@ def edit_announcement(id):
     
     if request.method == 'POST':
         try:
-            data = request.form
-            
-            # 更新公告 (清洗内容以防 XSS)
-            announcement.title = data.get('title')
-            # 如果 content 为空，尝试读取隐藏字段 content_hidden（由前端 JS 填充）
-            announcement.content = sanitize_html(data.get('content') or request.form.get('content_hidden'))
+            import logging
+            logger = logging.getLogger(__name__)
+            # 防止在表单验证前发生隐式 autoflush，使用 no_autoflush
+            with db.session.no_autoflush:
+                data = request.form
 
-            # 后端校验：禁止把内容置空
-            if not announcement.content or not announcement.content.strip() or announcement.content.strip() == '<p><br></p>':
-                flash('公告内容不能为空，保存已取消', 'danger')
-                return render_template('admin/announcements/form_new.html', announcement=announcement)
+                # 更新公告 (清洗内容以防 XSS)
+                # 先从请求读取并清洗内容（不直接赋值到模型，避免在后续查询触发 autoflush 导致提前写入 NULL）
+                title = data.get('title')
+                content_raw = data.get('content') or request.form.get('content_hidden')
+                sanitized = sanitize_html(content_raw)
 
-            publish_time = data.get('publish_time')
-            if publish_time:
-                try:
-                    import pytz
-                    local = pytz.timezone('Asia/Shanghai')
-                    naive = datetime.strptime(publish_time, '%Y-%m-%dT%H:%M')
-                    localized = local.localize(naive)
-                    announcement.publish_time = localized.astimezone(pytz.UTC).replace(tzinfo=None)
-                except Exception:
-                    # 回退到直接解析（不含时区信息）
-                    announcement.publish_time = datetime.strptime(publish_time, '%Y-%m-%dT%H:%M')
-            else:
-                announcement.publish_time = None
-            
-            expire_time = data.get('expire_time')
-            if expire_time:
-                try:
-                    import pytz
-                    local = pytz.timezone('Asia/Shanghai')
-                    naive = datetime.strptime(expire_time, '%Y-%m-%dT%H:%M')
-                    localized = local.localize(naive)
-                    announcement.expire_time = localized.astimezone(pytz.UTC).replace(tzinfo=None)
-                except Exception:
-                    announcement.expire_time = datetime.strptime(expire_time, '%Y-%m-%dT%H:%M')
-            else:
-                announcement.expire_time = None
-            
-# 处理文件上传 (使用 save_uploaded_file，并在图片时生成缩略图)
-            files = request.files.getlist('attachments')
-            if files:
-                for file in files:
-                    if file and file.filename:
-                        try:
-                            uploaded = save_uploaded_file(file, folder_type='announcement')
-                            file_path = uploaded['file_path']
-                            filename = uploaded['filename']
-                            stored_filename = uploaded['stored_filename']
-                            file_size = uploaded['file_size']
-                            file_type = uploaded['file_type']
+                # 后端校验：禁止把内容置空
+                if not sanitized or not sanitized.strip() or sanitized.strip() == '<p><br></p>':
+                    flash('公告内容不能为空，保存已取消', 'danger')
+                    return render_template('admin/announcements/form_new.html', announcement=announcement)
 
-                            # 创建附件记录
-                            attachment = AnnouncementAttachment(
-                                announcement_id=announcement.id,
-                                filename=filename,
-                                stored_filename=stored_filename,
-                                file_path=file_path,
-                                file_size=file_size,
-                                file_type=file_type,
-                                upload_user_id=current_user.id
-                            )
+                # 校验通过后再赋值到模型
+                announcement.title = title
+                announcement.content = sanitized
 
-                            # 如果是图片，创建缩略图
-                            if file_type and file_type.startswith('image/'):
-                                try:
-                                    thumb = create_thumbnail(file_path)
-                                    if thumb:
-                                        attachment.thumbnail_path = thumb
-                                except Exception:
-                                    pass
+                publish_time = data.get('publish_time')
+                if publish_time:
+                    try:
+                        import pytz
+                        local = pytz.timezone('Asia/Shanghai')
+                        naive = datetime.strptime(publish_time, '%Y-%m-%dT%H:%M')
+                        localized = local.localize(naive)
+                        announcement.publish_time = localized.astimezone(pytz.UTC).replace(tzinfo=None)
+                    except Exception:
+                        # 回退到直接解析（不含时区信息）
+                        announcement.publish_time = datetime.strptime(publish_time, '%Y-%m-%dT%H:%M')
+                else:
+                    announcement.publish_time = None
 
-                            db.session.add(attachment)
-                        except Exception as e:
-                            print(f"文件上传失败: {file.filename}, 错误: {str(e)}")
-            
+                expire_time = data.get('expire_time')
+                if expire_time:
+                    try:
+                        import pytz
+                        local = pytz.timezone('Asia/Shanghai')
+                        naive = datetime.strptime(expire_time, '%Y-%m-%dT%H:%M')
+                        localized = local.localize(naive)
+                        announcement.expire_time = localized.astimezone(pytz.UTC).replace(tzinfo=None)
+                    except Exception:
+                        announcement.expire_time = datetime.strptime(expire_time, '%Y-%m-%dT%H:%M')
+                else:
+                    announcement.expire_time = None
+
+                # 处理文件上传 (使用 save_uploaded_file，并在图片时生成缩略图)
+                files = request.files.getlist('attachments')
+                if files:
+                    for file in files:
+                        if file and file.filename:
+                            try:
+                                uploaded = save_uploaded_file(file, folder_type='announcement')
+                                file_path = uploaded['file_path']
+                                filename = uploaded['filename']
+                                stored_filename = uploaded['stored_filename']
+                                file_size = uploaded['file_size']
+                                file_type = uploaded['file_type']
+
+                                # 创建附件记录
+                                attachment = AnnouncementAttachment(
+                                    announcement_id=announcement.id,
+                                    filename=filename,
+                                    stored_filename=stored_filename,
+                                    file_path=file_path,
+                                    file_size=file_size,
+                                    file_type=file_type,
+                                    upload_user_id=current_user.id
+                                )
+
+                                # 如果是图片，创建缩略图
+                                if file_type and file_type.startswith('image/'):
+                                    try:
+                                        thumb = create_thumbnail(file_path)
+                                        if thumb:
+                                            attachment.thumbnail_path = thumb
+                                    except Exception:
+                                        pass
+
+                                db.session.add(attachment)
+                            except Exception as e:
+                                print(f"文件上传失败: {file.filename}, 错误: {str(e)}")
+
             db.session.commit()
-            
+
             # 记录日志
             _log_activity('编辑公告', f'编辑公告: {announcement.title} (ID: {announcement.id})')
-            
+
             flash('公告更新成功!', 'success')
             # 编辑后保持在编辑页面并展示预览
             return redirect(url_for('main.edit_announcement', id=announcement.id, preview=1))
-            
+
         except Exception as e:
             db.session.rollback()
-            flash(f'更新公告失败: {str(e)}', 'danger')
+            logger.exception('编辑公告时发生异常')
+            flash('更新公告失败: 服务器发生错误，请稍后重试', 'danger')
     
     return render_template('admin/announcements/form_new.html', announcement=announcement)
 
@@ -309,7 +324,7 @@ def toggle_announcement_publish(id):
         
         # 如果发布且没有发布时间,设置为当前时间
         if announcement.is_published and not announcement.publish_time:
-            announcement.publish_time = datetime.utcnow()
+            announcement.publish_time = datetime.now(timezone.utc)
         
         db.session.commit()
         
@@ -573,7 +588,7 @@ def delete_attachment(attachment_id):
         
         # 软删除
         attachment.is_deleted = True
-        attachment.deleted_date = datetime.utcnow()
+        attachment.deleted_date = datetime.now(timezone.utc)
         db.session.commit()
         
         # 记录日志

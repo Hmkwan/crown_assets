@@ -11,7 +11,7 @@ from app.chat_models import (
 )
 from app.socketio_handler import socketio
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from PIL import Image
 import os
 import uuid
@@ -423,7 +423,7 @@ def send_message():
         # 更新会话的最后消息时间与引用
         conversation = ChatConversation.query.get(conversation_id)
         if conversation:
-            conversation.updated_date = datetime.utcnow()
+            conversation.updated_date = datetime.now(timezone.utc)
             conversation.last_message_id = message.id
             conversation.last_message_time = message.created_date
         

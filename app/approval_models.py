@@ -6,7 +6,7 @@
 """
 
 from app import db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.models import User
 import json
 
@@ -30,8 +30,8 @@ class WorkflowTemplate(db.Model):
     
     # 元数据
     created_by_id = db.Column(db.Integer, db.ForeignKey('app_user.id'))
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_date = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_date = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
     
     # 关系
     nodes = db.relationship('WorkflowNode', backref='template', lazy='dynamic', 
@@ -197,7 +197,7 @@ class ApprovalInstance(db.Model):
     current_node_id = db.Column(db.Integer, db.ForeignKey('workflow_node.id'))  # 当前节点
     
     # 时间信息
-    started_date = db.Column(db.DateTime, default=datetime.utcnow)
+    started_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     completed_date = db.Column(db.DateTime)
     expected_complete_date = db.Column(db.DateTime)  # 预计完成时间
     
@@ -244,7 +244,7 @@ class ApprovalStep(db.Model):
     # 审批人信息
     approver_id = db.Column(db.Integer, db.ForeignKey('app_user.id'))
     approver_role_id = db.Column(db.Integer, db.ForeignKey('approval_role.id'))
-    assigned_date = db.Column(db.DateTime, default=datetime.utcnow)
+    assigned_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     # 并行审批
     parallel_group_id = db.Column(db.String(64))  # 并行组ID
@@ -320,7 +320,7 @@ class ApprovalLog(db.Model):
     # 环境信息
     ip_address = db.Column(db.String(64))
     user_agent = db.Column(db.String(512))
-    created_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     
     # 关系
     operator = db.relationship('User')
@@ -363,7 +363,7 @@ class ApprovalDelegate(db.Model):
     
     def is_valid(self):
         """检查代理是否在有效期内"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return self.is_active and self.start_date <= now <= self.end_date
 
 
@@ -377,7 +377,7 @@ class ApprovalReminder(db.Model):
     # 提醒信息
     reminder_type = db.Column(db.String(32))  # pending/timeout/escalate
     sent_to_id = db.Column(db.Integer, db.ForeignKey('app_user.id'))
-    sent_date = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     send_method = db.Column(db.String(32))  # system/email/sms
     
     # 状态

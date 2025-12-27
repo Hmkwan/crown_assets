@@ -21,10 +21,13 @@ def app_with_socket():
 def test_socketio_send_message_broadcasts_wrapped(app_with_socket):
     app = app_with_socket
 
-    # 创建两个用户
-    u1 = User(username='u1', email='u1@example.com')
+    # 创建两个用户（使用唯一用户名避免重复键）
+    import uuid
+    uname1 = f'u1_{uuid.uuid4().hex[:8]}'
+    uname2 = f'u2_{uuid.uuid4().hex[:8]}'
+    u1 = User(username=uname1, email=f'{uname1}@example.com')
     u1.set_password('pass')
-    u2 = User(username='u2', email='u2@example.com')
+    u2 = User(username=uname2, email=f'{uname2}@example.com')
     u2.set_password('pass')
     db.session.add_all([u1, u2])
     db.session.commit()
@@ -40,11 +43,11 @@ def test_socketio_send_message_broadcasts_wrapped(app_with_socket):
 
     # 使用 Flask 测试客户端登录并创建 SocketIO 测试客户端
     client1 = app.test_client()
-    login_resp = client1.post('/auth/login', data={'username': 'u1', 'password': 'pass'}, follow_redirects=True)
+    login_resp = client1.post('/auth/login', data={'username': uname1, 'password': 'pass'}, follow_redirects=True)
     assert login_resp.status_code in (200, 302)
 
     client2 = app.test_client()
-    login_resp2 = client2.post('/auth/login', data={'username': 'u2', 'password': 'pass'}, follow_redirects=True)
+    login_resp2 = client2.post('/auth/login', data={'username': uname2, 'password': 'pass'}, follow_redirects=True)
     assert login_resp2.status_code in (200, 302)
 
     # 捕获 socketio.emit 调用 (来自 /api/chat/messages 路由)
@@ -60,10 +63,10 @@ def test_socketio_send_message_broadcasts_wrapped(app_with_socket):
     try:
         # 使用 HTTP POST 发送消息 (这应触发 socketio.emit)
         client1 = app.test_client()
-        login_resp = client1.post('/auth/login', data={'username': 'u1', 'password': 'pass'}, follow_redirects=True)
+        login_resp = client1.post('/auth/login', data={'username': uname1, 'password': 'pass'}, follow_redirects=True)
         assert login_resp.status_code in (200, 302)
 
-        resp = client1.post('/api/chat/messages', json={'conversation_id': conv.id, 'content': 'hello via http'})
+        resp = client1.post('/chat/messages', json={'conversation_id': conv.id, 'content': 'hello via http'})
         assert resp.status_code == 200
 
         # 验证 emit 被调用

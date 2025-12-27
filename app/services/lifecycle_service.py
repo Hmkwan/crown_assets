@@ -75,7 +75,12 @@ class LifecycleService:
         ).order_by(AssetLifecycle.event_date).first()
         
         if purchase_event:
-            age_days = (get_beijing_now() - purchase_event.event_date).days
+            pe = purchase_event.event_date
+            # 如果 event_date 是 naive datetime，将其视为本地北京时间并设置时区
+            if getattr(pe, 'tzinfo', None) is None:
+                from datetime import timezone, timedelta
+                pe = pe.replace(tzinfo=timezone(timedelta(hours=8)))
+            age_days = (get_beijing_now() - pe).days
             age_years = age_days / 365.25
             return {
                 'purchase_date': purchase_event.event_date,

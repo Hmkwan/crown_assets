@@ -18,9 +18,12 @@ def app_ctx():
 
 def test_send_message_increments_unread(app_ctx):
     # 创建两个用户
-    u1 = User(username='u1', email='u1@example.com')
+    import uuid
+    uname1 = f'u1_{uuid.uuid4().hex[:8]}'
+    uname2 = f'u2_{uuid.uuid4().hex[:8]}'
+    u1 = User(username=uname1, email=f'{uname1}@example.com')
     u1.set_password('pass')
-    u2 = User(username='u2', email='u2@example.com')
+    u2 = User(username=uname2, email=f'{uname2}@example.com')
     u2.set_password('pass')
     db.session.add_all([u1, u2])
     db.session.commit()

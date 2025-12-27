@@ -15,8 +15,8 @@ def test_direct():
         # 找到testuser
         user = User.query.filter_by(username='testuser').first()
         if not user:
-            print("testuser not found")
-            return False
+            import pytest
+            pytest.skip("testuser not found")
         
         print(f"✓ Found user: {user.username}")
         
@@ -30,22 +30,15 @@ def test_direct():
             db.session.commit()
             
             # 验证
-            if check_password_hash(user.password_hash, test_password):
-                print(f"✅ Password reset works correctly")
-                
-                # 验证旧密码不再有效
-                if not check_password_hash(user.password_hash, 'oldpass'):
-                    print(f"✅ Old password no longer works")
-                    return True
-            else:
-                print(f"❌ New password verification failed")
-                return False
+            assert check_password_hash(user.password_hash, test_password), "New password verification failed"
+            # 验证旧密码不再有效
+            assert not check_password_hash(user.password_hash, 'oldpass'), "Old password still works"
                 
         except Exception as e:
-            print(f"❌ Error: {e}")
             import traceback
             traceback.print_exc()
-            return False
+            import pytest
+            pytest.fail(f"Error: {e}")
 
 if __name__ == '__main__':
     success = test_direct()

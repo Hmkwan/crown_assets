@@ -18,9 +18,11 @@ def client():
 
 
 def test_announcements_detail_logs_activity(client):
+    import uuid
+    username = 'actuser-' + uuid.uuid4().hex[:8]
     # 使用传入的 client fixture 创建用户和公告
     with client.application.app_context():
-        u = User(username='actuser', email='actuser@example.com')
+        u = User(username=username, email=f'{username}@example.com')
         u.set_password('pass')
         ann = Announcement(title='Test', content='x')
         # 将公告的 creator 设置为创建者，满足 NOT NULL 约束
@@ -31,7 +33,7 @@ def test_announcements_detail_logs_activity(client):
         ann_id = ann.id
 
     # 登录（测试模式下 CSRF 一般被禁用）
-    client.post('/auth/login', data={'username': 'actuser', 'password': 'pass'})
+    client.post('/auth/login', data={'username': username, 'password': 'pass'})
     resp = client.get(f'/announcements/{ann_id}')
     assert resp.status_code == 200
 

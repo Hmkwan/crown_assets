@@ -6,7 +6,7 @@
 
 **项目名称**: 皇冠新材IT资产管理系统  
 **技术栈**: Python 3.11 + Flask + SQLAlchemy + Bootstrap 4  
-**数据库**: SQLite  
+**数据库**: PostgreSQL（SQLite 已移除；历史迁移指南参见 `docs/legacy/`）  
 **部署方式**: Docker + Gunicorn  
 
 ---
@@ -396,6 +396,33 @@ Docker Container
 2. **消息推送**: 集成微信/钉钉通知
 3. **高级报表**: BI仪表板
 4. **AI预测**: 故障预测、采购预测
+
+---
+
+## 自动化检查结果（2025-12-27）
+
+- 测试（pytest）:
+  - 已在本地 Postgres 上运行（使用 `TEST_DATABASE_URI`），结果：**40 passed, 1 skipped**（部分 slow 测试被排除用于快速回归）。
+  - 运行时观察到大量 Deprecation/Warning（Werkzeug AST 字段等），建议逐步修复以保持未来 Python 兼容性。
+
+- 安全扫描（Bandit）:
+  - 总计扫描行数：20,947
+  - 问题统计：Low: 75, Medium: 8
+  - 主要问题示例：
+    - `eval` 在 `app/approval_engine.py` 中用于执行条件表达式（**中等严重**，建议替换为受限表达式引擎或自定义 DSL）。
+    - 动态拼接 SQL（`app/utils/db_management.py`）导致潜在 SQL 注入（**中等严重**，建议参数化或白名单校验）。
+    - 过多的 `try/except: pass`（广泛存在）会掩盖真实错误，应改为记录并在必要时抛出。
+
+- 类型检查（Mypy）:
+  - 运行：`mypy app --ignore-missing-imports` 报告约 **50 个错误**（未严格启用类型风格，发现大量未注释变量/函数、默认值与声明不一致、第三方类型缺失）。
+  - 建议：逐步增加类型覆盖，从 `models`、`services`、`API` 层开始，CI 中引入 `mypy --strict` 的子集检查。
+
+## 建议的下一步行动（按优先级）
+1. **立即**修复审批表达式的 `eval` 用法并添加回归测试（高优先级）。
+2. 修正 `app/utils/db_management.py` 的字符串 SQL 构造、加入白名单和参数化查询（中）。
+3. 用明确日志替换吞掉异常的 `try/except: pass` ，并在关键路径抛出或记录错误详情（中）。
+4. 将 Bandit & Mypy 集成进 CI，逐步收紧规则并添加自动化扫描（中）。
+5. 把 `SYSTEM_ARCHITECTURE.md` 中的架构文档分拆到 `docs/features/`（逐个功能生成更详细的文件）（低）。
 
 ---
 

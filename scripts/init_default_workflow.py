@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
 from app import create_app, db
 from app.approval_models import WorkflowTemplate, WorkflowNode
 from app.models import WorkflowStep, User
-from datetime import datetime
+from datetime import datetime, timezone
 
 def get_admin_user():
     """获取管理员用户，作为流程创建者"""
@@ -187,7 +187,7 @@ def create_default_templates(app):
                 is_active=True,
                 is_default=True,  # 将所有初始模板设为默认
                 created_by_id=admin.id,
-                created_date=datetime.utcnow()
+                created_date=datetime.now(timezone.utc)
             )
             db.session.add(template)
             db.session.flush()  # 获取模板ID

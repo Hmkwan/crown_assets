@@ -5623,11 +5623,8 @@ def export_mysql_route():
     if not db_info:
         return jsonify({'success': False, 'message': '无法获取数据库信息'})
 
-    # 仅支持当前 SQLite 源导出
-    db_uri = db_info.get('uri')
-    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
-    if not sqlite_path:
-        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+    # SQLite 导出路径已被移除；通知用户使用 PostgreSQL 备份/导出流程
+    return jsonify({'success': False, 'message': 'SQLite 导出已不再支持；请使用 PostgreSQL 备份或导出 SQL 文件。'})
 
     # 获取自定义路径
     custom_path = None
@@ -5675,15 +5672,13 @@ def export_mysql_route():
 @bp.route('/admin/database/export_mssql', methods=['POST'])
 @login_required
 def export_mssql_route():
-    """导出为 SQL Server 兼容的 SQL 文件并返回下载信息"""
+    """导出为 SQL Server 兼容的 SQL 文件并返回下载信息
+    注：已移除对 SQLite 的自动导出支持；请使用 PostgreSQL 的导出工具（pg_dump）或专业迁移工具。"""
     if current_user.role != 'admin':
         return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
 
-    db_info = get_database_info().get('info', {})
-    db_uri = db_info.get('uri')
-    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
-    if not sqlite_path:
-        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+    # SQLite 导出已不再支持
+    return jsonify({'success': False, 'message': 'SQLite 导出已不再支持；请使用 PostgreSQL (pg_dump) 进行导出。'})
 
     # 获取自定义路径
     custom_path = None
@@ -5731,15 +5726,13 @@ def export_mssql_route():
 @bp.route('/admin/database/export_postgresql', methods=['POST'])
 @login_required
 def export_postgresql_route():
-    """导出为 PostgreSQL 兼容的 SQL 文件并返回下载信息"""
+    """导出为 PostgreSQL 兼容的 SQL 文件并返回下载信息
+    注：该接口原本用于把 SQLite 导出为 PostgreSQL；现在已不再支持 SQLite 自动导出。"""
     if current_user.role != 'admin':
         return jsonify({'success': False, 'message': '您没有权限执行此操作'}), 403
 
-    db_info = get_database_info().get('info', {})
-    db_uri = db_info.get('uri')
-    sqlite_path = db_uri if db_info.get('type') == 'SQLite' else None
-    if not sqlite_path:
-        return jsonify({'success': False, 'message': '当前仅支持从 SQLite 导出'})
+    # 不再支持从 SQLite 导出 - 对于 PostgreSQL 直接使用 pg_dump
+    return jsonify({'success': False, 'message': '此接口已废弃：请直接使用 PostgreSQL 的备份工具 (pg_dump) 导出数据库。'})
 
     # 获取自定义路径
     custom_path = None
@@ -5872,14 +5865,14 @@ def import_database_route():
 
     filename = secure_filename(file.filename)
     
-    # 支持多种文件格式
-    valid_extensions = ['.db', '.sql', '.sql.gz']
+    # 仅支持 PostgreSQL SQL 转储文件（.sql 或 .sql.gz），不再支持 SQLite .db 文件
+    valid_extensions = ['.sql', '.sql.gz']
     is_valid = any(filename.lower().endswith(ext) for ext in valid_extensions)
     
     if not is_valid:
         return jsonify({
             'success': False,
-            'message': f'仅支持上传数据库文件 ({", ".join(valid_extensions)})'
+            'message': f'仅支持上传 PostgreSQL SQL 转储文件 (.sql, .sql.gz)；SQLite (.db) 不再受支持'
         }), 400
 
     # 保存到备份目录，然后调用 restore_database

@@ -194,7 +194,7 @@ $('#edit_approver_user_ids').val(ids).trigger('change');
 ### 后端
 - **Framework**: Flask (Python 3.14)
 - **ORM**: SQLAlchemy
-- **Database**: SQLite
+- **Database**: PostgreSQL（已移除 SQLite 支持；如需查看历史迁移资料请参阅 `docs/legacy/`）
 - **Port**: 5020
 
 ### 前端

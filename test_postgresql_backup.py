@@ -78,11 +78,12 @@ def test_postgresql_backup():
                 print(f"✓ 找到 {len(backups)} 个备份文件")
                 
                 # 分类统计
-                sqlite_backups = [b for b in backups if b.get('db_type') == 'sqlite']
+                # 历史遗留的 SQLite 备份（已不再受支持，列出供参考）
+                sqlite_legacy_backups = [b for b in backups if b.get('db_type') == 'sqlite_legacy']
                 postgresql_backups = [b for b in backups if b.get('db_type') == 'postgresql']
                 compressed_backups = [b for b in backups if b.get('compressed')]
                 
-                print(f"  - SQLite备份: {len(sqlite_backups)} 个")
+                print(f"  - SQLite (legacy) 备份: {len(sqlite_legacy_backups)} 个")
                 print(f"  - PostgreSQL备份: {len(postgresql_backups)} 个")
                 print(f"  - 压缩备份: {len(compressed_backups)} 个")
                 
@@ -137,14 +138,10 @@ def test_postgresql_backup():
                 print("  4. ✓ 备份文件验证")
                 print("  5. ✓ 备份列表管理")
                 print("  6. ✓ 多格式支持 (.sql, .sql.gz)")
-            elif db_type == 'SQLite':
-                print("✓ SQLite数据库管理功能:")
-                print("  1. ✓ 数据库信息查看")
-                print("  2. ✓ 数据库备份 (文件复制)")
-                print("  3. ✓ 数据库恢复")
-                print("  4. ✓ 备份文件验证")
-                print("  5. ✓ 备份列表管理")
-                print("  6. ✓ .db文件支持")
+            elif db_type and db_type.startswith('SQLite'):
+                print("⚠️ 当前运行环境为 SQLite，但系统已移除对 SQLite 的运行时支持。")
+                print("   - 建议迁移到 PostgreSQL 并在测试环境中验证迁移后的数据。")
+                print("   - 历史 SQLite 备份将以 'sqlite_legacy' 列出（仅供参考，不能直接导入恢复）。")
             
             print()
             print("✓ 通用功能:")

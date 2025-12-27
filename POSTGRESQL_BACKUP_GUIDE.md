@@ -2,13 +2,13 @@
 
 **更新日期**: 2025-12-05  
 **版本**: 2.0  
-**适用数据库**: PostgreSQL 和 SQLite
+**适用数据库**: PostgreSQL（已移除 SQLite 运行时支持；历史 SQLite 备份以 legacy 标记显示）
 
 ---
 
 ## 📋 功能概览
 
-系统现已完全支持PostgreSQL和SQLite双数据库备份和恢复功能。
+系统重点支持 PostgreSQL 的备份与恢复；历史的 SQLite 备份会以 `sqlite_legacy` 标记列出供参考，但 `.db` 文件导入/恢复不再受支持。
 
 ### ✅ 新增功能
 
@@ -137,14 +137,15 @@ if result.get('success'):
 
 #### 通过Web界面上传
 1. 点击"导入数据库文件"
-2. 选择文件（支持 .db, .sql, .sql.gz）
+2. 选择文件（支持 .sql, .sql.gz）
 3. 点击"导入"按钮
-4. 系统自动验证并恢复
+4. 系统自动验证并恢复（`.db` 文件不再受支持）
 
 #### 支持的文件格式
-- `.db` - SQLite数据库文件
-- `.sql` - PostgreSQL SQL转储文件
-- `.sql.gz` - PostgreSQL压缩备份文件
+- `.sql` - PostgreSQL SQL 转储文件
+- `.sql.gz` - PostgreSQL 压缩备份文件
+
+> 注意：历史的 SQLite `.db` 文件在备份列表中仍会显示为 `sqlite_legacy`，但不支持通过 Web 界面导入恢复。
 
 ### 4. 管理备份文件
 
@@ -158,7 +159,8 @@ backups = result.get('backups', [])
 
 # 按数据库类型筛选
 postgresql_backups = list_backups(db_type='postgresql')
-sqlite_backups = list_backups(db_type='sqlite')
+# 历史遗留的 SQLite 备份（已不再受支持）
+sqlite_legacy_backups = list_backups(db_type='sqlite_legacy')
 
 # 按日期筛选
 today_backups = list_backups(filter_date='today')

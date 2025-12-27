@@ -207,7 +207,7 @@ CMD ["gunicorn", "-w", "8", "-b", "0.0.0.0:5020", ...]
 ```env
 SECRET_KEY=your-very-secure-secret-key-here
 FLASK_DEBUG=False
-DATABASE_URL=sqlite:///data/app.db
+DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/it_asset
 ```
 
 在 `docker-compose.yml` 中引用：

@@ -16,23 +16,18 @@ def test_button_functionality():
     
     with app.test_client() as client:
         # 登录管理员账户
-        login_response = client.post('/login', data={
+        login_response = client.post('/auth/login', data={
             'username': 'admin',
             'password': 'admin123'
         }, follow_redirects=True)
         
-        if login_response.status_code != 200:
-            print("❌ 登录失败")
-            return False
-        
+        assert login_response.status_code == 200, "登录失败"
         print("✅ 登录成功")
         
         # 测试用户管理页面
         print("\n🧪 测试用户管理页面...")
-        user_mgmt_response = client.get('/user_management')
-        if user_mgmt_response.status_code != 200:
-            print("❌ 无法访问用户管理页面")
-            return False
+        user_mgmt_response = client.get('/admin/users')
+        assert user_mgmt_response.status_code == 200, "无法访问用户管理页面"
         
         html = user_mgmt_response.data.decode('utf-8')
         
@@ -53,9 +48,7 @@ def test_button_functionality():
         # 测试审批流配置页面
         print("\n🧪 测试审批流配置页面...")
         workflow_response = client.get('/admin/workflow_config?order_type=equipment_application')
-        if workflow_response.status_code != 200:
-            print("❌ 无法访问审批流配置页面")
-            return False
+        assert workflow_response.status_code == 200, "无法访问审批流配置页面"
         
         html = workflow_response.data.decode('utf-8')
         
@@ -93,7 +86,7 @@ def test_button_functionality():
         print("3. 刷新页面，查看是否有错误信息")
         print("4. 点击按钮，查看是否输出调试日志")
         
-        return True
+
 
 if __name__ == '__main__':
     test_button_functionality()

@@ -10,6 +10,18 @@ def app_ctx():
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():
+        # 确保使用最新模型创建数据库表
+        # Force-drop legacy approval_instance table if present so SQLAlchemy create_all can create the updated schema
+        from sqlalchemy import text, inspect
+        try:
+            insp = inspect(db.engine)
+            for tbl in insp.get_table_names():
+                if tbl.startswith('approval_') or tbl == 'workflow_instance':
+                    db.session.execute(text(f"DROP TABLE IF EXISTS {tbl} CASCADE"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        db.drop_all()
         db.create_all()
         yield app
         db.session.remove()
@@ -40,7 +52,7 @@ def test_chat_start_workflow_creates_instance_and_message(app_ctx):
     db.session.commit()
 
     # 创建模板
-    tmpl = WorkflowTemplate(name='Chat Approval', code='chat_approval', is_active=True, order_type='chat')
+    tmpl = WorkflowTemplate(name='Chat Approval', code='chat_approval_' + uuid.uuid4().hex[:8], is_active=True, order_type='chat')
     db.session.add(tmpl)
     db.session.commit()
 
@@ -48,7 +60,8 @@ def test_chat_start_workflow_creates_instance_and_message(app_ctx):
 
     # 模拟登录为 u1
     with client:
-        client.post('/auth/login', data={'username': login_username, 'password': 'pass', 'csrf_token': client.get('/auth/login').data.decode()})
+        resp_login = client.post('/auth/login', data={'username': login_username, 'password': 'pass'}, follow_redirects=True)
+        assert resp_login.status_code in (200, 302)
         # 列表模板
         resp = client.get('/api/chat/workflow_templates')
         assert resp.status_code == 200

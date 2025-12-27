@@ -4,7 +4,7 @@
 from app import create_app, db
 from app.models import User
 from app.chat_models import ChatConversation, ChatParticipant, ChatMessage
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 app = create_app()
 
@@ -49,7 +49,7 @@ with app.app_context():
     db.session.add_all([p1, p2])
     
     # 添加消息 (注意发送者交替)
-    base_time = datetime.utcnow()
+    base_time = datetime.now(timezone.utc)
     messages_conv1 = [
         ChatMessage(
             conversation_id=conv1.id,

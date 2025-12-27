@@ -11,9 +11,11 @@ from app.approval_models import (
     ApprovalStep, ApprovalLog, ApprovalDelegate
 )
 from app.models import User, ApprovalRole, UserApprovalRole
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, or_
 import json
+import ast
+import operator
 
 # 导入通知服务
 try:
@@ -146,7 +148,7 @@ class ApprovalEngine:
         step_no = f'{instance.instance_no}-{instance.steps.count() + 1:03d}'
         deadline = None
         if node.timeout_hours:
-            deadline = datetime.utcnow() + timedelta(hours=node.timeout_hours)
+            deadline = datetime.now(timezone.utc) + timedelta(hours=node.timeout_hours)
         
         step = ApprovalStep(
             instance_id=instance.id,
@@ -195,7 +197,7 @@ class ApprovalEngine:
             step_no = f'{instance.instance_no}-{instance.steps.count() + 1:03d}'
             deadline = None
             if node.timeout_hours:
-                deadline = datetime.utcnow() + timedelta(hours=node.timeout_hours)
+                deadline = datetime.now(timezone.utc) + timedelta(hours=node.timeout_hours)
             
             step = ApprovalStep(
                 instance_id=instance.id,
@@ -253,7 +255,7 @@ class ApprovalEngine:
         step.status = 'approved'
         step.result = 'approved'
         step.comment = comment
-        step.approved_date = datetime.utcnow()
+        step.approved_date = datetime.now(timezone.utc)
         
         instance = step.instance
         
@@ -288,7 +290,7 @@ class ApprovalEngine:
         step.status = 'rejected'
         step.result = 'rejected'
         step.comment = comment
-        step.approved_date = datetime.utcnow()
+        step.approved_date = datetime.now(timezone.utc)
         
         instance = step.instance
         
@@ -376,7 +378,7 @@ class ApprovalEngine:
     def _complete_workflow(instance, result, comment=''):
         """完成工作流"""
         instance.status = result
-        instance.completed_date = datetime.utcnow()
+        instance.completed_date = datetime.now(timezone.utc)
         instance.final_result = result
         instance.final_comment = comment
         instance.current_node_id = None
@@ -388,7 +390,7 @@ class ApprovalEngine:
     def _terminate_workflow(instance, result, reason):
         """终止工作流"""
         instance.status = 'terminated'
-        instance.completed_date = datetime.utcnow()
+        instance.completed_date = datetime.now(timezone.utc)
         instance.final_result = result
         instance.final_comment = reason
         
@@ -415,16 +417,153 @@ class ApprovalEngine:
         
         # 条件表达式检查
         if node.condition_expr:
+            # 创建安全的执行环境
+            context = instance.context_data.copy()
+            context['form_data'] = instance.form_data
             try:
-                # 创建安全的执行环境
-                context = instance.context_data.copy()
-                context['form_data'] = instance.form_data
-                result = eval(node.condition_expr, {"__builtins__": {}}, context)
+                result = ApprovalEngine._evaluate_condition_expr(node.condition_expr, context)
                 return bool(result)
             except Exception as e:
                 ApprovalEngine._log_action(instance.id, None, 'condition_error', None,
                                           f'条件表达式错误: {str(e)}')
                 return True  # 出错时默认执行
+
+    @staticmethod
+    def _evaluate_condition_expr(expr: str, context: dict):
+        """安全评估条件表达式，仅允许子集语法（比较、逻辑、算术、索引访问）。
+
+        限制：不允许函数调用、属性访问或导入等危险操作。
+        当表达式包含不允许的节点时抛出 ValueError。
+        """
+        # 解析为 AST
+        node = ast.parse(expr, mode='eval')
+
+        # 映射操作符
+        binops = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.FloorDiv: operator.floordiv,
+            ast.Mod: operator.mod,
+            ast.Pow: operator.pow,
+        }
+        unops = {
+            ast.UAdd: operator.pos,
+            ast.USub: operator.neg,
+            ast.Not: operator.not_,
+        }
+        boolops = {
+            ast.And: all,
+            ast.Or: any,
+        }
+        cmpops = {
+            ast.Eq: operator.eq,
+            ast.NotEq: operator.ne,
+            ast.Lt: operator.lt,
+            ast.LtE: operator.le,
+            ast.Gt: operator.gt,
+            ast.GtE: operator.ge,
+            ast.In: lambda a, b: a in b,
+            ast.NotIn: lambda a, b: a not in b,
+            ast.Is: operator.is_,
+            ast.IsNot: operator.is_not,
+        }
+
+        def _eval(n):
+            # Expression wrapper
+            if isinstance(n, ast.Expression):
+                return _eval(n.body)
+            # Constants (py3.8+)
+            if isinstance(n, ast.Constant):
+                return n.value
+            # Legacy numeric/string nodes - handle n/s for older AST nodes (avoid direct ast.Num/Str checks)
+            if hasattr(n, 'n'):
+                return n.n
+            if hasattr(n, 's'):
+                return n.s
+            if isinstance(n, ast.Tuple):
+                return tuple(_eval(e) for e in n.elts)
+            if isinstance(n, ast.List):
+                return [_eval(e) for e in n.elts]
+            if isinstance(n, ast.Dict):
+                return {_eval(k): _eval(v) for k, v in zip(n.keys, n.values)}
+            # Names - only allow names present in context or True/False/None
+            if isinstance(n, ast.Name):
+                if n.id in context:
+                    return context[n.id]
+                if n.id == 'True':
+                    return True
+                if n.id == 'False':
+                    return False
+                if n.id == 'None':
+                    return None
+                raise ValueError(f"未允许的变量: {n.id}")
+            # Disallow function calls and attribute access explicitly
+            if isinstance(n, ast.Call):
+                raise ValueError('函数调用不允许')
+            if isinstance(n, ast.Attribute):
+                raise ValueError('属性访问不允许')
+
+            # Subscript like form_data['field'] or dict access
+            if isinstance(n, ast.Subscript):
+                value = _eval(n.value)
+                # slice can be Constant or Name
+                idx = None
+                if isinstance(n.slice, ast.Constant):
+                    idx = n.slice.value
+                else:
+                    # Python <3.9 index wrapper
+                    if hasattr(ast, 'Index') and isinstance(n.slice, ast.Index):
+                        idx = _eval(n.slice.value)
+                    else:
+                        idx = _eval(n.slice)
+                try:
+                    return value[idx]
+                except Exception as e:
+                    raise
+            # Boolean ops
+            if isinstance(n, ast.BoolOp):
+                values = [_eval(v) for v in n.values]
+                op = type(n.op)
+                if op in boolops:
+                    if op is ast.And:
+                        return all(values)
+                    if op is ast.Or:
+                        return any(values)
+                raise ValueError('不支持的布尔操作')
+            # Binary ops
+            if isinstance(n, ast.BinOp):
+                left = _eval(n.left)
+                right = _eval(n.right)
+                op_type = type(n.op)
+                if op_type in binops:
+                    return binops[op_type](left, right)
+                raise ValueError('不支持的二元操作')
+            # Unary ops
+            if isinstance(n, ast.UnaryOp):
+                operand = _eval(n.operand)
+                op_type = type(n.op)
+                if op_type in unops:
+                    return unops[op_type](operand)
+                raise ValueError('不支持的一元操作')
+            # Compare
+            if isinstance(n, ast.Compare):
+                left = _eval(n.left)
+                for op, comp in zip(n.ops, n.comparators):
+                    right = _eval(comp)
+                    op_type = type(op)
+                    if op_type in cmpops:
+                        if not cmpops[op_type](left, right):
+                            return False
+                        left = right
+                    else:
+                        raise ValueError('不支持的比较操作')
+                return True
+            # Disallow calls, attributes, comprehensions, lambdas, etc.
+            raise ValueError(f'不支持的表达式节点: {type(n).__name__}')
+
+        return _eval(node)
         
         return True
     
@@ -459,7 +598,7 @@ class ApprovalEngine:
     @staticmethod
     def _check_delegate(user_id, order_type, role_id):
         """检查审批代理"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         delegate = ApprovalDelegate.query.filter(
             ApprovalDelegate.user_id == user_id,
             ApprovalDelegate.is_active == True,
@@ -503,7 +642,7 @@ class ApprovalEngine:
     def _generate_instance_no(order_type):
         """生成实例编号"""
         prefix = order_type.upper()[:4]
-        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
         # TODO: 添加序列号
         return f'{prefix}-{timestamp}'
     

@@ -29,47 +29,42 @@ def test_asset_cost():
             # 获取第一个资产
             equipment = Equipment.query.first()
             if not equipment:
-                print("❌ 没有找到资产，跳过测试")
-                return False
+                import pytest
+                pytest.skip("没有找到资产，跳过测试")
             
             print(f"\n✓ 目标资产: {equipment.name} (ID: {equipment.id})")
             
             # 检查是否已有成本信息
-            cost = AssetCost.query.filter_by(asset_id=equipment.id).first()
+            cost = AssetCost.query.filter_by(equipment_id=equipment.id).first()
             
             if cost:
                 print(f"✓ 成本信息已存在")
                 print(f"  - 采购价格: ¥{cost.purchase_price:.2f}")
-                print(f"  - 年折旧率: {cost.annual_depreciation_rate}%")
-                print(f"  - 年均维护成本: ¥{cost.annual_maintenance_cost:.2f}")
+                print(f"  - 年折旧率: {cost.depreciation_rate * 100:.1f}%")
+                print(f"  - 年均维护成本: ¥{cost.maintenance_cost:.2f}")
             else:
-                # 创建新的成本记录
+                # 创建新的成本记录 (字段与模型对齐)
                 cost = AssetCost(
-                    asset_id=equipment.id,
+                    equipment_id=equipment.id,
                     purchase_price=5000.0,
-                    annual_depreciation_rate=15,
-                    expected_lifespan_years=5,
-                    residual_value_percent=10,
-                    annual_maintenance_cost=200.0,
-                    annual_repair_frequency=1.5,
-                    max_repair_cost=500.0,
-                    total_upgrade_cost=0,
-                    other_cost=0
+                    depreciation_rate=0.15,
+                    expected_lifespan=5,
+                    residual_value=500.0,
+                    maintenance_cost=200.0
                 )
                 db.session.add(cost)
                 db.session.commit()
                 print(f"✓ 创建成本记录成功")
                 print(f"  - 采购价格: ¥{cost.purchase_price:.2f}")
-                print(f"  - 年折旧率: {cost.annual_depreciation_rate}%")
-            
+                print(f"  - 年折旧率: {cost.depreciation_rate * 100:.1f}%")
             # 计算折旧
-            annual_depreciation = cost.purchase_price * cost.annual_depreciation_rate / 100
+            annual_depreciation = cost.purchase_price * (cost.depreciation_rate or 0)
             print(f"\n✓ 折旧计算:")
             print(f"  - 年折旧额: ¥{annual_depreciation:.2f}")
             
             # 计算ROI (示例)
             purchase_price = cost.purchase_price
-            total_cost = purchase_price + cost.annual_maintenance_cost + cost.total_upgrade_cost
+            total_cost = purchase_price + (cost.maintenance_cost or 0)
             current_value = purchase_price - annual_depreciation
             roi = (current_value - total_cost) / purchase_price * 100 if purchase_price > 0 else 0
             
@@ -78,13 +73,12 @@ def test_asset_cost():
             print(f"  - ROI: {roi:.1f}%")
             
             print("\n✅ 资产成本模块测试通过")
-            return True
             
         except Exception as e:
-            print(f"\n❌ 测试失败: {str(e)}")
             import traceback
             traceback.print_exc()
-            return False
+            import pytest
+            pytest.fail(f"测试失败: {e}")
 
 def test_asset_lifecycle():
     """测试资产生命周期模块"""
@@ -98,8 +92,8 @@ def test_asset_lifecycle():
             # 获取第一个资产
             equipment = Equipment.query.first()
             if not equipment:
-                print("❌ 没有找到资产，跳过测试")
-                return False
+                import pytest
+                pytest.skip("没有找到资产，跳过测试")
             
             print(f"\n✓ 目标资产: {equipment.name} (ID: {equipment.id})")
             
@@ -108,41 +102,40 @@ def test_asset_lifecycle():
             
             # 事件1: 采购
             purchase_event = AssetLifecycle(
-                asset_id=equipment.id,
+                equipment_id=equipment.id,
                 event_type='purchase',
-                event_date=datetime.now().date() - timedelta(days=365),
+                event_date=datetime.now() - timedelta(days=365),
                 description='初始采购',
-                cost=5000.0,
-                notes='从供应商A采购'
+                cost_involved=5000.0
             )
             events.append(purchase_event)
-            
+
             # 事件2: 部署
             deployment_event = AssetLifecycle(
-                asset_id=equipment.id,
+                equipment_id=equipment.id,
                 event_type='deployment',
-                event_date=datetime.now().date() - timedelta(days=360),
+                event_date=datetime.now() - timedelta(days=360),
                 description='部署到IT部门',
-                notes='部署完成，开始使用'
+                documents='部署完成，开始使用'
             )
             events.append(deployment_event)
-            
+
             # 事件3: 维护
             maintenance_event = AssetLifecycle(
-                asset_id=equipment.id,
+                equipment_id=equipment.id,
                 event_type='maintenance',
-                event_date=datetime.now().date() - timedelta(days=180),
+                event_date=datetime.now() - timedelta(days=180),
                 description='定期维护',
-                cost=200.0,
-                notes='清洁、检查、软件更新'
+                cost_involved=200.0,
+                documents='清洁、检查、软件更新'
             )
             events.append(maintenance_event)
-            
+
             # 检查事件是否已存在
             existing_events = AssetLifecycle.query.filter_by(
-                asset_id=equipment.id
+                equipment_id=equipment.id
             ).all()
-            
+
             if existing_events:
                 print(f"✓ 已有 {len(existing_events)} 条生命周期事件记录")
                 for event in existing_events[:3]:
@@ -155,18 +148,13 @@ def test_asset_lifecycle():
                 print(f"✓ 创建 {len(events)} 条生命周期事件")
                 for event in events:
                     print(f"  - [{event.event_type}] {event.event_date}: {event.description}")
-            
+
             # 计算生命周期成本
             lifecycle_events = AssetLifecycle.query.filter_by(
-                asset_id=equipment.id
+                equipment_id=equipment.id
             ).all()
-            
-            total_cost = sum(event.cost or 0 for event in lifecycle_events)
-            print(f"\n✓ 生命周期成本统计:")
-            print(f"  - 事件总数: {len(lifecycle_events)}")
-            print(f"  - 累计成本: ¥{total_cost:.2f}")
-            
-            # 统计事件类型
+
+            total_cost = sum(event.cost_involved or 0 for event in lifecycle_events)
             event_types = {}
             for event in lifecycle_events:
                 event_types[event.event_type] = event_types.get(event.event_type, 0) + 1
@@ -176,13 +164,12 @@ def test_asset_lifecycle():
                 print(f"    · {event_type}: {count}条")
             
             print("\n✅ 资产生命周期模块测试通过")
-            return True
             
         except Exception as e:
-            print(f"\n❌ 测试失败: {str(e)}")
             import traceback
             traceback.print_exc()
-            return False
+            import pytest
+            pytest.fail(f"测试失败: {e}")
 
 def test_inventory_warning():
     """测试库存预警模块"""
@@ -196,8 +183,8 @@ def test_inventory_warning():
             # 获取第一个配件
             spare_part = SparePart.query.first()
             if not spare_part:
-                print("❌ 没有找到配件，跳过测试")
-                return False
+                import pytest
+                pytest.skip("没有找到配件，跳过测试")
             
             print(f"\n✓ 目标配件: {spare_part.name} (ID: {spare_part.id})")
             print(f"  - 当前库存: {spare_part.quantity}")
@@ -258,13 +245,12 @@ def test_inventory_warning():
             print(f"  - 一般预警: {warning_count}")
             
             print("\n✅ 库存预警模块测试通过")
-            return True
             
         except Exception as e:
-            print(f"\n❌ 测试失败: {str(e)}")
             import traceback
             traceback.print_exc()
-            return False
+            import pytest
+            pytest.fail(f"测试失败: {e}")
 
 def test_asset_handover():
     """测试资产交接模块"""
@@ -284,55 +270,47 @@ def test_asset_handover():
             print(f"\n✓ 目标资产: {equipment.name} (ID: {equipment.id})")
             
             # 检查是否已有交接记录
-            handovers = AssetHandover.query.filter_by(
-                asset_id=equipment.id
-            ).all()
+            import json
+            handovers = AssetHandover.query.filter(AssetHandover.equipment_ids.contains(str(equipment.id))).all()
             
             if handovers:
                 print(f"✓ 已有 {len(handovers)} 条交接记录")
                 for handover in handovers[:2]:
                     print(f"  - {handover.from_department} → {handover.to_department} ({handover.handover_date})")
             else:
-                # 创建交接记录
+                # 创建交接记录（equipment_ids 存为 JSON 字符串）
                 handover = AssetHandover(
-                    asset_id=equipment.id,
-                    from_department='IT部门',
-                    to_department='市场部',
-                    from_person='张三',
-                    to_person='李四',
-                    handover_date=datetime.now().date(),
+                    equipment_ids=json.dumps([equipment.id]),
                     reason='部门调整',
-                    notes='资产状况良好'
+                    created_date=datetime.now()
                 )
                 db.session.add(handover)
                 db.session.commit()
                 print(f"✓ 创建交接记录成功")
-                print(f"  - {handover.from_department} → {handover.to_department}")
-                print(f"  - 交接人: {handover.from_person} → {handover.to_person}")
+                print(f"  - 设备ID列表: {handover.equipment_ids}")
             
             # 统计所有交接记录
             all_handovers = AssetHandover.query.all()
             print(f"\n✓ 交接记录统计:")
             print(f"  - 总记录数: {len(all_handovers)}")
             
-            # 按部门统计
-            dept_changes = {}
+            # 按理由统计（使用 reason 字段）
+            reason_counts = {}
             for ho in all_handovers:
-                key = f"{ho.from_department} → {ho.to_department}"
-                dept_changes[key] = dept_changes.get(key, 0) + 1
+                key = ho.reason or 'unknown'
+                reason_counts[key] = reason_counts.get(key, 0) + 1
             
-            print(f"  - 部门变更记录:")
-            for change, count in sorted(dept_changes.items(), key=lambda x: x[1], reverse=True)[:5]:
+            print(f"  - 交接理由统计:")
+            for change, count in sorted(reason_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
                 print(f"    · {change}: {count}次")
             
             print("\n✅ 资产交接模块测试通过")
-            return True
             
         except Exception as e:
-            print(f"\n❌ 测试失败: {str(e)}")
             import traceback
             traceback.print_exc()
-            return False
+            import pytest
+            pytest.fail(f"测试失败: {e}")
 
 def run_all_tests():
     """运行所有测试"""
@@ -343,16 +321,12 @@ def run_all_tests():
     results = []
     
     # 测试1: 成本模块
-    results.append(("资产成本模块", test_asset_cost()))
-    
-    # 测试2: 生命周期模块
-    results.append(("资产生命周期模块", test_asset_lifecycle()))
-    
-    # 测试3: 库存预警模块
-    results.append(("库存预警模块", test_inventory_warning()))
-    
-    # 测试4: 资产交接模块
-    results.append(("资产交接模块", test_asset_handover()))
+    for name, fn in [("资产成本模块", test_asset_cost), ("资产生命周期模块", test_asset_lifecycle), ("库存预警模块", test_inventory_warning), ("资产交接模块", test_asset_handover)]:
+        try:
+            fn()
+            results.append((name, True))
+        except Exception:
+            results.append((name, False))
     
     # 打印测试总结
     print("\n" + "="*60)

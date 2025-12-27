@@ -9,13 +9,12 @@ def test_full_login():
     session = requests.Session()
     
     print("步骤1: 访问登录页面获取CSRF token")
+    import pytest
     try:
         r = session.get('http://localhost:5020/auth/login')
         print(f"  状态码: {r.status_code}")
         
-        if r.status_code != 200:
-            print(f"  ❌ 登录页面访问失败")
-            return False
+        assert r.status_code == 200, "登录页面访问失败"
             
         # 解析HTML获取CSRF token
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -46,19 +45,18 @@ def test_full_login():
         
         if r.status_code == 302:
             redirect_url = r.headers.get('Location', '')
+            assert redirect_url is not None
             print(f"  ✅ 登录成功,重定向到: {redirect_url}")
-            return True
         elif r.status_code == 200:
             # 检查是否有错误消息
+            import pytest
             if 'Invalid username or password' in r.text or '用户名或密码错误' in r.text:
-                print("  ❌ 用户名或密码错误")
+                pytest.fail("用户名或密码错误")
             else:
-                print("  ⚠️ 登录未重定向,可能需要检查")
-            return False
+                pytest.fail("登录未重定向,可能需要检查")
         else:
-            print(f"  ❌ 意外状态码: {r.status_code}")
-            print(f"  响应: {r.text[:200]}")
-            return False
+            import pytest
+            pytest.fail(f"意外状态码: {r.status_code} -> {r.text[:200]}")
             
     except Exception as e:
         print(f"  ❌ 错误: {e}")

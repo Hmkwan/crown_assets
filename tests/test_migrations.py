@@ -39,6 +39,23 @@ WHERE t.relname = 'chat_conversation'
         else:
             pytest.skip('last_read_message_id column not present; skipping last_read FK check')
 
+        # Also verify that chat_participant has a named FK for last_read_message_id if the column exists there
+        part_col = db.session.execute("SELECT 1 FROM information_schema.columns WHERE table_name='chat_participant' AND column_name='last_read_message_id'").fetchone()
+        if part_col:
+            rows3 = db.session.execute(
+                """
+SELECT c.conname
+FROM pg_constraint c
+JOIN pg_class t ON c.conrelid = t.oid
+WHERE t.relname = 'chat_participant'
+  AND c.conname = 'fk_chat_conversation_last_read'
+"""
+            ).fetchall()
+            names3 = {r[0] for r in rows3}
+            assert 'fk_chat_conversation_last_read' in names3, 'fk_chat_conversation_last_read missing on chat_participant'
+        else:
+            pytest.skip('chat_participant.last_read_message_id not present; skipping participant last_read FK check')
+
 
 def test_patch_columns_present():
     """Ensure patch migration added commonly-missing columns (Postgres only)."""
@@ -47,10 +64,12 @@ def test_patch_columns_present():
         if db.engine.dialect.name != 'postgresql':
             pytest.skip('Postgres required for this migration validation')
 
+        from sqlalchemy import text
+
         def has_column(table, col):
             row = db.session.execute(
-                "SELECT 1 FROM information_schema.columns WHERE table_name=%s AND column_name=%s",
-                (table, col)
+                text("SELECT 1 FROM information_schema.columns WHERE table_name=:table AND column_name=:col"),
+                {'table': table, 'col': col}
             ).fetchone()
             return bool(row)
 

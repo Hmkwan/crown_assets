@@ -1,7 +1,7 @@
 """Normalize attachment paths to resolve /app/app/uploads ↔ /app/uploads
 
 Revision ID: patch_normalize_attachment_paths
-Revises: patch_chat_attachment_message_nullable
+Revises: pcam_msg_null
 Create Date: 2025-12-21 14:43:00.000000
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'patch_normalize_attachment_paths'
-down_revision = 'patch_chat_attachment_message_nullable'
+down_revision = 'pcam_msg_null'
 branch_labels = None
 depends_on = None
 

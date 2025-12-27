@@ -4,7 +4,7 @@
 """
 from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, timezone
 from app.admin.workflow_config_routes import admin_bp
 from app.models import (
     ApprovalWorkflow, WorkflowNode, WorkflowTemplate, RepairOrder, PartRequestOrder,
@@ -22,7 +22,7 @@ def get_beijing_now():
         return datetime.now(tz).replace(tzinfo=None)
     except:
         from datetime import timedelta
-        return datetime.utcnow() + timedelta(hours=8)
+        return datetime.now(timezone.utc) + timedelta(hours=8)
 
 
 @admin_bp.route('/approval_flows')

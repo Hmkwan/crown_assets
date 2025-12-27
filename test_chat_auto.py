@@ -386,7 +386,7 @@ class ChatTester:
             from app import create_app, db
             from app.approval_models import WorkflowTemplate, WorkflowNode, ApprovalInstance, ApprovalStep
             from app.models import User
-            from datetime import datetime, timedelta
+            from datetime import datetime, timedelta, timezone
             
             app = create_app()
             with app.app_context():
@@ -432,7 +432,7 @@ class ChatTester:
                 
                 # 3) 创建实例
                 inst = ApprovalInstance(
-                    instance_no=f'TEST-APP-{int(datetime.utcnow().timestamp())}',
+                    instance_no=f'TEST-APP-{int(datetime.now(timezone.utc).timestamp())}',
                     template_id=tpl.id,
                     order_type='equipment_application',
                     order_id=1,
@@ -454,8 +454,8 @@ class ChatTester:
                     step_no='STEP-001',
                     approver_id=admin.id if admin else None,
                     status='pending',
-                    assigned_date=datetime.utcnow(),
-                    deadline=datetime.utcnow() + timedelta(days=2)
+                    assigned_date=datetime.now(timezone.utc),
+                    deadline=datetime.now(timezone.utc) + timedelta(days=2)
                 )
                 db.session.add(step)
                 db.session.commit()

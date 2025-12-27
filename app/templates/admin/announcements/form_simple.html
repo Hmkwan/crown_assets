@@ -169,11 +169,32 @@
 {% block scripts %}
 <script>
 (function(){
+    // 更严格的特性检测：检查对象/数组展开与 async/await 等多项现代语法特性，降低误判概率
     var supportsModernSyntax = true;
-    try { new Function('return {...{a:1}};')(); } catch (e) { supportsModernSyntax = false; }
+    try {
+        new Function('return {...{a:1}, ...{b:2}}')();
+        new Function('return [...[1,2,3]]')();
+        new Function('return (async function(){return 1})()')();
+    } catch (e) { supportsModernSyntax = false; }
+
     if (supportsModernSyntax) {
-        var s1 = document.createElement('script'); s1.src = '{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}'; s1.defer = true; document.head.appendChild(s1);
-        var s2 = document.createElement('script'); s2.src = '{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}'; s2.defer = true; document.head.appendChild(s2);
+        var s1 = document.createElement('script');
+        s1.src = '{{ url_for('static', filename='vendor/summernote/summernote-bs4.min.js') }}';
+        s1.defer = true;
+        s1.onerror = function(){
+            console.warn('加载 Summernote 失败或语法不兼容，使用纯文本 textarea 回退编辑器。');
+            try{ s1.remove(); }catch(e){}
+        };
+        document.head.appendChild(s1);
+
+        var s2 = document.createElement('script');
+        s2.src = '{{ url_for('static', filename='vendor/summernote/lang/summernote-zh-CN.min.js') }}';
+        s2.defer = true;
+        s2.onerror = function(){
+            console.warn('加载 Summernote 语言文件失败，使用纯文本 textarea 回退编辑器。');
+            try{ s2.remove(); }catch(e){}
+        };
+        document.head.appendChild(s2);
     } else {
         console.warn('浏览器不支持 Summernote 所需的现代语法；将使用纯文本 textarea 作为回退编辑器。');
     }

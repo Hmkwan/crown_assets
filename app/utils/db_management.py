@@ -29,6 +29,33 @@ def get_backup_dir():
     return backup_dir
 
 
+# -- Safety helpers for identifier/table handling ---------------------------------
+_identifier_re = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+def _is_valid_identifier(name):
+    """Return True if name is a simple SQL identifier (letters, digits, underscore, not starting with digit)."""
+    return bool(isinstance(name, str) and _identifier_re.match(name))
+
+
+def _validate_table_name(table_name, engine=None):
+    """Validate that the provided table name is a safe identifier and optionally exists in the database."""
+    if not _is_valid_identifier(table_name):
+        return False
+    if engine is not None:
+        try:
+            from sqlalchemy import inspect as _inspect
+            inspector = _inspect(engine)
+            return table_name in inspector.get_table_names()
+        except Exception:
+            return False
+    return True
+
+
+def _quote_identifier(name):
+    """Simple quoting for identifiers after validation. Caller must validate first."""
+    return f'"{name}"'
+
+
 def backup_database(compress=True):
     """备份数据库
     
@@ -49,10 +76,12 @@ def backup_database(compress=True):
             if pytz:
                 tz = pytz.timezone('Asia/Shanghai')
                 now = datetime.now(tz)
+            elif ZoneInfo is not None:
+                now = datetime.now(ZoneInfo('Asia/Shanghai'))
             else:
-                now = datetime.utcnow() + timedelta(hours=8)
+                now = datetime.now(timezone.utc) + timedelta(hours=8)
         except Exception:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         
         # SQLite support removed: do not perform file-based backups
@@ -395,22 +424,23 @@ def list_backups(filter_date=None, db_type=None):
         backups = []
         # use Asia/Shanghai aware now when possible
         try:
-            if ZoneInfo:
+            if ZoneInfo is not None:
                 now = datetime.now(ZoneInfo('Asia/Shanghai'))
             elif pytz:
                 now = datetime.now(pytz.timezone('Asia/Shanghai'))
             else:
-                now = datetime.utcnow() + timedelta(hours=8)
+                now = datetime.now(timezone.utc) + timedelta(hours=8)
         except Exception:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
         
         for filename in os.listdir(backup_dir):
-            # 支持SQLite (.db) 和 PostgreSQL (.sql, .sql.gz) 备份
+            # 支持 PostgreSQL (.sql, .sql.gz) 备份；历史 SQLite (.db) 以 'sqlite_legacy' 标记（仅列出，不再视为受支持备份）
             file_db_type = None
             is_compressed = False
             
             if filename.startswith('app_backup_') and filename.endswith('.db'):
-                file_db_type = 'sqlite'
+                # 历史遗留 SQLite 备份（已不再受支持）
+                file_db_type = 'sqlite_legacy'
                 timestamp_str = filename.replace('app_backup_', '').replace('.db', '')
             elif (filename.startswith('postgresql_backup_') or filename.startswith('python_postgresql_backup_')) and (filename.endswith('.sql') or filename.endswith('.sql.gz')):
                 file_db_type = 'postgresql'
@@ -561,40 +591,35 @@ def get_database_info():
         
         db_uri = current_app.config['SQLALCHEMY_DATABASE_URI']
         
-        # 判断数据库类型
-        if db_uri.startswith('sqlite:///'):
-            db_type = 'SQLite'
-        elif db_uri.startswith('postgresql://'):
+        # 判断数据库类型并构建基础信息
+        if db_uri.startswith('postgresql://'):
             db_type = 'PostgreSQL'
         elif db_uri.startswith('mysql://'):
             db_type = 'MySQL'
+        elif db_uri.startswith('sqlite:///'):
+            # SQLite support has been removed; inform caller
+            db_type = 'SQLite (unsupported)'
         else:
             db_type = 'Unknown'
-        
+
+        # 为避免泄露密码，仅展示 host:port/db 或 path
+        if '@' in db_uri:
+            display_uri = db_uri.split('@')[-1]
+        else:
+            display_uri = db_uri.replace('sqlite:///', '')
+
         info = {
             'type': db_type,
-            'uri': db_uri.split('@')[-1] if '@' in db_uri else db_uri.replace('sqlite:///', '')
+            'uri': display_uri
         }
-        
+
+        # 对于已不支持的 SQLite，返回提示信息而非尝试访问文件
         if db_uri.startswith('sqlite:///'):
-            db_path = db_uri.replace('sqlite:///', '')
-            if os.path.exists(db_path):
-                info['exists'] = True
-                info['size'] = os.path.getsize(db_path)
-                # format mtime in Asia/Shanghai
-                try:
-                    mtime = os.path.getmtime(db_path)
-                    if ZoneInfo:
-                        modified_dt = datetime.fromtimestamp(mtime, timezone.utc).astimezone(ZoneInfo('Asia/Shanghai'))
-                    elif pytz:
-                        modified_dt = datetime.fromtimestamp(mtime, pytz.utc).astimezone(pytz.timezone('Asia/Shanghai'))
-                    else:
-                        modified_dt = datetime.utcfromtimestamp(mtime) + timedelta(hours=8)
-                    info['modified'] = modified_dt.strftime('%Y-%m-%d %H:%M:%S')
-                except Exception:
-                    info['modified'] = datetime.fromtimestamp(os.path.getmtime(db_path)).strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                info['exists'] = False
+            info['exists'] = False
+            info['size'] = None
+            info['modified'] = 'N/A'
+            info['message'] = 'SQLite 已不再受支持；请配置 PostgreSQL 并设置正确的 DATABASE_URL/TEST_DATABASE_URI。'
+
         elif db_uri.startswith('postgresql://') or db_uri.startswith('mysql://'):
             # PostgreSQL/MySQL 数据库不是文件，从数据库获取信息
             info['exists'] = True
@@ -630,60 +655,18 @@ def get_database_info():
         return {'success': False, 'message': f'获取数据库信息失败: {str(e)}'}
 
 def export_database_to_mysql(sqlite_path, out_dir=None, src_tz='UTC', dst_tz='Asia/Shanghai'):
-    """调用脚本将 SQLite 导出为 MySQL 兼容 SQL 文件，返回生成的文件名。"""
-    try:
-        if out_dir is None:
-            out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'migrations')
-        os.makedirs(out_dir, exist_ok=True)
-        # 生成输出文件名
-        try:
-            if pytz:
-                now = datetime.now(pytz.timezone('Asia/Shanghai'))
-            else:
-                from datetime import timedelta
-                now = datetime.utcnow() + timedelta(hours=8)
-        except Exception:
-            now = datetime.utcnow()
-        out_name = f'app_db_mysql_dump_{now.strftime("%Y%m%d_%H%M%S")}.sql'
-        out_path = os.path.join(out_dir, out_name)
+    """SQLite -> MySQL 转换已移除（历史脚本已淘汰）。
 
-        PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        script = os.path.join(PROJECT_ROOT, 'scripts', 'sqlite_to_mysql.py')
-        cmd = [sys.executable, script, '--sqlite', sqlite_path, '--out', out_path, '--src-tz', src_tz, '--dst-tz', dst_tz]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if proc.returncode != 0:
-            return {'success': False, 'message': proc.stderr}
-        return {'success': True, 'dump_path': out_path, 'dump_filename': out_name}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+    请提供目标数据库兼容的 SQL 转储（例如 PostgreSQL 的 .sql），或使用专业迁移工具。"""
+    return {'success': False, 'message': 'SQLite support removed: automatic SQLite -> MySQL conversion is disabled. Provide a PostgreSQL dump (.sql) or use an external migration tool.'}
+
 
 
 def export_database_to_mssql(sqlite_path, out_dir=None, src_tz='UTC', dst_tz='Asia/Shanghai'):
-    """调用脚本将 SQLite 导出为 SQL Server 兼容 SQL 文件，返回生成的文件名。"""
-    try:
-        if out_dir is None:
-            out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'migrations')
-        os.makedirs(out_dir, exist_ok=True)
-        try:
-            if pytz:
-                now = datetime.now(pytz.timezone('Asia/Shanghai'))
-            else:
-                from datetime import timedelta
-                now = datetime.utcnow() + timedelta(hours=8)
-        except Exception:
-            now = datetime.utcnow()
-        out_name = f'app_db_mssql_dump_{now.strftime("%Y%m%d_%H%M%S")}.sql'
-        out_path = os.path.join(out_dir, out_name)
+    """SQLite -> SQL Server 转换已移除（历史脚本已淘汰）。
 
-        PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        script = os.path.join(PROJECT_ROOT, 'scripts', 'sqlite_to_mssql.py')
-        cmd = [sys.executable, script, '--sqlite', sqlite_path, '--out', out_path, '--src-tz', src_tz, '--dst-tz', dst_tz]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if proc.returncode != 0:
-            return {'success': False, 'message': proc.stderr}
-        return {'success': True, 'dump_path': out_path, 'dump_filename': out_name}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+    请提供目标数据库兼容的 SQL 转储（例如 PostgreSQL 的 .sql），或使用专业迁移工具。"""
+    return {'success': False, 'message': 'SQLite support removed: automatic SQLite -> SQL Server conversion is disabled. Provide a PostgreSQL dump (.sql) or use an external migration tool.'}
 
 
 def export_database_to_postgresql(sqlite_path, out_dir=None, src_tz='UTC', dst_tz='Asia/Shanghai'):
@@ -826,7 +809,10 @@ def get_database_tables_info():
             for table_name in tables:
                 try:
                     # 获取记录数
-                    result = conn.execute(text(f'SELECT COUNT(*) FROM "{table_name}"'))
+                    # validate table name before use
+                    if not _is_valid_identifier(table_name):
+                        raise ValueError("Invalid table name")
+                    result = conn.execute(text(f'SELECT COUNT(*) FROM {_quote_identifier(table_name)}'))
                     count = result.scalar()
                     total_records += count
                     
@@ -886,13 +872,14 @@ def get_table_data(table_name, page=1, per_page=50):
         column_names = [col['name'] for col in columns]
         
         with engine.connect() as conn:
-            # 获取总记录数
-            result = conn.execute(text(f'SELECT COUNT(*) FROM "{table_name}"'))
+            # 获取总记录数 (table_name already validated above)
+            result = conn.execute(text(f'SELECT COUNT(*) FROM {_quote_identifier(table_name)}'))
             total_count = result.scalar()
             
-            # 分页查询数据
+            # 分页查询数据 (use bound parameters for LIMIT/OFFSET)
             offset = (page - 1) * per_page
-            result = conn.execute(text(f'SELECT * FROM "{table_name}" LIMIT {per_page} OFFSET {offset}'))
+            stmt = text(f'SELECT * FROM {_quote_identifier(table_name)} LIMIT :limit OFFSET :offset')
+            result = conn.execute(stmt, {'limit': per_page, 'offset': offset})
             rows = result.fetchall()
             
             # 转换为字典列表
@@ -1009,8 +996,15 @@ def _python_postgresql_backup(db_uri, backup_dir, timestamp, compress=True):
                 output_file.write(",\n".join(column_defs))
                 output_file.write("\n);\n\n")
                 
-                # 导出数据
-                cursor.execute(f'SELECT * FROM "{table}"')
+                # 导出数据 (use psycopg2.sql for safe identifier handling when available)
+                try:
+                    from psycopg2 import sql as _psql_sql
+                    cursor.execute(_psql_sql.SQL('SELECT * FROM {}').format(_psql_sql.Identifier(table)))
+                except Exception:
+                    # fallback to simple validation + quoting
+                    if not _is_valid_identifier(table):
+                        continue
+                    cursor.execute(f'SELECT * FROM "{table}"')
                 rows = cursor.fetchall()
                 
                 if rows:
@@ -1168,7 +1162,12 @@ def initialize_system():
 
                 # 记录清理前数量
                 for tbl in table_order:
-                    result = db.session.execute(text(f"SELECT COUNT(*) FROM {tbl}")).scalar()
+                    # validate and quote
+                    if not _is_valid_identifier(tbl):
+                        # skip unexpected table names
+                        clear_stats[tbl] = 0
+                        continue
+                    result = db.session.execute(text(f"SELECT COUNT(*) FROM {_quote_identifier(tbl)}")).scalar()
                     key = {
                         'part_replacement': 'part_replacements',
                         'repair_order': 'repair_orders',
@@ -1195,7 +1194,10 @@ def initialize_system():
                     clear_stats[key] = result or 0
 
                 if table_order:
-                    db.session.execute(text('TRUNCATE TABLE ' + ', '.join(table_order) + ' CASCADE'))
+                    # ensure only validated identifiers make it into the TRUNCATE call
+                    safe_tables = [ _quote_identifier(t) for t in table_order if _is_valid_identifier(t) ]
+                    if safe_tables:
+                        db.session.execute(text('TRUNCATE TABLE ' + ', '.join(safe_tables) + ' CASCADE'))
             else:
                 # ORM 删除（用于非 PostgreSQL）
                 clear_stats['part_replacements'] = db.session.query(PartReplacement).delete()

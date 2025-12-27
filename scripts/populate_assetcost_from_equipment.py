@@ -8,7 +8,7 @@
 默认只做 dry-run，列出将要创建的记录并计数；使用 --apply 才会实际写入数据库。
 """
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app import create_app, db
 from app.models import Equipment, AssetCost
@@ -23,7 +23,7 @@ def main(dry_run=True, default_lifespan=5, default_purchase_date=None):
             price = float(eq.price or 0)
             if price <= 0:
                 continue
-            purchase_date = getattr(eq, 'purchase_date', None) or default_purchase_date or datetime.utcnow().date()
+            purchase_date = getattr(eq, 'purchase_date', None) or default_purchase_date or datetime.now(timezone.utc).date()
             payload = {
                 'equipment_id': eq.id,
                 'purchase_price': price,

@@ -184,6 +184,7 @@ def check_db_management():
     # 7. 检查导出脚本
     print("【7】数据库导出脚本检查")
     print("-" * 70)
+    # 已归档的历史自动转换脚本（仅供审计参考）
     export_scripts = [
         'scripts/sqlite_to_mysql.py',
         'scripts/sqlite_to_mssql.py',
@@ -193,21 +194,21 @@ def check_db_management():
     for script in export_scripts:
         if os.path.exists(script):
             size = os.path.getsize(script)
-            print(f"✓ {script} ({size:,} bytes)")
+            print(f"(历史) ✓ {script} ({size:,} bytes) - 已归档，使用前请在测试环境验证")
         else:
-            print(f"✗ {script} (不存在)")
+            print(f"(历史) ✗ {script} (不存在) - 如需历史脚本请查看 docs/legacy/")
     print()
     
     # 8. 功能总结
     print("【8】功能总结")
     print("=" * 70)
     print("✓ 已实现的功能:")
-    print("  1. 数据库备份 - 创建SQLite数据库的完整备份")
-    print("  2. 数据库恢复 - 从备份文件恢复数据库")
+    print("  1. 数据库备份 - 支持 PostgreSQL (pg_dump)")
+    print("  2. 数据库恢复 - 使用 pg_restore/psql 恢复 PostgreSQL 备份")
     print("  3. 数据库重置 - 清空所有数据并重新初始化")
     print("  4. 备份管理 - 列出、筛选、删除备份文件")
-    print("  5. 数据库导入 - 上传并导入.db文件")
-    print("  6. 数据库导出 - 导出为MySQL/MSSQL/PostgreSQL格式")
+    print("  5. 数据库导入 - 仅支持 PostgreSQL SQL 转储 (.sql/.sql.gz)。.db 文件不再受支持")
+    print("  6. 数据库导出 - 导出为 PostgreSQL；历史的 MySQL/MSSQL 转换已弃用")
     print("  7. 数据表查看 - 查看所有表的结构和数据")
     print("  8. 数据库信息 - 显示数据库类型、大小、表数量等")
     print()

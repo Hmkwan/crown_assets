@@ -18,16 +18,20 @@ def test_approvals_page_with_loan():
         db.drop_all()
         db.create_all()
         
-        # 创建部门
-        dept = Department(name='IT部门')
+        import uuid
+        # 创建部门（使用唯一名称避免与系统默认/初始化数据冲突）
+        dept_name = 'IT部门-' + uuid.uuid4().hex[:8]
+        dept = Department(name=dept_name)
         db.session.add(dept)
         db.session.commit()
         
-        # 创建用户
-        requester = User(username='requester_test', email='requester@test.com', department='IT部门', is_admin=False)
+        # 创建用户（使用唯一用户名避免冲突）
+        requester_username = 'requester_' + uuid.uuid4().hex[:8]
+        approver_username = 'approver_' + uuid.uuid4().hex[:8]
+        requester = User(username=requester_username, email=f'{requester_username}@test.com', department=dept_name, is_admin=False)
         requester.set_password('test')
         
-        approver = User(username='approver_test', email='approver@test.com', department='IT部门', is_admin=True)
+        approver = User(username=approver_username, email=f'{approver_username}@test.com', department=dept_name, is_admin=True)
         approver.set_password('test')
         
         db.session.add(requester)
@@ -35,11 +39,12 @@ def test_approvals_page_with_loan():
         db.session.commit()
         
         # 创建设备
+        equipment_serial = 'SN' + uuid.uuid4().hex[:8]
         equipment = Equipment(
             name='笔记本电脑',
             type='电子设备',
             model='ThinkPad',
-            serial_number='SN123456',
+            serial_number=equipment_serial,
             status='available'
         )
         db.session.add(equipment)
@@ -52,7 +57,7 @@ def test_approvals_page_with_loan():
         loan = EquipmentLoan(
             equipment_id=equipment.id,
             requester_id=requester.id,
-            requester_dept='IT部门',
+            requester_dept=dept_name,
             start_date=start_date,
             end_date=end_date,
             status='submitted'
@@ -78,7 +83,7 @@ def test_approvals_page_with_loan():
         with app.test_client() as client:
             # 登录为审批者
             response = client.post('/auth/login', data={
-                'username': 'approver_test',
+                'username': approver_username,
                 'password': 'test'
             }, follow_redirects=True)
             print(f"✓ 以审批者身份登录")

@@ -20,7 +20,10 @@ def admin_required(f):
             flash('请先登录', 'warning')
             return redirect(url_for('auth.login'))
         
-        if not current_user.is_admin():
+        # 兼容 is_admin 属性或方法
+        admin_check = getattr(current_user, 'is_admin', False)
+        is_admin = admin_check() if callable(admin_check) else bool(admin_check)
+        if not is_admin:
             if request.is_json:
                 return jsonify({'success': False, 'message': '权限不足'}), 403
             flash('您没有权限访问此页面', 'danger')
@@ -44,8 +47,12 @@ def permission_required(permission):
                 flash('请先登录', 'warning')
                 return redirect(url_for('auth.login'))
             
-            # 管理员拥有所有权限
-            if current_user.is_admin():
+            # 管理员拥有所有权限（兼容属性或方法）
+            admin_check = getattr(current_user, 'is_admin', False)
+            if callable(admin_check):
+                if admin_check():
+                    return f(*args, **kwargs)
+            elif admin_check:
                 return f(*args, **kwargs)
             
             # 检查用户权限
@@ -74,9 +81,13 @@ def role_required(*roles):
                 flash('请先登录', 'warning')
                 return redirect(url_for('auth.login'))
             
-            # 管理员自动拥有所有角色权限
-            if current_user.is_admin():
-                return f(*args, **kwargs)
+            # 管理员自动拥有所有角色权限（兼容属性或方法）
+            admin_check = getattr(current_user, 'is_admin', False)
+            if callable(admin_check):
+                if admin_check():
+                    return f(*args, **kwargs)
+            elif admin_check:
+                return f(*args, **kwargs) 
             
             if current_user.role not in roles:
                 if request.is_json:
@@ -103,9 +114,13 @@ def workflow_role_required(*workflow_roles):
                 flash('请先登录', 'warning')
                 return redirect(url_for('auth.login'))
             
-            # 管理员自动拥有所有审批流角色权限
-            if current_user.is_admin():
-                return f(*args, **kwargs)
+            # 管理员自动拥有所有审批流角色权限（兼容属性或方法）
+            admin_check = getattr(current_user, 'is_admin', False)
+            if callable(admin_check):
+                if admin_check():
+                    return f(*args, **kwargs)
+            elif admin_check:
+                return f(*args, **kwargs) 
             
             # 检查用户是否拥有任一所需角色
             user_roles = current_user.get_workflow_roles()
@@ -129,7 +144,10 @@ def api_admin_required(f):
         if not current_user.is_authenticated:
             return jsonify({'success': False, 'message': '未认证'}), 401
         
-        if not current_user.is_admin():
+        # 兼容 is_admin 属性或方法
+        admin_check = getattr(current_user, 'is_admin', False)
+        is_admin = admin_check() if callable(admin_check) else bool(admin_check)
+        if not is_admin:
             return jsonify({'success': False, 'message': '权限不足'}), 403
         
         return f(*args, **kwargs)
@@ -152,9 +170,13 @@ def owns_resource_or_admin(resource_owner_field='user_id'):
                 flash('请先登录', 'warning')
                 return redirect(url_for('auth.login'))
             
-            # 管理员可以访问所有资源
-            if current_user.is_admin():
-                return f(*args, **kwargs)
+            # 管理员可以访问所有资源（兼容属性或方法）
+            admin_check = getattr(current_user, 'is_admin', False)
+            if callable(admin_check):
+                if admin_check():
+                    return f(*args, **kwargs)
+            elif admin_check:
+                return f(*args, **kwargs) 
             
             # 获取资源对象（假设在kwargs中有resource对象）
             resource = kwargs.get('resource')
@@ -188,8 +210,12 @@ def module_permission_required(module, action):
                 flash('请先登录', 'warning')
                 return redirect(url_for('auth.login'))
             
-            # 管理员拥有所有权限
-            if current_user.is_admin():
+            # 管理员拥有所有权限（兼容属性或方法）
+            admin_check = getattr(current_user, 'is_admin', False)
+            if callable(admin_check):
+                if admin_check():
+                    return f(*args, **kwargs)
+            elif admin_check:
                 return f(*args, **kwargs)
             
             # 检查用户的自定义角色权限

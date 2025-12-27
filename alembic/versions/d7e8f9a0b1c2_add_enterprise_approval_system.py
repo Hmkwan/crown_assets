@@ -44,8 +44,8 @@ def upgrade() -> None:
             sa.Column('order_type', sa.String(length=64), nullable=False, comment='工单类型'),
             sa.Column('description', sa.Text(), nullable=True, comment='模板描述'),
             sa.Column('version', sa.Integer(), nullable=False, server_default=sa.text('1'), comment='版本号'),
-            sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1'), comment='是否启用'),
-            sa.Column('is_default', sa.Boolean(), nullable=False, server_default=sa.text('0'), comment='是否默认模板'),
+            sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true'), comment='是否启用'),
+            sa.Column('is_default', sa.Boolean(), nullable=False, server_default=sa.text('false'), comment='是否默认模板'),
             sa.Column('created_by_id', sa.Integer(), nullable=True),
             sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.func.now()),
@@ -65,6 +65,15 @@ def upgrade() -> None:
                 op.create_index('ix_workflow_template_order_type', 'workflow_template', ['order_type'])
     
     # 2. 增强 WorkflowNode 表 - 添加企业级字段
+    # 如果 workflow_node 表不存在（旧库或遗留迁移不完整），先创建一个最小表结构以保证后续迁移成功
+    if 'workflow_node' not in inspector.get_table_names():
+        op.create_table(
+            'workflow_node',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=128), nullable=True),
+            sa.PrimaryKeyConstraint('id')
+        )
+
     if 'workflow_node' in inspector.get_table_names():
         cols = [c['name'] for c in inspector.get_columns('workflow_node')]
         
@@ -100,14 +109,30 @@ def upgrade() -> None:
             else:
                 # skip FK creation; migrations that create user table should add appropriate FK later
                 pass
+        # 3. ApprovalInstance - 审批实例表
+    if 'approval_instance' not in inspector.get_table_names():
+        op.create_table(
+            'approval_instance',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('template_id', sa.Integer(), nullable=True),
+            sa.Column('initiator_id', sa.Integer(), nullable=True),
+            sa.Column('status', sa.String(length=32), nullable=False, server_default='pending'),
+            sa.Column('data', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+            sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.func.now()),
+            sa.PrimaryKeyConstraint('id')
+        )
+        if 'workflow_template' in inspector.get_table_names():
+            op.create_foreign_key('fk_approval_instance_template', 'approval_instance', 'workflow_template', ['template_id'], ['id'], ondelete='SET NULL')
+        if 'user' in inspector.get_table_names():
+            op.create_foreign_key('fk_approval_instance_initiator', 'approval_instance', 'user', ['initiator_id'], ['id'], ondelete='SET NULL')
         if 'approval_instance' in inspector.get_table_names():
-            cols = [c['name'] for c in inspector.get_columns('approval_instance')]
             existing_indexes = [i['name'] for i in inspector.get_indexes('approval_instance')]
-            if 'ix_approval_instance_status' not in existing_indexes and 'status' in cols:
+            if 'ix_approval_instance_status' not in existing_indexes:
                 op.create_index('ix_approval_instance_status', 'approval_instance', ['status'])
-            if 'ix_approval_instance_initiator' not in existing_indexes and 'initiator_id' in cols:
+            if 'ix_approval_instance_initiator' not in existing_indexes:
                 op.create_index('ix_approval_instance_initiator', 'approval_instance', ['initiator_id'])
-    
+
     # 4. ApprovalStep - 审批步骤表
     if 'approval_step' not in inspector.get_table_names():
         op.create_table(
@@ -124,7 +149,7 @@ def upgrade() -> None:
             sa.Column('deadline', sa.DateTime(), nullable=True, comment='截止时间'),
             sa.Column('assigned_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column('processed_at', sa.DateTime(), nullable=True),
-            sa.Column('is_parallel', sa.Boolean(), nullable=False, server_default=sa.text('0'), comment='是否并行审批'),
+            sa.Column('is_parallel', sa.Boolean(), nullable=False, server_default=sa.text('false'), comment='是否并行审批'),
             sa.Column('parallel_group_id', sa.String(length=64), nullable=True, comment='并行组ID'),
             sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.func.now()),
@@ -191,7 +216,7 @@ def upgrade() -> None:
             sa.Column('end_date', sa.DateTime(), nullable=False, comment='委托结束时间'),
             sa.Column('scope', sa.String(length=32), nullable=False, server_default='all', comment='委托范围: all/order_type'),
             sa.Column('order_types', sa.Text(), nullable=True, comment='委托的工单类型(JSON数组)'),
-            sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1'), comment='是否启用'),
+            sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true'), comment='是否启用'),
             sa.Column('reason', sa.Text(), nullable=True, comment='委托原因'),
             sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.func.now()),

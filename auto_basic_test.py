@@ -23,7 +23,6 @@ def test_login():
         data = {'username': 'admin', 'password': '12345678'}
         resp = client.post('/auth/login', data=data, follow_redirects=False)
         assert resp.status_code in (302, 200)
-        return True
 
 def test_page_access():
     app = create_app(TestConfig)

@@ -26,18 +26,18 @@ def test_chat_system():
         tables = db.inspect(db.engine).get_table_names()
         chat_tables = [t for t in tables if t.startswith('chat_')]
         
-        if len(chat_tables) == 5:
-            print(f"✓ 找到5个聊天表: {', '.join(chat_tables)}")
-        else:
-            print(f"✗ 聊天表不完整,只找到 {len(chat_tables)} 个")
-            return False
+        assert len(chat_tables) == 5, f"聊天表不完整,只找到 {len(chat_tables)} 个"
+        print(f"✓ 找到5个聊天表: {', '.join(chat_tables)}")
         
         # 2. 检查是否有测试用户
         print("\n2. 检查测试用户...")
         admin = User.query.filter_by(username='admin').first()
         if not admin:
-            print("✗ 未找到admin用户")
-            return False
+            # create admin to ensure test runs in isolated DB
+            admin = User(username='admin', email='admin@example.com', role='admin')
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
         print(f"✓ 找到测试用户: {admin.username} (ID={admin.id})")
         
         # 3. 创建测试会话
@@ -117,10 +117,7 @@ def test_chat_system():
         required_fields = ['id', 'conversation_id', 'sender_id', 'content', 'created_date']
         
         missing_fields = [f for f in required_fields if f not in message_dict]
-        if missing_fields:
-            print(f"✗ 缺少字段: {', '.join(missing_fields)}")
-            return False
-        
+        assert not missing_fields, f"缺少字段: {', '.join(missing_fields)}"
         print("✓ 消息序列化正常")
         print(f"  字段数: {len(message_dict)}")
         
@@ -128,13 +125,10 @@ def test_chat_system():
         print("\n6. 测试会话序列化...")
         conv_dict = conversation.to_dict(current_user_id=admin.id)
         
-        if 'other_user' in conv_dict:
-            print(f"✓ 会话序列化正常")
-            print(f"  对方用户: {conv_dict['other_user']['username']}")
-            print(f"  未读数: {conv_dict.get('unread_count', 0)}")
-        else:
-            print("✗ 会话序列化缺少other_user字段")
-            return False
+        assert 'other_user' in conv_dict, "会话序列化缺少other_user字段"
+        print(f"✓ 会话序列化正常")
+        print(f"  对方用户: {conv_dict['other_user']['username']}")
+        print(f"  未读数: {conv_dict.get('unread_count', 0)}")
         
         # 7. 统计信息
         print("\n7. 数据库统计...")

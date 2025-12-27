@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from app import create_app, db
 from app.models import User, ChatMessage, ChatAttachment
 
@@ -12,7 +13,7 @@ def test_backfill_chat_attachment_upload_user():
             pytest.skip('Postgres-only test')
 
         # Prepare data: create a user, a conversation, a message and attachments
-        u = User(username='bf_user', password_hash='x')
+        u = User(username=f'bf_user_{uuid.uuid4().hex}', password_hash='x')
         db.session.add(u)
         db.session.commit()
 
@@ -35,8 +36,9 @@ def test_backfill_chat_attachment_upload_user():
         db.session.commit()
 
         # Run backfill SQL same as migration logic
+        from sqlalchemy import text
         with db.engine.begin() as conn:
-            conn.execute(
+            conn.execute(text(
                 """
                 UPDATE chat_attachment
                 SET upload_user_id = cm.sender_id
@@ -44,11 +46,11 @@ def test_backfill_chat_attachment_upload_user():
                 WHERE chat_attachment.upload_user_id IS NULL
                   AND chat_attachment.message_id = cm.id
                 """
-            )
-            res = conn.execute("SELECT id FROM app_user ORDER BY id LIMIT 1").fetchone()
+            ))
+            res = conn.execute(text("SELECT id FROM app_user ORDER BY id LIMIT 1")).fetchone()
             if res and res[0]:
                 fallback = int(res[0])
-                conn.execute("UPDATE chat_attachment SET upload_user_id = :uid WHERE upload_user_id IS NULL", {'uid': fallback})
+                conn.execute(text("UPDATE chat_attachment SET upload_user_id = :uid WHERE upload_user_id IS NULL"), {'uid': fallback})
 
         db.session.expire_all()
 

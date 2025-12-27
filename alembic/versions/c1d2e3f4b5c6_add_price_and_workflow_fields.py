@@ -33,11 +33,11 @@ def upgrade() -> None:
     if 'user' in inspector.get_table_names():
         cols = [c['name'] for c in inspector.get_columns('user')]
         if 'is_active' not in cols:
-            op.add_column('user', sa.Column('is_active', sa.Boolean(), nullable=True, server_default=sa.text('1')))
+            op.add_column('user', sa.Column('is_active', sa.Boolean(), nullable=True, server_default=sa.text('true')))
         if 'can_edit_workflow' not in cols:
-            op.add_column('user', sa.Column('can_edit_workflow', sa.Boolean(), nullable=True, server_default=sa.text('0')))
+            op.add_column('user', sa.Column('can_edit_workflow', sa.Boolean(), nullable=True, server_default=sa.text('false')))
         if 'can_manage_workflow_templates' not in cols:
-            op.add_column('user', sa.Column('can_manage_workflow_templates', sa.Boolean(), nullable=True, server_default=sa.text('0')))
+            op.add_column('user', sa.Column('can_manage_workflow_templates', sa.Boolean(), nullable=True, server_default=sa.text('false')))
 
     # WorkflowNode: approver_user_ids, is_parallel, required_approvals, actions_on_reject
     if 'workflow_node' in inspector.get_table_names():
@@ -45,7 +45,7 @@ def upgrade() -> None:
         if 'approver_user_ids' not in cols:
             op.add_column('workflow_node', sa.Column('approver_user_ids', sa.Text(), nullable=True))
         if 'is_parallel' not in cols:
-            op.add_column('workflow_node', sa.Column('is_parallel', sa.Boolean(), nullable=True, server_default=sa.text('0')))
+            op.add_column('workflow_node', sa.Column('is_parallel', sa.Boolean(), nullable=True, server_default=sa.text('false')))
         if 'required_approvals' not in cols:
             op.add_column('workflow_node', sa.Column('required_approvals', sa.Integer(), nullable=True, server_default=sa.text('1')))
         if 'actions_on_reject' not in cols:

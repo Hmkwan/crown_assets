@@ -217,15 +217,15 @@
                     <!-- 导出按钮 -->
                     <div class="row g-3 mb-3">
                         <div class="col-12">
-                            <button class="btn btn-info w-100 py-3 text-white btn-export" id="export-mysql-btn">
+                            <button class="btn btn-outline-secondary w-100 py-3 btn-export" id="export-mysql-btn" disabled title="SQLite → MySQL 自动转换已移除。请使用 PostgreSQL 转储或外部迁移工具。">
                                 <i class="bi bi-filetype-sql fs-5 me-2"></i>
-                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 MySQL</span>
+                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 MySQL（已移除）</span>
                             </button>
                         </div>
                         <div class="col-12">
-                            <button class="btn btn-info w-100 py-3 text-white btn-export" id="export-mssql-btn">
+                            <button class="btn btn-outline-secondary w-100 py-3 btn-export" id="export-mssql-btn" disabled title="SQLite → SQL Server 自动转换已移除。请使用 PostgreSQL 转储或外部迁移工具。">
                                 <i class="bi bi-filetype-sql fs-5 me-2"></i>
-                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 SQL Server</span>
+                                <span class="fw-bold" style="font-size: 1.05rem;">导出为 SQL Server（已移除）</span>
                             </button>
                         </div>
                         <div class="col-12">
@@ -233,6 +233,11 @@
                                 <i class="bi bi-filetype-sql fs-5 me-2"></i>
                                 <span class="fw-bold" style="font-size: 1.05rem;">导出为 PostgreSQL</span>
                             </button>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <small class="text-muted d-block" style="font-size: 0.85rem;">
+                                <i class="bi bi-info-circle me-1"></i>历史的 SQLite 自动转换功能已移除；请提供 PostgreSQL SQL 转储 (.sql) 或使用专业迁移工具来完成跨DB迁移。
+                            </small>
                         </div>
                     </div>
                     
@@ -307,9 +312,13 @@
                                         <i class="bi bi-file-zip ms-1" title="压缩文件"></i>
                                         {% endif %}
                                     </span>
+                                {% elif backup.db_type == 'sqlite_legacy' %}
+                                    <span class="badge bg-secondary px-3 py-2" style="font-size: 0.85rem; font-weight: 600;" title="历史 SQLite 备份（不再受支持），请提供 PostgreSQL SQL 转储以用于恢复。">
+                                        <i class="bi bi-database me-1"></i>SQLite（历史，已弃用）
+                                    </span>
                                 {% else %}
                                     <span class="badge bg-secondary px-3 py-2" style="font-size: 0.85rem; font-weight: 600;">
-                                        <i class="bi bi-database me-1"></i>SQLite
+                                        <i class="bi bi-database me-1"></i>未知
                                     </span>
                                 {% endif %}
                             </td>

@@ -37,8 +37,62 @@ def pytest_sessionstart(session):
     from app import create_app, db
     app = create_app()
     with app.app_context():
+        # 在创建新表之前，清理老旧/兼容性的审批相关表（如果存在旧结构），以免在测试中出现模式不一致
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            for tbl in insp.get_table_names():
+                if tbl.startswith('approval_') or tbl == 'workflow_instance':
+                    db.session.execute(text(f"DROP TABLE IF EXISTS {tbl} CASCADE"))
+            db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
         # 创建所有表
         db.create_all()
+
+        # 使 db.drop_all 更加健壮：在 teardown 时如果因缺失命名约束导致 DROP CONSTRAINT 失败，或因约束依赖导致 DROP TABLE 失败，做容错处理
+        try:
+            from sqlalchemy.exc import ProgrammingError as SAProgrammingError, InternalError as SAInternalError
+            from sqlalchemy import text
+            _orig_drop_all = db.drop_all
+            def _safe_drop_all(*args, **kwargs):
+                try:
+                    return _orig_drop_all(*args, **kwargs)
+                except (SAProgrammingError, SAInternalError) as e:
+                    # 如果是因为约束不存在导致的错误，回滚并忽略；否则尝试更强力的清理（仅适用于测试环境）
+                    msg = str(e)
+                    if 'does not exist' in msg or ('constraint' in msg and 'does not exist' in msg):
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        return
+                    # 如果是因为依赖对象仍存在导致 DROP TABLE 失败，尝试重建 schema（DROP SCHEMA CASCADE）以保证测试环境干净
+                    if 'depends on' in msg or 'DependentObjectsStillExist' in msg:
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        try:
+                            # 只在测试数据库上执行强力清理；pytest_sessionstart 已经保证 TEST_DATABASE_URI 指向本地测试 DB
+                            db.session.execute(text("DROP SCHEMA public CASCADE"))
+                            db.session.execute(text("CREATE SCHEMA public"))
+                            db.session.commit()
+                        except Exception:
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                        return
+                    raise
+            db.drop_all = _safe_drop_all
+        except Exception:
+            # 在极端环境下保守回退到原行为
+            pass
 
         # 初始化系统审批角色（如果尚未创建）
         try:

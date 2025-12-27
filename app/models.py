@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -884,8 +884,8 @@ class Announcement(db.Model):
     def is_active(self):
         """判断公告是否有效"""
         # 使用 UTC 时间判断（数据库里按 UTC 存储）
-        from datetime import datetime
-        now = datetime.utcnow()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
         if not self.is_published:
             return False
         if self.publish_time and self.publish_time > now:
@@ -919,9 +919,9 @@ class Announcement(db.Model):
     @classmethod
     def get_active_announcements(cls, limit=None):
         """获取有效的公告列表"""
-        from datetime import datetime
+        from datetime import datetime, timezone
         # 使用 UTC 时间判断
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         try:
             query = cls.query.filter(
                 cls.is_published == True,
@@ -944,11 +944,42 @@ class Announcement(db.Model):
             
             return query.all()
         except Exception as e:
-            # 在测试或迁移尚未运行的环境下，数据库表可能不存在（如 in-memory sqlite）。
+            # 在测试或迁移尚未运行的环境下，数据库表可能不存在（例如测试环境的临时数据库）。
             # 为保持非破坏性，遇到 DB 相关错误时返回空列表并记录调试信息。
             import logging
             logging.getLogger(__name__).debug('get_active_announcements failed: %s', e, exc_info=True)
             return []
+
+
+# ------------------ 防御性钩子: 防止空 content 被意外 flush 到数据库 ------------------
+from sqlalchemy import event
+from sqlalchemy.orm.attributes import get_history
+import logging
+
+@event.listens_for(db.session, 'before_flush')
+def _prevent_null_announcement_content(session, flush_context, instances):
+    """在 flush 前检查 Announcement 实例，若 content 被意外设为 None，则恢复为之前的值或设为空字符串，避免触发 DB NOT NULL 错误。
+
+    说明：此钩子用于防御性修复（在发现上游有潜在代码把 content 设为 None 的情况下）。它会优先尝试从属性历史中恢复已删除值，若无法恢复则将其设置为空字符串，并记录警告日志。
+    """
+    logger = logging.getLogger(__name__)
+    # 使用 list(...) 拷贝，因为 session.dirty 可能在迭代时变动
+    for obj in list(session.dirty):
+        if isinstance(obj, Announcement):
+            try:
+                if getattr(obj, 'content', None) is None:
+                    hist = get_history(obj, 'content')
+                    # hist.deleted 包含被替换掉的旧值
+                    if hist.deleted:
+                        old = hist.deleted[0]
+                        obj.content = old
+                        logger.warning('Prevented NULL content flush for Announcement id %s: restored previous content', getattr(obj, 'id', None))
+                    else:
+                        # 无法恢复，设置为空字符串作为兜底（并记录）
+                        obj.content = ''
+                        logger.warning('Prevented NULL content flush for Announcement id %s: set empty string as fallback', getattr(obj, 'id', None))
+            except Exception:
+                logger.exception('Error while preventing null announcement content during before_flush')
 
 
 # 导入审批角色模型

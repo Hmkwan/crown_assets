@@ -33,8 +33,8 @@ def test_chinese_font():
                 print(f"✗ 加载字体失败 {font_path}: {e}")
     
     if font is None:
-        print("✗ 未找到任何可用的中文字体!")
-        return False
+        import pytest
+        pytest.skip("未找到任何可用的中文字体")
     
     # 绘制中文文本
     test_text = "设备名称: 测试设备\n设备编号: EQ-2024-001\n位置: 办公室"
@@ -48,8 +48,6 @@ def test_chinese_font():
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path)
     print(f"✓ 测试图片已保存: {output_path}")
-    
-    return True
 
 if __name__ == '__main__':
     success = test_chinese_font()

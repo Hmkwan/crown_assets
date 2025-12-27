@@ -8,7 +8,7 @@
 
 ## 📊 实施概览
 
-为皇冠新材IT资产管理系统成功添加了完整的PostgreSQL数据库备份和恢复功能，使系统同时支持SQLite和PostgreSQL两种数据库。
+为皇冠新材IT资产管理系统成功完善了 PostgreSQL 数据库备份与恢复功能。项目已移除对 SQLite 的运行时支持（历史 SQLite 备份以 legacy 标记显示，供参考）。
 
 ---
 
@@ -18,8 +18,8 @@
 
 #### 1.1 备份功能增强
 - ✅ 重写`backup_database()`函数
-  - 支持SQLite文件复制备份
   - 支持PostgreSQL pg_dump备份
+  - 历史 SQLite 文件备份仅以 'sqlite_legacy' 列出（不再受支持）
   - 支持压缩备份（.sql.gz格式）
   - 自动生成时间戳文件名
   - 友好的错误提示（检测pg_dump是否安装）

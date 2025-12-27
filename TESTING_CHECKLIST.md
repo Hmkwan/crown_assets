@@ -254,7 +254,7 @@ with app.app_context():
 - 操作系统: Windows/Linux
 - 浏览器: Chrome/Firefox/Edge
 - Docker版本: 
-- 数据库: SQLite
+- 数据库: PostgreSQL（已移除 SQLite 运行时支持；测试请配置 TEST_DATABASE_URI）
 
 ### 测试结果
 

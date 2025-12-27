@@ -16,9 +16,12 @@ def app_ctx():
 
 def test_create_conversation_joins_user_if_not_participant(app_ctx):
     # 创建两个用户 u1 (请求者) 和 u2 (已有会话的参与者)
-    u1 = User(username='u1-join-test', email='u1-join@example.com')
+    import uuid
+    u1_username = 'u1-' + uuid.uuid4().hex[:8]
+    u2_username = 'u2-' + uuid.uuid4().hex[:8]
+    u1 = User(username=u1_username, email=f'{u1_username}@example.com')
     u1.set_password('pass')
-    u2 = User(username='u2-join-test', email='u2-join@example.com')
+    u2 = User(username=u2_username, email=f'{u2_username}@example.com')
     u2.set_password('pass')
     db = app_ctx.db if hasattr(app_ctx, 'db') else __import__('app').db
     db.session.add_all([u1, u2])

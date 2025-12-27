@@ -100,14 +100,49 @@ def get_users():
     """获取可以聊天的用户列表(排除自己)"""
     users = User.query.filter(User.id != current_user.id).all()
     return jsonify({
-        'users': [{
+        'users': [ {
             'id': u.id,
             'username': u.username,
-            'real_name': u.real_name,
+            'real_name': getattr(u, 'real_name', u.username),
             'department': u.department,
             'avatar': None  # 可以后续添加头像功能
-        } for u in users]
+        } for u in users ]
     })
+
+
+# 新增: 提供给聊天前端的工作流模板列表（仅 chat 类型、对已登录用户可用）
+from app.approval_models import WorkflowTemplate
+
+@bp.route('/workflow_templates', methods=['GET'])
+@login_required
+def get_chat_workflow_templates():
+    """获取适用于聊天的工作流模板（order_type == 'chat'）"""
+    try:
+        templates = WorkflowTemplate.query.filter_by(order_type='chat', is_active=True).order_by(WorkflowTemplate.created_date.desc()).all()
+        result = [
+            {
+                'id': t.id,
+                'name': t.name,
+                'description': t.description,
+                'is_default': t.is_default
+            } for t in templates
+        ]
+        return jsonify({'templates': result}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# 提供一个 /start_workflow API 的薄薄包装器，复用聊天页面路由中的实现，确保测试和前端都能通过 /api/chat/start_workflow 访问
+@bp.route('/start_workflow', methods=['POST'])
+@login_required
+def start_workflow_api():
+    """在会话中发起审批（API） - 调用已有的页面路由逻辑"""
+    try:
+        # 重用 chat_routes 中的实现
+        from app.chat_routes import start_workflow_from_chat
+        return start_workflow_from_chat()
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @bp.route('/conversations', methods=['GET'])
@@ -158,7 +193,7 @@ def get_conversations():
                 other_user = {
                     'id': other_participant.user.id,
                     'username': other_participant.user.username,
-                    'real_name': other_participant.user.real_name
+                    'real_name': getattr(other_participant.user, 'real_name', other_participant.user.username)
                 }
         
         # 获取所有参与者数量

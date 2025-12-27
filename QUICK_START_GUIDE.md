@@ -25,8 +25,22 @@ flask shell
 >>> from init_new_features import init_database
 >>> init_database()
 
-# 方式3：直接执行SQL文件
-sqlite3 instance/asset_management.db < init_new_features.sql
+# 方式3：使用 PostgreSQL（生产推荐）
+确保已将 `DATABASE_URL` 或 `SQLALCHEMY_DATABASE_URI` 配置为 PostgreSQL，例如：
+
+```bash
+export DATABASE_URL="postgresql://user:password@localhost:5432/it_asset"
+# 或在 Windows PowerShell 中
+$env:DATABASE_URL = "postgresql://user:password@localhost:5432/it_asset"
+```
+
+然后运行 Alembic 迁移以创建表：
+
+```bash
+alembic upgrade head
+```
+
+如果你已有一个 PostgreSQL SQL 转储 (.sql)，可以通过 `psql -d <db> -f dump.sql` 导入。 如果需要迁移脚本或协助，请参考 `docs/legacy/` 中的历史 SQLite 迁移说明。
 ```
 
 **脚本会自动**：

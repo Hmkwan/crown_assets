@@ -7,34 +7,32 @@
 - ✅ **Microsoft SQL Server**
 - ✅ **PostgreSQL**
 
+> 注意：历史的自动转换脚本（`scripts/sqlite_to_*` 系列）已弃用并移到 `docs/legacy/`。当前运行时不再直接支持 `.db` 导入，推荐导出 SQLite SQL 转储并按需清理后导入目标数据库。
+
 ## 🔄 迁移方式
 
-### 方式一: 在线导出SQL文件 (推荐)
+### 方式一: 在线导出SQL文件（注意）
 
 1. **登录管理员账号**
 2. **进入"数据库管理"页面**
-3. **选择导出选项**:
-   - 导出为 MySQL
-   - 导出为 SQL Server
-   - 导出为 PostgreSQL (需先运行一次以确认脚本存在)
+3. **说明**:
+   - 页面保留 "导出为 PostgreSQL" 的导出支持
+   - "导出为 MySQL" 和 "导出为 SQL Server" 的自动转换按钮已禁用（历史功能已移除）
 
-4. **下载生成的SQL文件**
+4. **下载生成的SQL文件或使用 PostgreSQL SQL 转储 (.sql/.sql.gz)**
 5. **在目标数据库执行SQL**
 
-### 方式二: 命令行导出
+如果需要历史自动转换脚本，请参阅 `docs/legacy/`（脚本已归档，使用需谨慎并在测试环境验证）。
+
+### 方式二: 命令行导出（推荐导出为 SQL 转储）
 
 ```powershell
 # 激活虚拟环境
 .\.venv\Scripts\Activate.ps1
 
-# 导出到 MySQL
-python scripts/sqlite_to_mysql.py --sqlite app.db --out migrations/mysql_dump.sql
-
-# 导出到 SQL Server
-python scripts/sqlite_to_mssql.py --sqlite app.db --out migrations/mssql_dump.sql
-
-# 导出到 PostgreSQL
-python scripts/sqlite_to_postgresql.py --sqlite app.db --out migrations/postgresql_dump.sql
+# 导出 SQLite SQL 转储（推荐）
+sqlite3 app.db .dump > migrations/app_db_dump.sql
+# 之后请手动清理或转换不兼容的语法（例如 PRAGMA、sqlite_sequence、AUTOINCREMENT 语法等），或参阅 docs/legacy/ 获取历史脚本与建议
 ```
 
 ## 🎯 迁移步骤详解

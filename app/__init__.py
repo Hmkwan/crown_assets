@@ -26,16 +26,18 @@ csrf = CSRFProtect()
 
 
 def get_beijing_now():
-    """获取当前北京时间（Asia/Shanghai）"""
+    """获取当前北京时间（Asia/Shanghai），返回时区感知的 datetime（tzinfo 不为 None）。"""
     try:
         import pytz
         from datetime import datetime
         tz = pytz.timezone('Asia/Shanghai')
-        return datetime.now(tz).replace(tzinfo=None)
+        # 不再去除 tzinfo，返回带有 Asia/Shanghai tzinfo 的时间对象
+        return datetime.now(tz)
     except:
-        from datetime import datetime, timedelta
-        # 如果pytz不可用，使用UTC+8
-        return datetime.utcnow() + timedelta(hours=8)
+        from datetime import datetime, timezone
+        # 如果 pytz 不可用，返回一个带有 +08:00 偏移的 timezone-aware datetime
+        from datetime import timedelta
+        return datetime.now(timezone(timedelta(hours=8)))
 
 
 def ensure_ascii_headers(response):
@@ -77,6 +79,9 @@ def create_app(config_class=Config):
     # 确保在测试上下文或自定义 TestConfig 未设置 SECRET_KEY 时仍能打开 session
     if not app.config.get('SECRET_KEY'):
         app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'test-secret'
+
+    # 避免 Flask-SQLAlchemy 的 FSADeprecationWarning：确保显式设置 SQLALCHEMY_TRACK_MODIFICATIONS
+    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
 
     # 如果在 pytest 上下文中运行（如 CI 或本地测试），或显式设置 TESTING=1，使用内存 SQLite 数据库以避免依赖外部 Postgres/psycopg2
     import sys as _sys

@@ -7,7 +7,7 @@
 - Python版本: 3.14
 - Flask版本: 2.0.3
 - SQLAlchemy版本: 最新
-- 数据库: SQLite (内存数据库用于测试)
+- 数据库: PostgreSQL（测试请使用 `TEST_DATABASE_URI` 指向 PostgreSQL 测试库；内存 SQLite 已弃用）
 
 ## 测试概览
 **总测试数**: 6  
